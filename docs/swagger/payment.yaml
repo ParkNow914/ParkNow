@@ -1,0 +1,415 @@
+openapi: 3.0.0
+info:
+  title: API de Pagamentos - ParkNow
+  description: |
+    API para gerenciamento de pagamentos no sistema ParkNow.
+    Inclui integração com PIX e cartões via Mercado Pago.
+  version: 1.0.0
+  contact:
+    name: Suporte ParkNow
+    email: suporte@parknow.com.br
+
+servers:
+  - url: /api
+    description: API Principal
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          description: Mensagem de erro amigável
+        error:
+          type: string
+          description: Detalhes do erro (apenas em desenvolvimento)
+    
+    PagamentoPIX:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID do pagamento no sistema
+        qr_code:
+          type: string
+          description: Código QR Code em formato texto
+        qr_code_base64:
+          type: string
+          description: Código QR Code em base64 (para exibição como imagem)
+        link_pagamento:
+          type: string
+          format: url
+          description: URL para visualização do pagamento
+        valor:
+          type: number
+          format: float
+          description: Valor do pagamento
+        chave_pix:
+          type: string
+          description: Chave PIX do destinatário
+        nome_titular:
+          type: string
+          description: Nome do titular da conta
+        data_expiracao:
+          type: string
+          format: date-time
+          description: Data de expiração do QR Code
+    
+    PagamentoCartao:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID do pagamento no sistema
+        link_pagamento:
+          type: string
+          format: url
+          description: URL para finalização do pagamento
+        valor:
+          type: number
+          format: float
+          description: Valor do pagamento
+        metodo_pagamento:
+          type: string
+          enum: [credit_card, debit_card]
+          description: Tipo de cartão (crédito ou débito)
+        parcelas:
+          type: integer
+          description: Número de parcelas
+        status:
+          type: string
+          description: Status atual do pagamento
+    
+    StatusPagamento:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID do pagamento
+        status:
+          type: string
+          enum: [pending, approved, in_process, rejected, cancelled, refunded, charged_back, in_mediation]
+          description: Status atual do pagamento
+        valor:
+          type: number
+          format: float
+          description: Valor do pagamento
+        metodo_pagamento:
+          type: string
+          description: Método de pagamento utilizado
+        data_criacao:
+          type: string
+          format: date-time
+          description: Data de criação do pagamento
+        data_atualizacao:
+          type: string
+          format: date-time
+          description: Data da última atualização
+        dados:
+          type: object
+          description: Dados completos do pagamento
+    
+    ReservaComPagamento:
+      type: object
+      properties:
+        reserva:
+          $ref: '#/components/schemas/Reserva'
+        pagamento:
+          oneOf:
+            - $ref: '#/components/schemas/PagamentoPIX'
+            - $ref: '#/components/schemas/PagamentoCartao'
+    
+    EstacionamentoPagamentoConfig:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID da configuração
+        estacionamento_id:
+          type: integer
+          description: ID do estacionamento
+        tipo_chave_pix:
+          type: string
+          enum: [CPF, CNPJ, EMAIL, TELEFONE, ALEATORIA]
+          description: Tipo da chave PIX
+        chave_pix:
+          type: string
+          description: Valor da chave PIX
+        nome_titular:
+          type: string
+          description: Nome do titular da conta
+        banco:
+          type: string
+          description: Nome do banco (opcional)
+        tipo_conta:
+          type: string
+          enum: [CONTA_CORRENTE, CONTA_POUPANCA, CONTA_PAGAMENTO]
+          default: CONTA_CORRENTE
+          description: Tipo de conta bancária
+        agencia:
+          type: string
+          description: Número da agência (opcional)
+        conta:
+          type: string
+          description: Número da conta (opcional)
+        data_criacao:
+          type: string
+          format: date-time
+          description: Data de criação do registro
+        data_atualizacao:
+          type: string
+          format: date-time
+          description: Data da última atualização
+    
+    EstacionamentoPagamentoConfigInput:
+      type: object
+      required:
+        - tipo_chave_pix
+        - chave_pix
+        - nome_titular
+      properties:
+        tipo_chave_pix:
+          type: string
+          enum: [CPF, CNPJ, EMAIL, TELEFONE, ALEATORIA]
+          description: Tipo da chave PIX
+        chave_pix:
+          type: string
+          description: Valor da chave PIX
+        nome_titular:
+          type: string
+          description: Nome do titular da conta
+        banco:
+          type: string
+          description: Nome do banco (opcional)
+        tipo_conta:
+          type: string
+          enum: [CONTA_CORRENTE, CONTA_POUPANCA, CONTA_PAGAMENTO]
+          default: CONTA_CORRENTE
+          description: Tipo de conta bancária
+        agencia:
+          type: string
+          description: Número da agência (opcional)
+        conta:
+          type: string
+          description: Número da conta (opcional)
+
+  responses:
+    NaoAutorizado:
+      description: Não autorizado - Token inválido ou ausente
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: 'Token de autenticação inválido ou expirado'
+    
+    NaoEncontrado:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: 'Recurso não encontrado'
+    
+    ErroValidacao:
+      description: Erro de validação dos dados
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: 'Dados inválidos'
+            error: 'A chave PIX é obrigatória para o tipo CNPJ'
+    
+    ErroServidor:
+      description: Erro interno do servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: 'Ocorreu um erro inesperado. Tente novamente mais tarde.'
+
+  security:
+    - bearerAuth: []
+
+paths:
+  /reservas/com-pagamento:
+    post:
+      tags:
+        - Reservas com Pagamento
+      summary: Cria uma nova reserva com pagamento
+      description: Cria uma nova reserva e inicia o processo de pagamento via PIX ou cartão
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - estacionamento_id
+                - data_entrada
+                - data_saida
+                - valor
+              properties:
+                estacionamento_id:
+                  type: integer
+                  description: ID do estacionamento
+                data_entrada:
+                  type: string
+                  format: date-time
+                  description: Data e hora de entrada
+                data_saida:
+                  type: string
+                  format: date-time
+                  description: Data e hora de saída
+                valor:
+                  type: number
+                  format: float
+                  description: Valor total da reserva
+                veiculo_placa:
+                  type: string
+                  description: Placa do veículo (opcional)
+                veiculo_modelo:
+                  type: string
+                  description: Modelo do veículo (opcional)
+                observacoes:
+                  type: string
+                  description: Observações adicionais (opcional)
+                metodo_pagamento:
+                  type: string
+                  enum: [pix, credit_card, debit_card]
+                  default: pix
+                  description: Método de pagamento
+      responses:
+        '201':
+          description: Reserva criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservaComPagamento'
+        '400':
+          $ref: '#/components/responses/ErroValidacao'
+        '401':
+          $ref: '#/components/responses/NaoAutorizado'
+        '500':
+          $ref: '#/components/responses/ErroServidor'
+
+  /pagamentos/{id}/status:
+    get:
+      tags:
+        - Pagamentos
+      summary: Consulta o status de um pagamento
+      description: Retorna o status atual de um pagamento pelo seu ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID do pagamento
+      responses:
+        '200':
+          description: Status do pagamento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusPagamento'
+        '401':
+          $ref: '#/components/responses/NaoAutorizado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroServidor'
+
+  /pagamentos/{id}/novo-qrcode:
+    post:
+      tags:
+        - Pagamentos
+      summary: Gera um novo QR Code para pagamento PIX
+      description: Gera um novo QR Code para um pagamento PIX expirado ou cancelado
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID do pagamento original
+      responses:
+        '200':
+          description: Novo QR Code gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagamentoPIX'
+        '400':
+          description: Não é possível gerar um novo QR Code para este pagamento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: 'Não é possível gerar um novo QR Code para um pagamento já aprovado'
+        '401':
+          $ref: '#/components/responses/NaoAutorizado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroServidor'
+
+  /webhooks/mercado-pago:
+    post:
+      tags:
+        - Webhooks
+      summary: Webhook para notificações do Mercado Pago
+      description: Endpoint para receber notificações de atualização de status de pagamento
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  description: Tipo de notificação
+                  example: payment
+                data:
+                  type: string
+                  description: ID do pagamento
+                  example: "123456789"
+      responses:
+        '200':
+          description: Notificação recebida com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+        '400':
+          description: Dados inválidos
+        '500':
+          $ref: '#/components/responses/ErroServidor'

@@ -1,0 +1,80 @@
+doctype html
+html
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title Cancelamento de Reserva - ParkNow
+    style.
+      body { 
+        font-family: Arial, sans-serif; 
+        line-height: 1.6; 
+        color: #333; 
+        max-width: 600px; 
+        margin: 0 auto; 
+        padding: 20px; 
+      }
+      .header { 
+        background-color: #e74c3c; 
+        color: white; 
+        padding: 20px; 
+        text-align: center; 
+        border-radius: 5px 5px 0 0; 
+      }
+      .content { 
+        padding: 20px; 
+        border: 1px solid #ddd; 
+        border-top: none; 
+        border-radius: 0 0 5px 5px; 
+      }
+      .status-box { 
+        background-color: #f8f9fa; 
+        border-left: 4px solid #e74c3c; 
+        padding: 15px; 
+        margin: 15px 0; 
+        border-radius: 0 4px 4px 0;
+      }
+      .footer { 
+        margin-top: 30px; 
+        font-size: 12px; 
+        color: #7f8c8d; 
+        text-align: center; 
+      }
+      .button { 
+        display: inline-block; 
+        padding: 10px 20px; 
+        background-color: #e74c3c; 
+        color: white; 
+        text-decoration: none; 
+        border-radius: 4px; 
+        margin: 10px 0; 
+      }
+  body
+    .header
+      h1 Reserva Cancelada
+    .content
+      p Olá, #{nome}!
+      
+      .status-box
+        p Lamentamos informar que sua reserva foi cancelada pelo seguinte motivo:
+        p(style='font-weight: bold;') #{motivo}
+
+      h3 Detalhes da Reserva
+      p 
+        strong Número da reserva: 
+        | ##{reservaId}
+      p 
+        strong Data da reserva: 
+        | #{dataReserva}
+      
+      p Caso acredite que houve um engano ou precise de ajuda, entre em contato com nosso suporte.
+      
+      p(style='text-align: center; margin: 25px 0;')
+        a.button(href=`${urlBase}/suporte`, style='color: white;') Falar com o Suporte
+      
+      p Atenciosamente,
+        br
+        | Equipe ParkNow
+    
+    .footer
+      p Este é um e-mail automático, por favor não responda a esta mensagem.
+      p © #{new Date().getFullYear()} ParkNow. Todos os direitos reservados.

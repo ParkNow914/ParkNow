@@ -1,0 +1,97 @@
+# Dependências
+/node_modules
+
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos de desenvolvimento
+.DS_Store
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Arquivos de build
+/dist
+/build
+
+# Arquivos de cache
+.cache/
+.parcel-cache/
+
+# Arquivos de backup
+/backups/
+*.bak
+*.tmp
+
+# Arquivos do sistema
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Arquivos de configuração local
+config/local.*
+
+# Arquivos de teste
+/coverage
+
+# Arquivos de ambiente temporário
+*.swp
+*~
+.~lock.*
+
+# Arquivos de banco de dados
+*.sqlite
+*.sqlite3
+*.db
+
+# Arquivos de sessão
+*.sess
+*.session
+
+# Arquivos de cache do npm
+.npm
+.npmrc
+
+# Arquivos de cache do Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Arquivos de cache do Babel
+.cache/
+
+# Arquivos de cache do Next.js
+.next/
+out/
+
+# Arquivos de cache do Expo
+.expo/
+web-build/
+
+# Arquivos de cache do React Native
+.expo-shared/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+web-report/
+*.tsbuildinfo
+.next
+.null
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

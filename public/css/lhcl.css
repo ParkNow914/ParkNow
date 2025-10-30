@@ -1,0 +1,172 @@
+/* public/css/lhcl.css */
+/* Estilos para layout com menu lateral (sidenav) e outros elementos */
+
+/* --- Estilos Globais do Corpo --- */
+body.lhcl-layout {
+    background: #1A2238; /* Azul bem escuro */
+    color: #D0D0D0; /* Cinza claro para texto */
+    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+  }
+  
+  /* --- Menu Lateral (Sidenav) --- */
+  .sidenav {
+      height: 100%;
+      width: 0; /* Inicia fechado */
+      position: fixed;
+      z-index: 1045; /* Z-index alto */
+      top: 0;
+      left: 0;
+      background-color: #0D1117; /* Quase preto */
+      overflow-x: hidden;
+      padding-top: 70px; /* Espaço para botão fechar e talvez logo */
+      transition: width 0.45s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Efeito de bounce */
+      box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+  }
+  
+  /* Classe para abrir o menu via JS */
+  .sidenav.open {
+      width: 260px; /* Largura do menu aberto */
+  }
+  
+  /* Logo dentro do Sidenav (opcional) */
+  .sidenav .sidenav-logo {
+      padding: 0px 32px 20px 32px; /* Espaço abaixo do logo */
+      text-align: center;
+  }
+  .sidenav .sidenav-logo img {
+      max-width: 80%;
+      height: auto;
+  }
+  
+  
+  /* Links no Sidenav */
+  .sidenav a {
+      padding: 14px 15px 14px 32px;
+      text-decoration: none;
+      font-size: 1.15em; /* Tamanho link */
+      color: #a0a0a0; /* Cinza mais claro */
+      display: flex; /* Para alinhar ícone e texto */
+      align-items: center;
+      transition: color 0.25s ease, background-color 0.25s ease, border-left-color 0.25s ease;
+      border-left: 4px solid transparent;
+      margin: 3px 0;
+      font-weight: 500; /* Peso médio */
+  }
+  .sidenav a i.fa, /* Ícones Font Awesome */
+  .sidenav a i.fas,
+  .sidenav a i.far {
+      margin-right: 12px; /* Espaço depois do ícone */
+      width: 22px; /* Largura fixa para alinhamento */
+      text-align: center;
+      font-size: 1.1em; /* Tamanho do ícone */
+      opacity: 0.7;
+      transition: opacity 0.25s ease;
+  }
+  
+  /* Efeito Hover/Ativo nos Links */
+  .sidenav a:hover,
+  .sidenav a.active {
+      color: #ffffff; /* Branco */
+      background-color: rgba(84, 200, 125, 0.1); /* Fundo Verde ParkNow sutil */
+      border-left-color: #54C87D; /* Borda Verde ParkNow */
+  }
+  .sidenav a:hover i,
+  .sidenav a.active i {
+      opacity: 1;
+  }
+  
+  /* Botão Fechar (X) */
+  .sidenav .closebtn {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      font-size: 40px;
+      color: #a0a0a0;
+      text-decoration: none;
+      line-height: 1;
+      padding: 0 5px; /* Área de clique */
+      transition: color 0.3s ease, transform 0.3s ease;
+  }
+  .sidenav .closebtn:hover {
+      color: #ffffff;
+      transform: rotate(90deg);
+  }
+  
+  
+  /* --- Conteúdo Principal (#main) --- */
+  #main {
+      transition: margin-left 0.45s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      padding: 30px;
+      /* margin-left: 0; */ /* Ajustado por JS se necessário */
+      min-height: calc(100vh - 60px); /* Altura mínima para ocupar espaço */
+  }
+  
+  /* Estilo para empurrar conteúdo (se menu lateral for fixo e visível) */
+  #main.sidenav-push {
+      margin-left: 260px; /* Mesma largura do Sidenav aberto */
+  }
+  
+  /* Overlay para mobile */
+  #main-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.6); z-index: 1035; /* Abaixo do sidenav */
+      opacity: 0; visibility: hidden;
+      transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+  }
+  #main-overlay.active {
+      opacity: 1; visibility: visible;
+      transition: opacity 0.4s ease, visibility 0s linear 0s;
+  }
+  
+  
+  /* Media query para telas menores */
+  @media screen and (max-height: 450px) {
+      .sidenav { padding-top: 15px; }
+      .sidenav a { font-size: 1em; padding: 10px 15px 10px 32px; }
+      .sidenav a i { font-size: 1em; margin-right: 10px; }
+      .sidenav .closebtn { top: 10px; font-size: 36px; }
+  }
+  @media screen and (max-width: 991px) { /* Tablets e abaixo - Menu sobrepõe */
+       #main.sidenav-push {
+          margin-left: 0; /* Não empurra conteúdo */
+      }
+  }
+  
+  
+  /* --- Caixa de Texto (text-box) --- */
+  .text-box {
+      width: 90%; max-width: 500px; min-height: 180px;
+      margin: 60px auto; padding: 35px; text-align: center;
+      background-color: #ffffff; border: 1px solid #dce1e6; color: #343a40;
+      font-family: "Roboto", "Segoe UI", sans-serif; font-size: 1.05rem;
+      border-radius: 12px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.09);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .text-box:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.13); }
+  .text-box h1 { font-family: 'Days One', sans-serif; font-size: 1.8em; margin-bottom: 20px; color: #004080; }
+  .text-box p { font-size: 1.05em; line-height: 1.7; color: #495057; }
+  
+  /* --- Barra de Navegação Simples (.nav) --- */
+  .nav.simple-bar {
+      width: 100%; background-color: #2c3e50; /* Azul acinzentado */ color: #ecf0f1; /* Cinza claro */
+      font-family: "Roboto", sans-serif; font-size: 1rem; text-align: center;
+      padding: 15px 0; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .nav.simple-bar a { text-decoration: none; color: #5dade2; /* Azul claro */ font-size: 1.1em; margin: 0 15px; transition: color 0.3s ease; font-weight: 500; }
+  .nav.simple-bar a:hover { color: #fff; }
+  
+  
+  /* --- Botão Lateral (.button-side) --- */
+  .button-side {
+      display: inline-flex; /* Alinha ícone e texto */
+      align-items: center;
+      justify-content: center;
+      margin: 5px; padding: 10px 20px; border-radius: 6px;
+      background-color: #54C87D; color: #fff; border: none; cursor: pointer;
+      font-size: 1rem; font-weight: 600;
+      transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.18);
+  }
+  .button-side:hover { background-color: #4aa06b; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.25); }
+  .button-side i { margin-right: 8px; line-height: 1; }

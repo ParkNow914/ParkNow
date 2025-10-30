@@ -1,0 +1,33 @@
+<!-- Modal de Login -->
+<div id="loginModal" class="modal fade" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loginModalLabel">Acessar Conta</h5>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="login-feedback" style="display: none;"></div>
+                <form id="loginUserForm" method="POST" novalidate autocomplete="on">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" class="form-control" id="loginEmail" name="email" autocomplete="username" required>
+                        <div class="invalid-feedback">Email inválido.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Senha</label>
+                        <input type="password" class="form-control" id="loginPassword" name="senha" autocomplete="current-password" required>
+                        <div class="invalid-feedback">Senha obrigatória.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                        Entrar
+                    </button>
+                    <div class="text-center mt-3">
+                        <a href="#" data-toggle="modal" data-target="#forgotPasswordModal" data-dismiss="modal">Esqueci minha senha</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

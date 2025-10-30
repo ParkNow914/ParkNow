@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seleção de Recursos - ParkNow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .parking-card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .vehicle-type {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .vehicle-type:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .selected {
+            background-color: #e3f2fd;
+            border: 2px solid #0d6efd;
+        }
+        .alert {
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        .btn-primary {
+            padding: 10px 30px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+        }
+        .btn-primary:disabled {
+            opacity: 0.7;
+        }
+        @media (max-width: 768px) {
+            .vehicle-type {
+                padding: 12px;
+            }
+            .btn-primary {
+                padding: 8px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card parking-card">
+                    <div class="card-body">
+                        <h2 class="card-title text-center mb-4">Seleção de Recursos</h2>
+                        
+                        <div class="mb-4">
+                            <h4 class="mb-3">Tempo de Permanência</h4>
+                            <div class="input-group mb-3">
+                                <input type="number" class="form-control" id="hours" min="1" placeholder="Horas">
+                                <span class="input-group-text">h</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 class="mb-3">Tipo de Veículo</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="vehicle-type p-3" onclick="selectVehicleType('car')">
+                                        <div class="text-center">
+                                            <i class="fas fa-car fa-3x mb-2"></i>
+                                            <h5>Carro</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="vehicle-type p-3" onclick="selectVehicleType('motorcycle')">
+                                        <div class="text-center">
+                                            <i class="fas fa-motorcycle fa-3x mb-2"></i>
+                                            <h5>Motocicleta</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 class="mb-3">Cálculo Estimado</h4>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Tempo Estimado:</strong> <span id="estimatedTime">0h</span></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Valor Estimado:</strong> <span id="estimatedCost">R$ 0,00</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <button class="btn btn-primary btn-lg mb-3" onclick="calculateEstimate()">Calcular Estimativa</button>
+                            <div id="pix-payment-section" class="mt-3" style="display: none;">
+                                <p class="mb-3">Deseja prosseguir com o pagamento via PIX?</p>
+                                <button class="btn btn-success btn-lg" id="btn-pagamento-pix" 
+                                    data-estacionamento-id="1" 
+                                    data-reserva-id="<%= reservaId || '123' %>" 
+                                    data-valor="" 
+                                    data-data-entrada="<%= new Date().toISOString() %>" 
+                                    data-data-saida="<%= new Date(Date.now() + 3600000).toISOString() %>">
+                                    <i class="fas fa-qrcode me-2"></i>Pagar com PIX
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://kit.fontawesome.com/6c364e9b10.js" crossorigin="anonymous"></script>
+    <script src="/js/components/ManualPixPaymentModal.js"></script>
+    <script src="/js/pixPayment.js"></script>
+    <script>
+        let selectedVehicle = null;
+        let isLoading = false;
+        
+        function selectVehicleType(type) {
+            selectedVehicle = type;
+            $('.vehicle-type').removeClass('selected');
+            $(`.vehicle-type:contains('${type === 'car' ? 'Carro' : 'Motocicleta'}')`).addClass('selected');
+            updateEstimate();
+        }
+
+        function updateEstimate() {
+            if (!isLoading && selectedVehicle) {
+                const hours = parseInt($('#hours').val()) || 0;
+                if (hours >= 1) {
+                    calculateEstimate();
+                }
+            }
+        }
+
+        function calculateEstimate() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            $('.btn-primary').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Calculando...');
+
+            setTimeout(() => {
+                const hours = parseInt($('#hours').val());
+                if (!hours || hours < 1) {
+                    showError('Por favor, insira um tempo de permanência válido.');
+                    return;
+                }
+
+                if (!selectedVehicle) {
+                    showError('Por favor, selecione um tipo de veículo.');
+                    return;
+                }
+
+                // Preços base (exemplo)
+                const prices = {
+                    car: 10.00,    // R$ 10,00 por hora
+                    motorcycle: 5.00 // R$ 5,00 por hora
+                };
+
+                const totalCost = (hours * prices[selectedVehicle]).toFixed(2);
+                
+                $('#estimatedTime').text(`${hours}h`);
+                $('#estimatedCost').text(`R$ ${totalCost}`);
+                
+                // Atualizar dados do botão PIX
+                $('#btn-pagamento-pix').data('valor', totalCost);
+                
+                // Mostrar seção de pagamento
+                $('#pix-payment-section').fadeIn();
+                
+                showSuccess('Cálculo realizado com sucesso!');
+                
+                isLoading = false;
+                $('.btn-primary').prop('disabled', false).html('Calcular Estimativa');
+            }, 500);
+        }
+
+        function showError(message) {
+            $('.alert').remove();
+            $('.card-body').prepend(`<div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`);
+        }
+
+        function showSuccess(message) {
+            $('.alert').remove();
+            $('.card-body').prepend(`<div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`);
+        }
+
+        // Atualizar cálculo quando o input mudar
+        $('#hours').on('input', updateEstimate);
+
+        // Inicializar botão de pagamento PIX
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar botões de pagamento PIX
+            window.PixPayment.setupButtons({
+                onPaymentInitiated: function(data) {
+                    console.log('Pagamento PIX iniciado:', data);
+                    // Aqui você pode adicionar lógica adicional quando o pagamento for iniciado
+                },
+                onPaymentConfirmed: function(data) {
+                    console.log('Pagamento PIX confirmado:', data);
+                    // Aqui você pode redirecionar o usuário ou mostrar uma mensagem de sucesso
+                    alert('Pagamento confirmado com sucesso! Obrigado pela sua compra.');
+                },
+                onClose: function() {
+                    console.log('Modal de pagamento fechado');
+                    // Lógica adicional quando o modal for fechado
+                }
+            });
+        });
+    </script>
+</body>
+</html>

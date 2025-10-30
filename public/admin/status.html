@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkNow - Status do Sistema</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Days+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #54C87D;
+            --primary-dark: #3A9E5D;
+            --primary-light: #7EDDA1;
+            --secondary-color: #4D7CFE;
+            --secondary-dark: #3A64D8;
+            --secondary-light: #6E93FE;
+            --dark-color: #2C3E50;
+            --light-color: #ECF0F1;
+            --danger-color: #E74C3C;
+            --warning-color: #F39C12;
+            --success-color: #2ECC71;
+            --info-color: #3498DB;
+            --text-color: #333;
+            --text-light: #666;
+            --background-color: #F8F9FA;
+            --card-bg: #FFFFFF;
+            --border-color: #E1E1E1;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 16px;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            padding-top: 20px;
+        }
+        
+        .header {
+            font-family: 'Days One', sans-serif;
+            color: var(--primary-dark);
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary-light);
+        }
+        
+        .card {
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            margin-bottom: 20px;
+            border: none;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            padding: 15px;
+            border-bottom: none;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background-color: var(--success-color);
+            box-shadow: 0 0 8px var(--success-color);
+        }
+        
+        .status-offline {
+            background-color: var(--danger-color);
+            box-shadow: 0 0 8px var(--danger-color);
+        }
+        
+        .status-warning {
+            background-color: var(--warning-color);
+            box-shadow: 0 0 8px var(--warning-color);
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-label {
+            font-weight: 500;
+            min-width: 150px;
+        }
+        
+        .status-value {
+            flex-grow: 1;
+        }
+        
+        .refresh-btn {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 8px 15px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            background-color: var(--secondary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .system-info {
+            background-color: var(--light-color);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        .progress {
+            height: 10px;
+            border-radius: var(--radius-sm);
+            margin-top: 5px;
+        }
+        
+        .connections-table {
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .connections-table th {
+            background-color: var(--primary-light);
+            color: var(--dark-color);
+            padding: 10px;
+            text-align: left;
+        }
+        
+        .connections-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .connections-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        #mainAlertBox {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1050;
+            width: auto;
+            max-width: 90%;
+        }
+        
+        #mainAlertBox .alert {
+            box-shadow: var(--shadow-md);
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="mainAlertBox"></div>
+        
+        <div class="header text-center">
+            <h1><i class="fas fa-tachometer-alt"></i> ParkNow - Status do Sistema</h1>
+            <p class="text-muted">Monitoramento em tempo real de todos os componentes do sistema</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-server"></i> Status do Servidor</span>
+                        <button id="refreshServerBtn" class="refresh-btn btn-sm">
+                            <i class="fas fa-sync-alt"></i> Atualizar
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="status-item">
+                            <div class="status-label">Servidor API:</div>
+                            <div class="status-value">
+                                <span id="serverStatus">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="sr-only">Carregando...</span>
+                                    </div>
+                                    Verificando...
+                                </span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Banco de Dados:</div>
+                            <div class="status-value">
+                                <span id="dbStatus">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="sr-only">Carregando...</span>
+                                    </div>
+                                    Verificando...
+                                </span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Redis Cache:</div>
+                            <div class="status-value">
+                                <span id="redisStatus">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="sr-only">Carregando...</span>
+                                    </div>
+                                    Verificando...
+                                </span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Socket.IO:</div>
+                            <div class="status-value">
+                                <span id="socketStatus">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="sr-only">Carregando...</span>
+                                    </div>
+                                    Verificando...
+                                </span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Última Atualização:</div>
+                            <div class="status-value" id="lastUpdateTime">-</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-microchip"></i> Informações do Sistema
+                    </div>
+                    <div class="card-body">
+                        <div class="status-item">
+                            <div class="status-label">Uptime:</div>
+                            <div class="status-value" id="uptime">-</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Memória:</div>
+                            <div class="status-value">
+                                <div id="memoryInfo">-</div>
+                                <div class="progress">
+                                    <div id="memoryUsage" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Plataforma:</div>
+                            <div class="status-value" id="platform">-</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Node.js:</div>
+                            <div class="status-value" id="nodeVersion">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-users"></i> Conexões Ativas</span>
+                        <button id="refreshConnectionsBtn" class="refresh-btn btn-sm">
+                            <i class="fas fa-sync-alt"></i> Atualizar
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Esta seção mostra as conexões ativas de Socket.IO para comunicação em tempo real.
+                        </div>
+                        
+                        <table class="connections-table">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="connectionsTableBody">
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Carregando...</span>
+                                        </div>
+                                        <p>Carregando informações de conexões...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-cogs"></i> Ações do Sistema
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Estas ações afetam o funcionamento do sistema. Use com cautela.
+                        </div>
+                        
+                        <div class="d-flex flex-wrap justify-content-between">
+                            <button id="clearCacheBtn" class="btn btn-warning mb-3">
+                                <i class="fas fa-broom"></i> Limpar Cache
+                            </button>
+                            
+                            <button id="restartSocketBtn" class="btn btn-info mb-3">
+                                <i class="fas fa-plug"></i> Reiniciar Socket.IO
+                            </button>
+                            
+                            <button id="checkLogsBtn" class="btn btn-secondary mb-3">
+                                <i class="fas fa-file-alt"></i> Verificar Logs
+                            </button>
+                            
+                            <button id="testNotificationBtn" class="btn btn-primary mb-3">
+                                <i class="fas fa-bell"></i> Testar Notificações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="mt-4 mb-5 text-center text-muted">
+            <p>ParkNow - Sistema de Gerenciamento de Estacionamento &copy; 2025</p>
+            <p><small>Versão 1.0.0 - Desenvolvido com <i class="fas fa-heart text-danger"></i> pela Equipe ParkNow</small></p>
+        </footer>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    
+    <script>
+        // Funções de utilidade
+        function formatTime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            let result = '';
+            if (days > 0) result += `${days}d `;
+            if (hours > 0 || days > 0) result += `${hours}h `;
+            if (minutes > 0 || hours > 0 || days > 0) result += `${minutes}m `;
+            result += `${secs}s`;
+            
+            return result;
+        }
+        
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+        
+        function showAlert(message, type = 'info', duration = 5000) {
+            const id = `alert-${Date.now()}`;
+            const alertHtml = `
+                <div id="${id}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            `;
+            
+            $('#mainAlertBox').append(alertHtml);
+            
+            if (duration > 0) {
+                setTimeout(() => {
+                    $(`#${id}`).alert('close');
+                }, duration);
+            }
+        }
+        
+        function getAuthToken() {
+            return localStorage.getItem('adminAuthToken');
+        }
+        
+        async function fetchWithAuth(url, options = {}) {
+            const token = getAuthToken();
+            if (!token) {
+                window.location.href = '/admin/login.html';
+                return;
+            }
+            
+            const defaultOptions = {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            const mergedOptions = { ...defaultOptions, ...options };
+            
+            try {
+                const response = await fetch(url, mergedOptions);
+                
+                if (response.status === 401) {
+                    // Token expirado ou inválido
+                    localStorage.removeItem('adminAuthToken');
+                    window.location.href = '/admin/login.html';
+                    return;
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                showAlert(`Erro na requisição: ${error.message}`, 'danger');
+                throw error;
+            }
+        }
+        
+        // Funções de atualização de status
+        async function updateServerStatus() {
+            try {
+                const data = await fetchWithAuth('/api/status/server');
+                
+                // Atualizar status do servidor
+                $('#serverStatus').html(`
+                    <span class="status-indicator ${data.status === 'online' ? 'status-online' : 'status-offline'}"></span>
+                    ${data.status === 'online' ? 'Online' : 'Offline'}
+                `);
+                
+                // Atualizar status das conexões
+                $('#dbStatus').html(`
+                    <span class="status-indicator ${data.connections.database === 'online' ? 'status-online' : 'status-offline'}"></span>
+                    ${data.connections.database === 'online' ? 'Conectado' : 'Desconectado'}
+                `);
+                
+                $('#redisStatus').html(`
+                    <span class="status-indicator ${data.connections.redis === 'online' ? 'status-online' : 'status-offline'}"></span>
+                    ${data.connections.redis === 'online' ? 'Conectado' : 'Desconectado'}
+                `);
+                
+                $('#socketStatus').html(`
+                    <span class="status-indicator ${data.connections.socketIO === 'online' ? 'status-online' : 'status-offline'}"></span>
+                    ${data.connections.socketIO === 'online' ? 'Conectado' : 'Desconectado'}
+                `);
+                
+                // Atualizar informações do sistema
+                $('#uptime').text(formatTime(data.system.uptime));
+                $('#memoryInfo').text(`${formatBytes(data.system.memory.used)} / ${formatBytes(data.system.memory.total)}`);
+                
+                const memoryPercentage = (data.system.memory.used / data.system.memory.total) * 100;
+                $('#memoryUsage').css('width', `${memoryPercentage}%`);
+                
+                if (memoryPercentage > 80) {
+                    $('#memoryUsage').removeClass('bg-info').addClass('bg-danger');
+                } else if (memoryPercentage > 60) {
+                    $('#memoryUsage').removeClass('bg-info').addClass('bg-warning');
+                } else {
+                    $('#memoryUsage').removeClass('bg-danger bg-warning').addClass('bg-info');
+                }
+                
+                $('#platform').text(`${data.system.platform} (${data.system.hostname})`);
+                $('#nodeVersion').text(data.system.nodeVersion);
+                
+                // Atualizar hora da última atualização
+                $('#lastUpdateTime').text(new Date().toLocaleTimeString());
+                
+            } catch (error) {
+                console.error('Erro ao atualizar status do servidor:', error);
+                showAlert('Erro ao atualizar status do servidor. Verifique o console para mais detalhes.', 'danger');
+            }
+        }
+        
+        async function updateConnectionsStatus() {
+            try {
+                const data = await fetchWithAuth('/api/status/connection');
+                
+                let tableHtml = '';
+                
+                data.connections.forEach(conn => {
+                    tableHtml += `
+                        <tr>
+                            <td>${conn.type}</td>
+                            <td>${conn.total}</td>
+                            <td>
+                                <span class="status-indicator ${conn.status === 'online' ? 'status-online' : 'status-offline'}"></span>
+                                ${conn.status === 'online' ? 'Ativo' : 'Inativo'}
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                $('#connectionsTableBody').html(tableHtml);
+                
+            } catch (error) {
+                console.error('Erro ao atualizar status das conexões:', error);
+                showAlert('Erro ao atualizar status das conexões. Verifique o console para mais detalhes.', 'danger');
+            }
+        }
+        
+        // Inicialização
+        $(document).ready(function() {
+            // Verificar autenticação
+            const token = getAuthToken();
+            if (!token) {
+                window.location.href = '/admin/login.html';
+                return;
+            }
+            
+            // Atualizar status inicial
+            updateServerStatus();
+            updateConnectionsStatus();
+            
+            // Configurar eventos de botões
+            $('#refreshServerBtn').click(function() {
+                $(this).html('<span class="loading-spinner"></span> Atualizando...');
+                updateServerStatus().finally(() => {
+                    $(this).html('<i class="fas fa-sync-alt"></i> Atualizar');
+                });
+            });
+            
+            $('#refreshConnectionsBtn').click(function() {
+                $(this).html('<span class="loading-spinner"></span> Atualizando...');
+                updateConnectionsStatus().finally(() => {
+                    $(this).html('<i class="fas fa-sync-alt"></i> Atualizar');
+                });
+            });
+            
+            $('#clearCacheBtn').click(async function() {
+                if (confirm('Tem certeza que deseja limpar todo o cache do sistema?')) {
+                    try {
+                        const response = await fetchWithAuth('/api/admin/cache/clear', {
+                            method: 'POST'
+                        });
+                        
+                        if (response.success) {
+                            showAlert('Cache limpo com sucesso!', 'success');
+                        } else {
+                            showAlert(`Erro ao limpar cache: ${response.message}`, 'danger');
+                        }
+                    } catch (error) {
+                        showAlert('Erro ao limpar cache', 'danger');
+                    }
+                }
+            });
+            
+            $('#restartSocketBtn').click(async function() {
+                if (confirm('Tem certeza que deseja reiniciar o serviço Socket.IO? Isso afetará todas as conexões em tempo real.')) {
+                    try {
+                        const response = await fetchWithAuth('/api/admin/socket/restart', {
+                            method: 'POST'
+                        });
+                        
+                        if (response.success) {
+                            showAlert('Serviço Socket.IO reiniciado com sucesso!', 'success');
+                        } else {
+                            showAlert(`Erro ao reiniciar Socket.IO: ${response.message}`, 'danger');
+                        }
+                    } catch (error) {
+                        showAlert('Erro ao reiniciar Socket.IO', 'danger');
+                    }
+                }
+            });
+            
+            $('#checkLogsBtn').click(async function() {
+                try {
+                    const response = await fetchWithAuth('/api/admin/logs/recent');
+                    
+                    if (response.logs && response.logs.length > 0) {
+                        let logHtml = '<div class="system-info"><h5>Logs Recentes:</h5><pre style="max-height: 300px; overflow-y: auto;">';
+                        
+                        response.logs.forEach(log => {
+                            logHtml += `[${log.timestamp}] [${log.level}] ${log.message}\n`;
+                        });
+                        
+                        logHtml += '</pre></div>';
+                        
+                        showAlert(logHtml, 'info', 0);
+                    } else {
+                        showAlert('Nenhum log recente encontrado.', 'info');
+                    }
+                } catch (error) {
+                    showAlert('Erro ao buscar logs', 'danger');
+                }
+            });
+            
+            $('#testNotificationBtn').click(async function() {
+                try {
+                    const response = await fetchWithAuth('/api/admin/notifications/test', {
+                        method: 'POST'
+                    });
+                    
+                    if (response.success) {
+                        showAlert('Notificação de teste enviada com sucesso!', 'success');
+                    } else {
+                        showAlert(`Erro ao enviar notificação: ${response.message}`, 'danger');
+                    }
+                } catch (error) {
+                    showAlert('Erro ao enviar notificação de teste', 'danger');
+                }
+            });
+            
+            // Atualização automática a cada 30 segundos
+            setInterval(updateServerStatus, 30000);
+            setInterval(updateConnectionsStatus, 60000);
+            
+            // Conectar ao Socket.IO para atualizações em tempo real
+            const socket = io();
+            
+            socket.on('connect', () => {
+                console.log('Conectado ao Socket.IO');
+                
+                // Entrar na sala de administradores para receber atualizações específicas
+                socket.emit('joinAdminRoom', { token: getAuthToken() });
+            });
+            
+            socket.on('serverStatusUpdate', (data) => {
+                console.log('Atualização de status recebida:', data);
+                // Atualizar interface com os novos dados
+                updateServerStatus();
+            });
+            
+            socket.on('connectionStatusUpdate', (data) => {
+                console.log('Atualização de conexões recebida:', data);
+                // Atualizar interface com os novos dados
+                updateConnectionsStatus();
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('Desconectado do Socket.IO');
+                showAlert('A conexão com o servidor foi perdida. Tentando reconectar...', 'warning');
+            });
+        });
+    </script>
+</body>
+</html>

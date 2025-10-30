@@ -1,0 +1,215 @@
+/* public/css/estacionamento.css */
+/* Estilos potencialmente usados por páginas de detalhes de estacionamento ou outras seções genéricas */
+
+/* --- Reset Básico e Padrões --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* Font stack mais robusto */
+    color: #343a40; /* Cinza escuro padrão */
+    line-height: 1.6;
+    background-color: #f8f9fa; /* Fundo padrão claro */
+}
+
+/* --- Seção 01 - Layout Flex Imagem + Texto --- */
+.sessao01 {
+    width: 90%;
+    max-width: 1140px;
+    margin: 50px auto;
+    padding: 35px; /* Mais padding interno */
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 45px; /* Mais espaço */
+    background-color: #ffffff;
+    border-radius: 10px; /* Bordas mais suaves */
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06); /* Sombra mais suave */
+    border: 1px solid #e9ecef;
+}
+
+.sessao01 img {
+    display: block;
+    width: 100%;
+    max-width: 500px; /* Imagem pode ser maior */
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.sessao01 div {
+    flex: 1;
+    min-width: 320px; /* Largura mínima texto */
+}
+
+.sessao01 div h2 {
+    font-size: 2.1em;
+    font-family: 'Days One', sans-serif;
+    color: #004080; /* Azul ParkNow */
+    padding-bottom: 12px;
+    margin-bottom: 25px;
+    border-bottom: 4px solid #54C87D; /* Verde ParkNow */
+    display: inline-block;
+}
+
+.sessao01 div p {
+    margin-bottom: 18px;
+    text-align: left;
+    line-height: 1.75; /* Maior espaçamento */
+    color: #495057;
+    font-size: 1.05rem; /* Tamanho fonte parágrafo */
+}
+
+/* --- Título Principal H11 --- */
+.h11 {
+    text-align: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, #0056b3, #004080); /* Gradiente azul */
+    padding: 35px 20px;
+    margin-bottom: 45px;
+    font-size: 2.3em;
+    font-family: 'Days One', sans-serif;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 5px solid rgba(255,255,255,0.2);
+}
+
+/* --- Estilo 'a3' - Bloco com Bordas Laterais --- */
+.a3 {
+    text-align: center;
+    border-left: 5px solid #54C87D; /* Borda mais grossa */
+    border-right: 5px solid #54C87D;
+    padding: 35px 45px;
+    margin: 50px auto;
+    max-width: 900px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+.a3 h3 {
+    font-family: 'Poppins', sans-serif; /* Fonte diferente para subtítulo */
+    font-weight: 600;
+    color: #004080;
+    margin-bottom: 18px;
+    font-size: 1.4em;
+}
+.a3 p {
+    color: #495057;
+    line-height: 1.7;
+    font-size: 1rem;
+}
+
+
+/* --- Classe 'centro' - Flexbox Center --- */
+.centro {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- Seção 03 - Margem Geral --- */
+.sessao03 {
+    margin: 60px 30px; /* Mais margem */
+}
+
+/* --- Seção Imagens 3 - Grid Imagens Redondas --- */
+.sessaoimg3 {
+    text-align: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Ajuste tamanho mínimo */
+    gap: 35px;
+    padding: 25px;
+    margin-bottom: 45px;
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Imagem Redonda */
+.imgr {
+    border-radius: 50%;
+    width: 100%;
+    max-width: 190px; /* Tamanho */
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border: 6px solid #fff; /* Borda mais grossa */
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+    transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.35s ease;
+    margin: 0 auto;
+}
+.imgr:hover {
+    transform: scale(1.08) rotate(-1deg); /* Efeito mais pronunciado */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+
+/* --- Bloco A22 - Fundo Escuro --- */
+.A22 {
+    background-color: #2c3e50; /* Azul acinzentado */
+    color: #ecf0f1; /* Cinza muito claro */
+    padding: 45px 35px;
+    border-radius: 10px;
+    margin: 50px 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+.A22 h2 {
+    font-family: 'Days One', sans-serif;
+    margin-bottom: 20px;
+    color: #ffffff; /* Título branco */
+    border-bottom: 2px solid rgba(255,255,255,0.3);
+    padding-bottom: 10px;
+    display: inline-block;
+}
+.A22 p {
+    line-height: 1.8; /* Mais espaçado */
+    opacity: 0.95;
+    font-size: 1.05rem;
+}
+
+/* --- Botão Prosseguir --- */
+.proseguir {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin: 50px 30px;
+}
+.proseguir .btn {
+    font-family: 'Days One', sans-serif;
+    font-size: 1.1rem;
+    padding: 12px 30px;
+    border-radius: 50px;
+    /* Usar classes Bootstrap: btn-primary, btn-success, etc. */
+}
+
+/* --- Responsividade --- */
+@media (max-width: 991px) {
+    .sessao01 { max-width: 95%; gap: 35px; padding: 30px; }
+    .a3 { max-width: 90%; padding: 30px 35px;}
+    .sessaoimg3 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .imgr { max-width: 170px; }
+}
+
+@media (max-width: 767px) {
+    .sessao01 { flex-direction: column; gap: 30px; padding: 25px; margin: 35px auto; }
+    .sessao01 img { max-width: 90%; } /* Ocupa quase toda largura */
+    .sessao01 div h2 { font-size: 1.8em; }
+    .h11 { font-size: 2em; padding: 25px 15px; margin-bottom: 35px;}
+    .a3 { padding: 25px; border-left-width: 4px; border-right-width: 4px;}
+    .sessaoimg3 { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 25px; padding: 20px; }
+    .imgr { max-width: 150px; border-width: 5px;}
+    .A22 { padding: 35px 25px; margin: 35px 15px;}
+    .proseguir { justify-content: center; margin: 35px 15px;}
+}
+
+@media (max-width: 575px) {
+    .sessao01 div h2 { font-size: 1.6em; }
+    .sessao01 div p { font-size: 1rem; }
+    .h11 { font-size: 1.8em; }
+    .a3 { padding: 20px;}
+    .imgr { max-width: 130px; }
+}
