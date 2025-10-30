@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Estacionamento - ParkNow</title>
+    <!-- Bibliotecas CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Days+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+    <!-- CSS Específico -->
+    <!-- <link rel="stylesheet" href="/user/css/estacionamento.css"> -->
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <style>
+        /* Estilos gerais */
+        body { font-family: 'Open Sans', sans-serif; margin: 0; padding: 0; color: #343a40; background-color: #f8f9fa; min-height: 100vh; display: flex; flex-direction: column; padding-top: 70px; }
+        h1, h2, h3, h4, h5, h6, .btn, .modal-title { font-family: 'Days One', sans-serif; }
+
+        /* Header Fixo */
+        header.app-header { background: linear-gradient(to right, #004080, #002850); padding: 10px 0; color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.2); position: fixed; top: 0; left: 0; width: 100%; z-index: 1030; height: 70px; display: flex; align-items: center; }
+        header.app-header .container { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        header.app-header img.logo { max-width: 150px; height: auto; max-height: 45px; }
+        .btn-voltar { background-color: transparent; border: 1px solid rgba(255,255,255,0.7); color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 8px 15px; border-radius: 20px; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; }
+        .btn-voltar i { margin-right: 6px; }
+        .btn-voltar:hover { background-color: rgba(255,255,255,0.15); border-color: #fff; color: #fff; text-decoration: none; }
+
+        /* Conteúdo principal */
+        main.container { padding: 30px 15px; flex-grow: 1; max-width: 1200px; }
+        h1#estacionamentoNome { text-align: center; margin-bottom: 5px; font-size: 2.1em; color: #004080; }
+        p#estacionamentoEndereco { text-align: center; margin-top: 0; margin-bottom: 35px; font-size: 1.1em; color: #555; }
+        h2.vagas-title { font-size: 1.6em; margin-bottom: 20px; text-align: center; color: #0056b3;}
+
+        /* Grid de Vagas */
+        .vagas-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 20px; padding: 25px; background-color: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #e9ecef; min-height: 250px; }
+        .vaga { aspect-ratio: 1 / 1; border: 1px solid #ccc; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; position: relative; transition: all 0.25s ease; box-shadow: 0 3px 7px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
+        .vaga:hover:not(.ocupada):not(.reservada):not(.indisponivel) { transform: translateY(-5px) scale(1.04); box-shadow: 0 8px 15px rgba(0,0,0,0.15); border-color: #54C87D; }
+
+        /* Status Vagas */
+        .vaga.livre { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
+        .vaga.ocupada { background: #ffebee; border-color: #ef9a9a; color: #c62828; cursor: not-allowed; opacity: 0.85; }
+        .vaga.reservada { background: #e3f2fd; border-color: #90caf9; color: #1565c0; cursor: help; opacity: 0.9; }
+        .vaga.indisponivel { background: #f5f5f5; border-color: #e0e0e0; color: #757575; cursor: not-allowed; opacity: 0.7; }
+        .vaga.ocupada:hover, .vaga.reservada:hover, .vaga.indisponivel:hover { transform: none; box-shadow: 0 3px 7px rgba(0,0,0,0.1); }
+
+        /* Conteúdo Vaga */
+        .vaga .numero { font-size: 1.8em; font-weight: bold; font-family: 'Days One', sans-serif; line-height: 1.1; margin-bottom: 5px; }
+        .vaga .status-vaga { font-size: 0.7em; font-weight: 600; text-transform: uppercase; margin-top: 0px; letter-spacing: 0.5px; display: inline-block; padding: 3px 8px; border-radius: 12px; background-color: rgba(0,0,0,0.08); line-height: 1.2; }
+        .vaga.livre .status-vaga { background-color: rgba(84, 200, 125, 0.2); }
+        .vaga.ocupada .status-vaga { background-color: rgba(220, 53, 69, 0.2); }
+        .vaga.reservada .status-vaga { background-color: rgba(0, 123, 255, 0.2); }
+        .vaga.indisponivel .status-vaga { background-color: rgba(108, 117, 125, 0.2); }
+        .vaga .placa-veiculo { font-size: 0.75em; font-family: 'Courier New', monospace; font-weight: bold; margin-top: 5px; background-color: rgba(255,255,255,0.6); color: inherit; padding: 3px 7px; border-radius: 4px; display: inline-block; max-width: 95%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .vaga.ocupada .placa-veiculo { color: #b71c1c; }
+        .vaga .tempo-estacionado { font-size: 0.8em; color: #333; margin-top: 8px; font-weight: 600; position: absolute; bottom: 8px; left: 0; right: 0; font-family: 'Courier New', monospace; background-color: rgba(255, 255, 255, 0.75); padding: 2px 0; border-radius: 3px;}
+        .vaga.livre .tempo-estacionado, .vaga.reservada .tempo-estacionado, .vaga.indisponivel .tempo-estacionado { display: none; }
+        .vaga.ocupada .tempo-estacionado { display: block; }
+
+        /* Footer */
+        footer.app-footer { background-color: #343a40; padding: 20px 0; color: #adb5bd; text-align: center; margin-top: 50px; font-size: 0.9rem; border-top: 1px solid #495057;}
+        footer.app-footer p { margin: 0; }
+
+        /* Modal Confirmação */
+        #modalConfirmacao .modal-content { border-radius: 8px; border: none; }
+        #modalConfirmacao .modal-header { background-color: #004080; color: #fff; border-bottom: none; }
+        #modalConfirmacao .modal-title { font-size: 1.3rem; }
+        #modalConfirmacao .modal-header .close { color: #fff; opacity: 0.9; }
+        #modalConfirmacao .modal-body { font-size: 1.05rem; color: #444; }
+        #modalConfirmacao .modal-body strong { color: #004080; }
+        #modalConfirmacao .modal-body strong#modalConfirmacaoVagaNum { color: #54C87D; }
+        #modalConfirmacao .modal-body strong#modalConfirmacaoPlacaUser { font-family: 'Courier New', monospace; background-color: #eee; padding: 2px 4px; border-radius: 3px; }
+        #modalConfirmacao .modal-footer .btn-success { background-color: #54C87D; border-color: #54C87D; font-weight: 600; min-width: 130px; }
+        #modalConfirmacao .modal-footer .btn-success:hover { background-color: #4aa06b; border-color: #4aa06b; }
+        #modalConfirmacao .modal-footer .btn-secondary { font-weight: 600; }
+        #confirm-feedback { font-size: 0.9rem; margin-top: 10px; }
+        #confirm-feedback .alert { margin-bottom: 0; font-size: 0.9rem; padding: .5rem 1rem; }
+        #confirm-feedback .alert .close { padding: .5rem 1rem; }
+
+        /* Loading Placeholder */
+        .loading-placeholder { text-align: center; color: #6c757d; font-style: italic; padding: 50px 0; font-size: 1.1rem;}
+        .loading-placeholder i { margin-right: 10px; font-size: 1.3rem;}
+
+        /* Alerta Geral */
+        #mainAlertBoxEst { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1050; width: auto; max-width: 90%; }
+        #mainAlertBoxEst .alert { box-shadow: 0 3px 8px rgba(0,0,0,0.15); font-size: 0.95rem; }
+
+        /* Responsividade */
+        @media (max-width: 767px) { body { padding-top: 60px; } header.app-header { height: 60px; } header.app-header img.logo { max-width: 130px; max-height: 40px; } .btn-voltar { font-size: 0.8rem; padding: 6px 12px; } main.container { padding: 20px 10px; } h1#estacionamentoNome { font-size: 1.8em; } p#estacionamentoEndereco { font-size: 1em; margin-bottom: 25px; } h2.vagas-title {font-size: 1.4em;} .vagas-container { grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 15px; padding: 15px; } .vaga .numero { font-size: 1.6em; } .vaga .status-vaga { font-size: 0.65em; } .vaga .placa-veiculo { font-size: 0.7em; } .vaga .tempo-estacionado { font-size: 0.75em; bottom: 7px;} #mainAlertBoxEst { top: 70px; } }
+        @media (max-width: 480px) { .vagas-container { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 12px; } .vaga .numero { font-size: 1.4em;} h1#estacionamentoNome { font-size: 1.7em; } }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="container">
+            <a href="/user/home.html" class="btn-voltar"><i class="fas fa-arrow-left"></i> Voltar</a>
+            <img src="/img/logo.png" alt="ParkNow" class="logo">
+            <div style="width: 80px;"></div> <!-- Espaçador para manter o header balanceado -->
+        </div>
+    </header>
+    
+    <!-- Container para notificações em tempo real -->
+    <div id="notificationContainer" class="notification-container"></div>
+    <div id="mainAlertBox" style="position: fixed; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1050; width: auto; max-width: 90%;"></div>
+
+     <!-- Alerta Geral -->
+     <div id="mainAlertBoxEst" style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1050; width: auto; max-width: 90%;"></div>
+
+
+    <!-- Conteúdo Principal -->
+    <main class="container">
+        <h1 id="estacionamentoNome" data-aos="fade-up" class="text-muted">Carregando...</h1>
+        <p id="estacionamentoEndereco" data-aos="fade-up" data-aos-delay="100"></p>
+        <h2 class="vagas-title" data-aos="fade-up" data-aos-delay="150">Selecione uma Vaga Livre</h2>
+
+        <div class="vagas-container" id="vagasContainer" data-aos="fade-up" data-aos-delay="200">
+            <div class="loading-placeholder col-12"> <i class="fas fa-spinner fa-spin"></i> Carregando vagas... </div>
+        </div>
+    </main>
+
+    <!-- Modal de Confirmação de Ocupação -->
+    <div class="modal fade" id="modalConfirmacao" tabindex="-1" role="dialog" aria-labelledby="modalConfirmacaoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header"> <h5 class="modal-title" id="modalConfirmacaoLabel">Confirmar Ocupação</h5> <button type="button" class="close" data-dismiss="modal">×</button> </div>
+                <div class="modal-body">
+                    <p>Deseja ocupar a <strong id="modalConfirmacaoVagaNum">Vaga X</strong>?</p>
+                    <p class="small text-muted">Sua placa (<strong id="modalConfirmacaoPlacaUser">...</strong>) será registrada.</p>
+                    <div id="confirm-feedback" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-success" id="btnConfirmarAgendamento">
+                        <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                        <i class="fas fa-check mr-1"></i> Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Liberação de Vaga -->
+    <div class="modal fade" id="modalLiberarVaga" tabindex="-1" role="dialog" aria-labelledby="modalLiberarVagaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header"> <h5 class="modal-title" id="modalLiberarVagaLabel">Liberar Vaga</h5> <button type="button" class="close" data-dismiss="modal">×</button> </div>
+                <div class="modal-body">
+                    <p>Deseja liberar a <strong id="modalLiberarVagaNum" class="text-danger">Vaga X</strong>?</p>
+                    <p class="small text-muted">Ao liberar, a vaga ficará disponível para outros usuários.</p>
+                    <div id="liberar-feedback" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-danger" id="btnConfirmarLiberacao">
+                        <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                        <i class="fas fa-sign-out-alt mr-1"></i> Liberar Vaga
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação de Agendamento -->
+    <div class="modal fade" id="modalConfirmacao" tabindex="-1" role="dialog" aria-labelledby="modalConfirmacaoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalConfirmacaoLabel">Confirmar Reserva</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Deseja confirmar a reserva para a <strong id="modalConfirmacaoVagaNum" class="text-primary">Vaga X</strong>?</p>
+                    <div id="confirmacao-feedback" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnConfirmarAgendamento">
+                        <span class="spinner-border spinner-border-sm" style="display: none;" role="status" aria-hidden="true"></span>
+                        Confirmar Reserva
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Pagamento PIX -->
+    <div class="modal fade" id="modalPagamentoPix" tabindex="-1" role="dialog" aria-labelledby="modalPagamentoPixLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalPagamentoPixLabel">Pagamento via PIX</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fechar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Escaneie o QR Code abaixo ou copie o código PIX para efetuar o pagamento.
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div id="qrCodeContainer" class="d-flex justify-content-center mb-3">
+                            <!-- QR Code será inserido aqui via JavaScript -->
+                        </div>
+                        <p class="mb-1">Valor: <strong id="pixValor">R$ 0,00</strong></p>
+                        <p class="mb-1">Vencimento: <strong id="pixVencimento">--/--/---- --:--</strong></p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pixCodigo">Código PIX (copie e cole no seu app de pagamento):</label>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="pixCodigo" readonly>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="btnCopiarPix" title="Copiar código PIX">
+                                    <i class="far fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-clock"></i> Você tem <strong><span id="pixTempoRestante">30:00</span> minutos</strong> para realizar o pagamento.
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="#" class="btn btn-link" id="btnAbrirAppBanco">
+                            <i class="fas fa-mobile-alt"></i> Abrir app do banco
+                        </a>
+                        <button type="button" class="btn btn-primary" id="btnPagarComPix">
+                            <i class="fas fa-check-circle"></i> Já efetuei o pagamento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer"> <p>ParkNow 2024</p> </footer>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/js/bootstrap.min.js"></script>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.43/moment-timezone-with-data.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/notificationService.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+
+    <script>
+        // ***** SCRIPT FINALIZADO (ESTACIONAMENTO COM SOCKET.IO) *****
+
+        let infoEstacionamento = null; let infoUsuario = null; let socket = null; let currentEstacionamentoId = null;
+        // Sistema de timers e informações de vagas
+        let timersAtivos = {};
+        let sincronizacaoTimers = {};
+        let vagasInfo = {};
+        // Assume config global (pode ser buscado da API /config se necessário)
+        let config = { realtime: { enabled: true } };
+        // Sistema de notificações
+        let notificacoesAtivas = [];
+
+        // --- Feedback & Loading ---
+        const showAlertEst = (msg, type='info', duration=4000) => { const el=document.getElementById('mainAlertBoxEst'); if(el){ const id=`alert-${Date.now()}`; el.insertAdjacentHTML('beforeend', `<div id="${id}" class="alert alert-${type} alert-dismissible fade show m-2" role="alert" style="font-size:0.9rem; padding:.5rem 1rem;">${msg}<button type="button" class="close" data-dismiss="alert" style="padding:.5rem 1rem;">×</button></div>`); setTimeout(() => { $(`#${id}`).alert('close'); }, duration); } else { alert(msg); } };
+        const showLoadingModal = (btn, loading, txt='Confirmar') => { if(!btn)return; btn.disabled=loading; const s=btn.querySelector('.spinner-border'); const i=btn.querySelector('i'); if(loading){if(i)i.style.display='none'; if(s)s.style.display='inline-block'; let tN=Array.from(btn.childNodes).find(n=>n.nodeType===Node.TEXT_NODE&&n.nodeValue.trim().length>0); if(tN)tN.nodeValue=' Processando...'; else btn.insertAdjacentText('beforeend',' Processando...');} else {if(i)i.style.display=''; if(s)s.style.display='none'; let lTN=Array.from(btn.childNodes).find(n=>n.nodeType===Node.TEXT_NODE&&n.nodeValue.includes('Processando')); if(lTN)btn.removeChild(lTN); let cT=Array.from(btn.childNodes).find(n=>n.nodeType===Node.TEXT_NODE)?.nodeValue?.trim(); if(!cT)btn.insertAdjacentText(i?'beforeend':'afterbegin',` ${txt}`);}};
+        const showAlertModal = (msg, type='danger') => { const fb=document.getElementById('confirm-feedback'); if(fb){fb.innerHTML=`<div class="alert alert-${type} alert-sm py-1 px-2 m-0">${msg}</div>`; fb.style.display='block';}};
+        const hideAlertModal = () => { const fb=document.getElementById('confirm-feedback'); if(fb)fb.style.display='none';};
+
+        // --- Auth e API (com refresh) ---
+        function getAuthToken() { const t=localStorage.getItem('authToken'); if(!t){console.warn("No auth token"); window.location.href='/index.html';} return t;}
+        async function fetchWithAuth(url, options = {}, isRetry = false) { let t=localStorage.getItem('authToken'); if (!t && !url.includes('/refresh')){window.location.href='/index.html'; return Promise.reject("No token");} const h={'Authorization':`Bearer ${t}`,'Content-Type':'application/json', ...options.headers}; if(options.body instanceof FormData)delete h['Content-Type']; try{const r=await fetch(url,{...options,headers:h}); if(r.status===401&&!isRetry&&!url.includes('/logout')&&!url.includes('/refresh')){const nT=await attemptTokenRefresh(); if(nT)return fetchWithAuth(url,{...options,headers:{...h,'Authorization':`Bearer ${nT}`}},true); else{await logoutUser(false); throw new Error("Sessão expirada.");}} try{const d=await r.json(); if(!r.ok){const e=new Error(d.message||`Erro ${r.status}`); e.data=d; throw e;} return d;}catch(jErr){if(!r.ok)throw new Error(`Erro HTTP: ${r.status}`); if(r.status===204)return null; return r;}}catch(e){console.error(`Erro ${url}:`,e?.data?.message||e.message); throw e;}}
+        async function attemptTokenRefresh() { try{const r=await fetch('/api/auth/refresh-token',{method:'POST',headers:{'Content-Type':'application/json'}}); const d=await r.json(); if(!r.ok||!d.accessToken)throw new Error(d.message||'Falha refresh'); localStorage.setItem('authToken',d.accessToken); return d.accessToken;}catch(e){console.error("Erro refresh:",e.message); return null;}}
+        async function logoutUser(redir=true){ disconnectSocketIO(); try{await fetchWithAuth('/api/auth/logout',{method:'POST'});}catch(e){}finally{localStorage.removeItem('authToken'); if(redir)window.location.href='/index.html';}}
+
+        // --- Socket.IO Client ---
+        function connectSocketIO() { const token=localStorage.getItem('authToken'); if(!token || !currentEstacionamentoId || !config.realtime.enabled) return; if(socket?.connected){socket.emit('join_estacionamento', currentEstacionamentoId); return;} if(socket)socket.disconnect(); console.log('[Socket.IO Est.] Conectando...'); socket=io({auth:{token},reconnectionAttempts:5}); socket.on('connect',()=>{console.log(`[Socket.IO Est.] Conectado: ${socket.id}`); socket.emit('join_estacionamento', currentEstacionamentoId);}); socket.on('disconnect',(r)=>console.warn(`[Socket.IO Est.] Desconectado: ${r}`)); socket.on('connect_error',(err)=>{console.error(`[Socket.IO Est.] Erro: ${err.message}`); if(err.message.includes("Auth"))logoutUser();}); socket.on('vaga_update',(vData)=>{ console.log('[Socket.IO Est.] Rx vaga_update:', vData); if(vData.estacionamento_id == currentEstacionamentoId) atualizarVagaNaTela(vData); }); }
+        function disconnectSocketIO() { if (socket) { socket.disconnect(); socket = null; console.log('[Socket.IO Est.] Desconectado.'); } }
+
+        // --- Carregamento Dados ---
+        async function carregarDadosIniciais(estId) { try { infoEstacionamento = await fetchWithAuth(`/api/estacionamentos/${estId}`); if (!infoEstacionamento) throw new Error('Estacionamento não encontrado'); $('#estacionamentoNome').text(infoEstacionamento.nome).removeClass('text-muted'); $('#estacionamentoEndereco').text(infoEstacionamento.endereco); document.title = `${infoEstacionamento.nome} - ParkNow`; infoUsuario = await fetchWithAuth('/api/user/profile'); await carregarVagas(estId); } catch (e) { console.error('Erro dados iniciais est.:', e); $('#estacionamentoNome').text('Erro').addClass('text-danger'); $('#vagasContainer').html(`<p class="text-center text-danger col-12">Erro: ${e.message}</p>`); showAlertEst(`Erro ao carregar dados: ${e.message}`, 'danger'); } }
+        async function carregarVagas(estId) { const cont = $('#vagasContainer'); cont.html('<div class="loading-placeholder col-12"><i class="fas fa-spinner fa-spin"></i> Carregando vagas...</div>'); try { const vagas = await fetchWithAuth(`/api/estacionamentos/${estId}/vagas`); renderizarVagas(vagas); } catch (e) { cont.html(`<p class="text-center text-danger col-12">Erro ao carregar vagas: ${e.message}</p>`); showAlertEst(`Erro ao carregar vagas: ${e.message}`, 'warning'); } }
+
+        // --- Renderização e UI ---
+        
+        // Função para limpar todos os timers
+        function limparTodosTimers() {
+            // Limpar timers de atualização em tempo real
+            Object.values(timersAtivos).forEach(id => clearInterval(id));
+            timersAtivos = {};
+            
+            // Limpar timers de sincronização
+            Object.values(sincronizacaoTimers).forEach(id => clearInterval(id));
+            sincronizacaoTimers = {};
+            
+            // Limpar tempos iniciais
+            temposIniciais = {};
+        }
+        
+        function renderizarVagas(vagas) { 
+            const cont = $('#vagasContainer'); 
+            cont.empty(); 
+            
+            if (!vagas || vagas.length === 0) {
+                cont.html('<p class="text-center text-muted col-12">Nenhuma vaga neste estacionamento.</p>');
+                limparTodosTimers();
+                return;
+            } 
+            
+            // Limpar todos os timers antes de renderizar novas vagas
+            limparTodosTimers();
+            
+            // Renderizar cada vaga
+            vagas.forEach(v => {
+                const el = $(`<div class="vaga" data-vaga-id="${v.id}" data-numero="${v.numero}" data-aos="zoom-in">
+                    <span class="numero">${v.numero}</span>
+                    <span class="status-vaga"></span>
+                    <span class="tempo-estacionado" id="tempoEstacionado-${v.id}">00:00:00</span>
+                </div>`);
+                cont.append(el);
+                atualizarVagaNaTela(v);
+            }); 
+            
+            AOS.refresh(); 
+        }
+        function atualizarVagaNaTela(vData) { 
+            const vEl=$(`.vaga[data-vaga-id="${vData.id}"]`); 
+            if(vEl.length===0)return; 
+            
+            const sS=vEl.find('.status-vaga'); 
+            const tS=vEl.find('.tempo-estacionado'); 
+            
+            vEl.removeClass('livre ocupada reservada indisponivel')
+               .off('click')
+               .css('cursor','default')
+               .removeAttr('data-usuario-id'); // Limpar atributo de usuário
+            
+            vEl.find('.placa-veiculo').remove(); 
+            tS.hide(); 
+            
+            clearInterval(timersAtivos[vData.id]); 
+            delete timersAtivos[vData.id]; 
+            
+            const statusText = vData.status?.replace('_',' ').toUpperCase() || 'DESCONHECIDO'; 
+            sS.text(statusText); 
+            
+            if(vData.status==='livre'){
+                vEl.addClass('livre')
+                   .css('cursor','pointer')
+                   .on('click',()=>abrirModalConfirmacao(vData.id, vData.numero)); 
+                sS.text('LIVRE');
+            } else if(vData.status==='ocupada'){
+                vEl.addClass('ocupada');
+                sS.text('OCUPADA'); 
+                
+                if(vData.placa) {
+                    sS.after(`<span class="placa-veiculo">${vData.placa}</span>`);
+                }
+                
+                // Verificar se a vaga está ocupada pelo usuário atual
+                if(vData.usuario_id && infoUsuario && vData.usuario_id === infoUsuario.id) {
+                    vEl.attr('data-usuario-id', vData.usuario_id)
+                       .css('cursor','pointer')
+                       .on('click', () => abrirModalLiberarVaga(vData.id, vData.numero));
+                } else {
+                    vEl.css('cursor','not-allowed');
+                }
+                
+                tS.show(); 
+                iniciarTimerVaga(vData.id);
+            } else if(vData.status==='reservada'){
+                vEl.addClass('reservada')
+                   .css('cursor','help'); 
+                sS.text('RESERVADA');
+            } else {
+                vEl.addClass('indisponivel')
+                   .css('cursor','not-allowed'); 
+                sS.text('INDISPONÍVEL');
+            }
+        }
+        function abrirModalConfirmacao(vId, vNum) { 
+            if (!infoUsuario?.placa_veiculo){
+                showAlertEst('Placa N/A. Verifique perfil.','warning');
+                return;
+            } 
+            hideAlertModal(); 
+            $('#modalConfirmacaoVagaNum').text(`Vaga ${vNum}`); 
+            $('#modalConfirmacaoPlacaUser').text(infoUsuario.placa_veiculo); 
+            $('#btnConfirmarAgendamento').data('vagaId', vId); 
+            showLoadingModal(document.getElementById('btnConfirmarAgendamento'), false, 'Confirmar'); 
+            $('#modalConfirmacao').modal('show'); 
+        }
+        function abrirModalLiberarVaga(vId, vNum) {
+            // Esconder qualquer feedback anterior
+            const fb = document.getElementById('liberar-feedback');
+            if (fb) fb.style.display = 'none';
+            
+            // Configurar o modal
+            $('#modalLiberarVagaNum').text(`Vaga ${vNum}`);
+            $('#btnConfirmarLiberacao').data('vagaId', vId);
+            showLoadingModal(document.getElementById('btnConfirmarLiberacao'), false, 'Liberar Vaga');
+            
+            // Mostrar o modal
+            $('#modalLiberarVaga').modal('show');
+        }
+
+        // --- Ações ---
+        let currentVagaId = null;
+        
+        // Função para formatar data/hora para exibição
+        function formatarDataHora(dataISO) {
+            if (!dataISO) return '--/--/---- --:--';
+            const data = new Date(dataISO);
+            return data.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Função para formatar valor monetário
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(valor || 0);
+        }
+
+
+        // Função para exibir o modal de pagamento PIX
+        function exibirModalPagamentoPix(dadosPagamento) {
+            try {
+                console.log('Exibindo modal de pagamento PIX com dados:', dadosPagamento);
+                
+                // Validar dados de entrada
+                if (!dadosPagamento) {
+                    throw new Error('Dados de pagamento não fornecidos');
+                }
+                
+                // Limpar o container do QR Code
+                const qrCodeContainer = document.getElementById('qrCodeContainer');
+                if (!qrCodeContainer) {
+                    throw new Error('Elemento qrCodeContainer não encontrado');
+                }
+                
+                qrCodeContainer.innerHTML = '';
+                
+                // Atualizar informações do pagamento
+                const valorElement = document.getElementById('pixValor');
+                const vencimentoElement = document.getElementById('pixVencimento');
+                const codigoElement = document.getElementById('pixCodigo');
+                
+                if (!valorElement || !vencimentoElement || !codigoElement) {
+                    throw new Error('Elementos do modal de pagamento não encontrados');
+                }
+                
+                // Formatar valor e data
+                const valorFormatado = formatarMoeda(dadosPagamento.valor || 0);
+                const dataExpiracao = dadosPagamento.data_expiracao || new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutos por padrão
+                
+                valorElement.textContent = valorFormatado;
+                vencimentoElement.textContent = formatarDataHora(dataExpiracao);
+                codigoElement.value = dadosPagamento.codigo_pix || '';
+                
+                // Criar QR Code
+                if (dadosPagamento.qr_code_base64) {
+                    // Se tiver o QR code em base64, exibe a imagem
+                    const img = document.createElement('img');
+                    img.src = `data:image/png;base64,${dadosPagamento.qr_code_base64}`;
+                    img.alt = 'QR Code para pagamento PIX';
+                    img.className = 'img-fluid mb-3';
+                    img.style.maxWidth = '250px';
+                    img.style.display = 'block';
+                    img.style.margin = '0 auto';
+                    qrCodeContainer.appendChild(img);
+                } else if (dadosPagamento.qr_code) {
+                    // Se tiver apenas o texto do QR code, gera o QR code
+                    try {
+                        QRCode.toCanvas(qrCodeContainer, dadosPagamento.qr_code, { 
+                            width: 250,
+                            margin: 2,
+                            color: {
+                                dark: '#000',
+                                light: '#ffffff'
+                            }
+                        }, function(error) {
+                            if (error) {
+                                console.error('Erro ao gerar QR Code:', error);
+                                qrCodeContainer.innerHTML = `
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Não foi possível gerar o QR Code. Por favor, utilize o código PIX abaixo.
+                                    </div>
+                                `;
+                            } else {
+                                // Estiliza a imagem gerada
+                                const canvas = qrCodeContainer.querySelector('canvas');
+                                if (canvas) {
+                                    canvas.style.display = 'block';
+                                    canvas.style.margin = '0 auto';
+                                    canvas.classList.add('mb-3');
+                                }
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Erro ao tentar gerar QR Code:', e);
+                        qrCodeContainer.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Não foi possível gerar o QR Code. Por favor, utilize o código PIX abaixo.
+                            </div>
+                        `;
+                    }
+                } else {
+                    qrCodeContainer.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Escaneie o código QR ou copie o código PIX para efetuar o pagamento.
+                        </div>
+                    `;
+                }
+                
+                // Configurar botão de copiar código PIX
+                const btnCopiarPix = document.getElementById('btnCopiarPix');
+                if (btnCopiarPix) {
+                    btnCopiarPix.onclick = function() {
+                        try {
+                            const codigoPix = document.getElementById('pixCodigo');
+                            if (!codigoPix || !codigoPix.value) {
+                                showAlertEst('Código PIX não disponível para cópia', 'warning');
+                                return;
+                            }
+                            
+                            codigoPix.select();
+                            document.execCommand('copy');
+                            
+                            // Feedback visual
+                            const originalText = btnCopiarPix.innerHTML;
+                            btnCopiarPix.innerHTML = '<i class="fas fa-check"></i> Código copiado!';
+                            btnCopiarPix.classList.remove('btn-outline-primary');
+                            btnCopiarPix.classList.add('btn-success');
+                            
+                            // Feedback adicional
+                            showAlertEst('Código PIX copiado para a área de transferência!', 'success');
+                            
+                            setTimeout(() => {
+                                btnCopiarPix.innerHTML = originalText;
+                                btnCopiarPix.classList.remove('btn-success');
+                                btnCopiarPix.classList.add('btn-outline-primary');
+                            }, 3000);
+                            
+                        } catch (err) {
+                            console.error('Erro ao copiar código PIX:', err);
+                            showAlertEst('Não foi possível copiar o código PIX', 'danger');
+                        }
+                    };
+                }
+                
+                // Configurar botão de abrir app do banco
+                const btnAbrirAppBanco = document.getElementById('btnAbrirAppBanco');
+                if (btnAbrirAppBanco) {
+                    if (dadosPagamento.link_pagamento) {
+                        btnAbrirAppBanco.href = dadosPagamento.link_pagamento;
+                        btnAbrirAppBanco.target = '_blank';
+                        btnAbrirAppBanco.style.display = 'inline-flex';
+                        btnAbrirAppBanco.innerHTML = '<i class="fas fa-external-link-alt me-2"></i> Pagar com PIX no app';
+                    } else if (dadosPagamento.codigo_pix) {
+                        // Se não tiver link, mas tiver código PIX, tenta abrir o app de banco genérico
+                        btnAbrirAppBanco.href = `https://pix.gerencianet.com.br/cob/pagar/${dadosPagamento.id || 'pix'}`;
+                        btnAbrirAppBanco.target = '_blank';
+                        btnAbrirAppBanco.style.display = 'inline-flex';
+                        btnAbrirAppBanco.innerHTML = '<i class="fas fa-mobile-alt me-2"></i> Abrir app do banco';
+                    } else {
+                        btnAbrirAppBanco.style.display = 'none';
+                    }
+                }
+                
+                // Configurar contador regressivo
+                if (dataExpiracao) {
+                    try {
+                        const dataExpiracaoMs = new Date(dataExpiracao).getTime();
+                        if (!isNaN(dataExpiracaoMs)) {
+                            // Limpar qualquer timer existente
+                            if (window.pixTimerInterval) {
+                                clearInterval(window.pixTimerInterval);
+                            }
+                            
+                            // Atualizar imediatamente
+                            atualizarContadorPIX(dataExpiracaoMs);
+                            
+                            // Configurar atualização a cada segundo
+                            window.pixTimerInterval = setInterval(() => {
+                                atualizarContadorPIX(dataExpiracaoMs, window.pixTimerInterval);
+                            }, 1000);
+                        }
+                    } catch (e) {
+                        console.error('Erro ao configurar contador regressivo:', e);
+                    }
+                }
+                
+                // Configurar botão de confirmação de pagamento
+                const btnPagarComPix = document.getElementById('btnPagarComPix');
+                if (btnPagarComPix) {
+                    btnPagarComPix.onclick = function() {
+                        // Fechar o modal
+                        $('#modalPagamentoPix').modal('hide');
+                        
+                        // Mostrar mensagem de sucesso
+                        showAlertEst('Pagamento confirmado com sucesso!', 'success');
+                        
+                        // Recarregar as vagas para atualizar o status
+                        carregarVagas(currentEstacionamentoId);
+                        
+                        // Limpar o timer
+                        if (window.pixTimerInterval) {
+                            clearInterval(window.pixTimerInterval);
+                            window.pixTimerInterval = null;
+                        }
+                    };
+                }
+                
+                // Configurar evento de fechamento do modal
+                $('#modalPagamentoPix').off('hidden.bs.modal').on('hidden.bs.modal', function() {
+                    // Limpar o timer quando o modal for fechado
+                    if (window.pixTimerInterval) {
+                        clearInterval(window.pixTimerInterval);
+                        window.pixTimerInterval = null;
+                    }
+                });
+                
+                // Exibir o modal
+                $('#modalPagamentoPix').modal({ backdrop: 'static', keyboard: false });
+                
+            } catch (error) {
+                console.error('Erro ao exibir modal de pagamento PIX:', error);
+                showAlertEst('Erro ao carregar informações de pagamento. Por favor, tente novamente.', 'danger');
+                
+                // Fechar o modal de pagamento se estiver aberto
+                if ($('#modalPagamentoPix').hasClass('show')) {
+                    $('#modalPagamentoPix').modal('hide');
+                }
+                
+                // Limpar o timer em caso de erro
+                if (window.pixTimerInterval) {
+                    clearInterval(window.pixTimerInterval);
+                    window.pixTimerInterval = null;
+                }
+            }
+        }
+        
+        // Função para atualizar o contador regressivo do PIX
+        function atualizarContadorPIX(dataExpiracao, timerInterval = null) {
+            try {
+                const tempoRestanteElement = document.getElementById('pixTempoRestante');
+                if (!tempoRestanteElement) {
+                    console.error('Elemento pixTempoRestante não encontrado');
+                    if (timerInterval) clearInterval(timerInterval);
+                    return;
+                }
+                
+                const agora = new Date().getTime();
+                const diferenca = dataExpiracao - agora;
+                
+                if (diferenca <= 0) {
+                    // Tempo expirado
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                        window.pixTimerInterval = null;
+                    }
+                    
+                    // Atualizar a UI para mostrar que o tempo expirou
+                    tempoRestanteElement.textContent = '00:00';
+                    
+                    // Adicionar classe de perigo e desativar botões
+                    const container = tempoRestanteElement.parentNode;
+                    if (container) {
+                        container.innerHTML = `
+                            <span class="text-danger fw-bold">
+                                <i class="fas fa-exclamation-circle me-1"></i>
+                                Tempo esgotado!
+                            </span>
+                        `;
+                        
+                        // Desativar botões de ação
+                        const btnCopiarPix = document.getElementById('btnCopiarPix');
+                        const btnAbrirAppBanco = document.getElementById('btnAbrirAppBanco');
+                        const btnPagarComPix = document.getElementById('btnPagarComPix');
+                        
+                        if (btnCopiarPix) btnCopiarPix.disabled = true;
+                        if (btnAbrirAppBanco) btnAbrirAppBanco.disabled = true;
+                        if (btnPagarComPix) btnPagarComPix.disabled = true;
+                        
+                        // Mostrar mensagem ao usuário
+                        showAlertEst('O tempo para pagamento expirou. Por favor, inicie uma nova reserva.', 'warning');
+                    }
+                    
+                    return;
+                }
+                
+                // Calcular horas, minutos e segundos restantes
+                const horas = Math.floor(diferenca / (1000 * 60 * 60));
+                const minutos = Math.floor((diferenca % (1000 * 60 * 60)) / (1000 * 60));
+                const segundos = Math.floor((diferenca % (1000 * 60)) / 1000);
+                
+                // Atualizar o contador
+                let tempoFormatado = '';
+                
+                if (horas > 0) {
+                    tempoFormatado = `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+                } else {
+                    tempoFormatado = `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+                }
+                
+                // Adicionar classe de alerta quando faltar pouco tempo (menos de 2 minutos)
+                if (diferenca < 2 * 60 * 1000) { // Menos de 2 minutos
+                    tempoRestanteElement.className = 'text-danger fw-bold';
+                } else if (diferenca < 5 * 60 * 1000) { // Menos de 5 minutos
+                    tempoRestanteElement.className = 'text-warning';
+                } else {
+                    tempoRestanteElement.className = 'text-success';
+                }
+                
+                tempoRestanteElement.textContent = tempoFormatado;
+                
+            } catch (error) {
+                console.error('Erro ao atualizar contador PIX:', error);
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    window.pixTimerInterval = null;
+                }
+            }
+        }
+
+        async function confirmarAgendamento(event) {
+            event.preventDefault();
+            
+            const btn = $(this);
+            showLoadingModal(btn, true, 'Processando...');
+            
+            try {
+                // Esconder mensagens de erro anteriores
+                hideAlertModal();
+                
+                // Obter dados do formulário
+                const placa = infoUsuario?.placa_veiculo?.trim().toUpperCase();
+                const vagaId = $('#btnConfirmarAgendamento').data('vagaId');
+                const vagaNum = $('#modalConfirmacaoVagaNum').text().replace('Vaga ', '');
+                
+                if (!vagaId) {
+                    throw new Error('Nenhuma vaga selecionada.');
+                }
+                
+                if (!placa || placa.length < 6) {
+                    throw new Error('Placa de veículo inválida. Por favor, verifique os dados do seu perfil.');
+                }
+                
+                // Exibir mensagem de confirmação
+                showAlertModal('Processando sua solicitação...', 'info');
+                
+                try {
+                    console.log('Enviando solicitação de reserva com pagamento...');
+                    // Enviar solicitação para o servidor - Endpoint de reserva com pagamento
+                    const response = await fetchWithAuth(`/api/reservas/com-pagamento`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            vagaId: vagaId,
+                            vagaNumero: vagaNum,
+                            placaVeiculo: placa,
+                            estacionamentoId: currentEstacionamentoId,
+                            metodoPagamento: 'pix' // Informando que o pagamento será via PIX
+                        })
+                    });
+                    
+                    console.log('Resposta recebida da API:', response);
+                    
+                    const data = await response.json();
+                    console.log('Dados da resposta:', data);
+                    
+                    if (!response.ok) {
+                        console.error('Erro na resposta da API:', data);
+                        throw new Error(data.message || 'Erro ao processar o agendamento');
+                    }
+                    
+                    // Fechar o modal de confirmação
+                    $('#modalConfirmacao').modal('hide');
+                    
+                    // Exibir o modal de pagamento PIX com os dados retornados
+                    if (data.pagamento) {
+                        console.log('Exibindo modal de pagamento PIX com dados:', data.pagamento);
+                        exibirModalPagamentoPix({
+                            ...data.pagamento,
+                            valor: data.valor || 0 // Garantir que o valor está incluso
+                        });
+                    } else if (data.data?.pagamento) {
+                        // Tentar formato alternativo da resposta
+                        console.log('Exibindo modal de pagamento PIX (formato alternativo):', data.data.pagamento);
+                        exibirModalPagamentoPix({
+                            ...data.data.pagamento,
+                            valor: data.data.valor || 0
+                        });
+                    } else {
+                        console.warn('Dados de pagamento não encontrados na resposta:', data);
+                        // Se não tiver dados de pagamento, apenas mostra mensagem de sucesso
+                        showAlertEst('Reserva confirmada com sucesso!', 'success');
+                    }
+                    
+                    // Recarregar as vagas para atualizar o status
+                    carregarVagas(currentEstacionamentoId);
+                    
+                } catch (apiError) {
+                    console.error('Erro na API ao confirmar agendamento:', apiError);
+                    throw new Error(apiError.message || 'Falha na comunicação com o servidor. Verifique sua conexão e tente novamente.');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao confirmar agendamento:', error);
+                showAlertModal(error.message || 'Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente.');
+                // Manter o modal aberto para o usuário tentar novamente
+                return false;
+            } finally {
+                showLoadingModal(btn, false, 'Confirmar');
+            }
+        }
+        
+        async function confirmarLiberacao(event) {
+            const btn = event.currentTarget;
+            const vId = $(btn).data('vagaId');
+            if (!vId) return;
+            
+            showLoadingModal(btn, true);
+            
+            // Esconder qualquer feedback anterior
+            const fb = document.getElementById('liberar-feedback');
+            if (fb) fb.style.display = 'none';
+            
+            try {
+                const data = await fetchWithAuth(`/api/estacionamentos/vagas/${vId}/liberar`, {method: 'POST'});
+                
+                // Mostrar feedback de sucesso
+                if (fb) {
+                    fb.innerHTML = `<div class="alert alert-success alert-sm py-1 px-2 m-0">
+                        ${data.message || "Vaga liberada com sucesso!"}
+                        ${data.tempoEstacionado ? `<br>Tempo estacionado: <strong>${data.tempoEstacionado}</strong>` : ''}
+                    </div>`;
+                    fb.style.display = 'block';
+                }
+                
+                // Fechar o modal após um breve delay
+                setTimeout(() => {
+                    $('#modalLiberarVaga').modal('hide');
+                    showAlertEst(`Vaga liberada com sucesso! ${data.tempoEstacionado ? `Tempo: ${data.tempoEstacionado}` : ''}`, 'success', 5000);
+                }, 1500);
+                
+            } catch(e) {
+                // Mostrar erro
+                if (fb) {
+                    fb.innerHTML = `<div class="alert alert-danger alert-sm py-1 px-2 m-0">Erro: ${e?.data?.message || e.message}</div>`;
+                    fb.style.display = 'block';
+                }
+            } finally {
+                showLoadingModal(btn, false, 'Liberar Vaga');
+            }
+        }
+        
+        $('#btnConfirmarAgendamento').on('click', confirmarAgendamento);
+        $('#btnConfirmarLiberacao').on('click', confirmarLiberacao);
+
+        // --- Sistema de Contagem de Tempo Robusto com Moment.js ---
+        
+        // Detectar o fuso horário do cliente
+        const clientTimezone = moment.tz.guess();
+        console.log(`Fuso horário detectado: ${clientTimezone}`);
+        
+        // Objeto para armazenar informações de sincronização de tempo
+        const timeSync = {
+            offset: 0,          // Diferença entre servidor e cliente em ms
+            lastSync: null,     // Última vez que sincronizamos
+            samples: [],        // Amostras de diferenças para média
+            maxSamples: 5,      // Número máximo de amostras para média
+            initialized: false, // Se já inicializamos a sincronização
+            serverTimezone: 'America/Sao_Paulo', // Fuso horário do servidor
+            offsetHours: -3,    // Diferença em horas entre UTC e o fuso horário do servidor
+            lastServerTime: null // Último timestamp recebido do servidor
+        };
+        
+        // Função para sincronizar o relógio local com o servidor
+        function syncTimeWithServer(serverTime, timezoneInfo) {
+            if (!serverTime) return;
+            
+            try {
+                // Atualizar informações de fuso horário se disponíveis
+                if (timezoneInfo) {
+                    if (timezoneInfo.serverTimezone) {
+                        timeSync.serverTimezone = timezoneInfo.serverTimezone;
+                    }
+                    if (timezoneInfo.offsetHours !== undefined) {
+                        timeSync.offsetHours = timezoneInfo.offsetHours;
+                    }
+                }
+                
+                // Armazenar o último tempo do servidor recebido
+                timeSync.lastServerTime = serverTime;
+                
+                // Converter para objetos moment para manipulação mais fácil
+                // Garantir que o timestamp do servidor seja tratado como UTC se terminar com Z
+                let serverMoment;
+                if (typeof serverTime === 'string' && serverTime.endsWith('Z')) {
+                    // Timestamp em formato UTC
+                    serverMoment = moment.utc(serverTime).local();
+                } else {
+                    // Timestamp já em formato local ou objeto Date
+                    serverMoment = moment(serverTime);
+                }
+                
+                const clientMoment = moment();
+                
+                // Verificar se o tempo do servidor está muito no futuro (mais de 24 horas)
+                // Isso pode indicar um problema de configuração de fuso horário no servidor
+                if (serverMoment.diff(clientMoment, 'hours') > 24) {
+                    console.warn('Tempo do servidor muito à frente do cliente. Possível problema de fuso horário.');
+                    return; // Não usar esta amostra para sincronização
+                }
+                
+                // Calcular a diferença em milissegundos
+                const diff = serverMoment.valueOf() - clientMoment.valueOf();
+                
+                // Adicionar à lista de amostras
+                timeSync.samples.push(diff);
+                
+                // Manter apenas as últimas N amostras
+                if (timeSync.samples.length > timeSync.maxSamples) {
+                    timeSync.samples.shift();
+                }
+                
+                // Calcular a média das amostras para um valor mais estável
+                const sum = timeSync.samples.reduce((a, b) => a + b, 0);
+                timeSync.offset = Math.round(sum / timeSync.samples.length);
+                
+                timeSync.lastSync = Date.now();
+                timeSync.initialized = true;
+                
+                console.log(`Sincronização de tempo: diferença de ${timeSync.offset}ms entre servidor e cliente (${timeSync.samples.length} amostras)`);
+            } catch (e) {
+                console.error('Erro ao sincronizar tempo com servidor:', e);
+            }
+        }
+        
+        // Função para obter um objeto moment ajustado com a diferença servidor-cliente
+        function getAdjustedMoment() {
+            const now = moment();
+            if (timeSync.initialized) {
+                return now.add(timeSync.offset, 'milliseconds');
+            }
+            return now;
+        }
+        
+        // Função para obter o timestamp atual ajustado em milissegundos
+        function getAdjustedTimestamp() {
+            return getAdjustedMoment().valueOf();
+        }
+        
+        // Função para formatar tempo em segundos para HH:MM:SS
+        function formatarTempoSegundos(segundos) {
+            segundos = Math.max(0, segundos); // Garantir que o tempo nunca seja negativo
+            const duration = moment.duration(segundos, 'seconds');
+            const horas = Math.floor(duration.asHours());
+            const minutos = duration.minutes();
+            const segs = duration.seconds();
+            return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segs).padStart(2, '0')}`;
+        }
+        
+        // Função para calcular o tempo estacionado com base no timestamp de entrada
+        function calcularTempoEstacionado(entradaTimestamp, vagaId) {
+            if (!entradaTimestamp) return 0;
+            
+            // Obter o momento atual
+            const agora = moment();
+            
+            // Normalizar o timestamp de entrada
+            let entradaMoment;
+            
+            try {
+                // Se for string, converter para objeto moment
+                if (typeof entradaTimestamp === 'string') {
+                    // Verificar se o formato da string tem 'Z' no final (UTC)
+                    if (entradaTimestamp.endsWith('Z')) {
+                        // Usar moment.utc para parsear corretamente datas UTC
+                        // e converter para o fuso horário local
+                        entradaMoment = moment.utc(entradaTimestamp).local();
+                    } else {
+                        // Assumir que a string já está no fuso horário local
+                        entradaMoment = moment(entradaTimestamp);
+                    }
+                } else if (entradaTimestamp instanceof Date) {
+                    // Se for um objeto Date, converter para moment
+                    entradaMoment = moment(entradaTimestamp);
+                } else {
+                    // Se for um timestamp numérico (milissegundos desde epoch)
+                    entradaMoment = moment(entradaTimestamp);
+                }
+                
+                // Verificar se a data de entrada é válida
+                if (!entradaMoment.isValid()) {
+                    console.error(`Data de entrada inválida para vaga ${vagaId}: ${entradaTimestamp}`);
+                    return 0;
+                }
+                
+                // Verificar se a data de entrada está no futuro
+                if (entradaMoment.isAfter(agora)) {
+                    // Verificar se a diferença é pequena (menos de 5 minutos) - possível problema de sincronização
+                    const diffMinutos = entradaMoment.diff(agora, 'minutes');
+                    
+                    if (diffMinutos <= 5) {
+                        // Pequena diferença, provavelmente sincronização - usar o tempo atual
+                        console.warn(`Data de entrada ligeiramente no futuro para vaga ${vagaId} (${diffMinutos} minutos). Ajustando para data atual.`);
+                        entradaMoment = agora;
+                    } else {
+                        // Diferença significativa - possível problema de fuso horário ou data incorreta
+                        console.error(`Data de entrada muito no futuro para vaga ${vagaId}: ${entradaTimestamp}. Diferença: ${diffMinutos} minutos.`);
+                        
+                        // Verificar se a diferença corresponde ao offset de fuso horário conhecido
+                        // Usar timeSync.offsetHours que foi recebido do servidor
+                        const offsetMinutos = Math.abs(timeSync.offsetHours * 60);
+                        
+                        if (Math.abs(diffMinutos - offsetMinutos) < 10) { // Offset +/- 10 minutos
+                            console.warn(`Possível problema de fuso horário (${timeSync.offsetHours} horas) detectado para vaga ${vagaId}. Aplicando correção.`);
+                            entradaMoment = entradaMoment.add(timeSync.offsetHours, 'hours');
+                        } else {
+                            // Caso não seja um problema de fuso horário conhecido, usar o tempo atual
+                            console.warn(`Diferença de tempo não corresponde ao offset conhecido. Usando tempo atual.`);
+                            entradaMoment = agora;
+                        }
+                    }
+                }
+                
+                // Calcular a diferença em segundos
+                let segundos = agora.diff(entradaMoment, 'seconds');
+                
+                // Se ainda tivermos um valor negativo, usar zero
+                if (segundos < 0) {
+                    console.warn(`Tempo ainda negativo após todos os ajustes para vaga ${vagaId}. Usando zero.`);
+                    segundos = 0;
+                }
+                
+                return segundos;
+            } catch (error) {
+                console.error(`Erro ao calcular tempo estacionado para vaga ${vagaId}:`, error);
+                return 0; // Em caso de erro, retornar zero
+            }
+        }
+        
+        // Função para atualizar o tempo na interface em tempo real
+        function atualizarContadorTempoReal(vId) {
+            const tEl = $(`#tempoEstacionado-${vId}`);
+            const vaga = vagasInfo[vId];
+            
+            if (tEl.length === 0 || !vaga || !vaga.entrada) {
+                clearInterval(timersAtivos[vId]);
+                delete timersAtivos[vId];
+                return;
+            }
+            
+            // Calcular o tempo atual com base no timestamp de entrada usando moment.js
+            const tempoSegundos = calcularTempoEstacionado(vaga.entrada, vId);
+            
+            // Atualizar a interface
+            tEl.text(formatarTempoSegundos(tempoSegundos));
+            
+            // Armazenar o tempo calculado no localStorage para persistência
+            try {
+                const vagasStorage = JSON.parse(localStorage.getItem('parkNow_vagasInfo') || '{}');
+                if (vagasStorage[vId]) {
+                    vagasStorage[vId].ultimoTempoCalculado = tempoSegundos;
+                    vagasStorage[vId].ultimoCalculo = getAdjustedTimestamp();
+                    vagasStorage[vId].timeSyncOffset = timeSync.offset; // Salvar o offset de sincronização
+                    vagasStorage[vId].clientTimezone = clientTimezone; // Salvar o fuso horário do cliente
+                }
+                localStorage.setItem('parkNow_vagasInfo', JSON.stringify(vagasStorage));
+            } catch (e) {
+                console.warn('Erro ao salvar no localStorage:', e);
+            }
+        }
+        
+        // Função para buscar informações da vaga do servidor
+        async function atualizarTempoVaga(vId) { 
+            const tEl = $(`#tempoEstacionado-${vId}`);
+            if (tEl.length === 0) {
+                clearInterval(timersAtivos[vId]); 
+                delete timersAtivos[vId];
+                return;
+            } 
+            
+            try {
+                const data = await fetchWithAuth(`/api/estacionamentos/vagas/${vId}/tempo`);
+                
+                // Sincronizar o relógio local com o servidor
+                if (data?.serverTime) {
+                    syncTimeWithServer(data.serverTime);
+                }
+                
+                if (data?.ocupada) {
+                    // Converter entrada para timestamp se for string
+                    let entradaTimestamp = data.entrada;
+                    if (typeof entradaTimestamp === 'string') {
+                        entradaTimestamp = new Date(entradaTimestamp).getTime();
+                    }
+                    
+                    // Armazenar informações completas da vaga
+                    vagasInfo[vId] = {
+                        entrada: entradaTimestamp,
+                        status: data.status,
+                        tempoFormatado: data.tempoEstacionado,
+                        segundos: data.segundos,
+                        usuario_id: data.usuario_id,
+                        isOcupante: data.isOcupante,
+                        ultimaSincronizacao: getAdjustedTimestamp(),
+                        serverTime: data.serverTime
+                    };
+                    
+                    // Atualizar a interface imediatamente
+                    tEl.text(data.tempoEstacionado);
+                    
+                    // Salvar no localStorage para persistência
+                    try {
+                        const vagasStorage = JSON.parse(localStorage.getItem('parkNow_vagasInfo') || '{}');
+                        vagasStorage[vId] = {
+                            entrada: entradaTimestamp,
+                            status: data.status,
+                            ultimoTempoCalculado: data.segundos,
+                            ultimoCalculo: getAdjustedTimestamp(),
+                            usuario_id: data.usuario_id,
+                            timeSyncOffset: timeSync.offset
+                        };
+                        localStorage.setItem('parkNow_vagasInfo', JSON.stringify(vagasStorage));
+                    } catch (e) {
+                        console.warn('Erro ao salvar no localStorage:', e);
+                    }
+                    
+                    // Iniciar o contador em tempo real
+                    if (timersAtivos[vId]) clearInterval(timersAtivos[vId]);
+                    timersAtivos[vId] = setInterval(() => atualizarContadorTempoReal(vId), 1000); // Atualiza a cada segundo
+                    
+                    // Atualizar a aparência da vaga se for do usuário atual
+                    if (data.isOcupante) {
+                        const vEl = $(`.vaga[data-vaga-id="${vId}"]`);
+                        if (vEl.length > 0) {
+                            vEl.attr('data-usuario-id', data.usuario_id)
+                               .css('cursor', 'pointer')
+                               .off('click')
+                               .on('click', () => abrirModalLiberarVaga(vId, vEl.data('numero')));
+                        }
+                    }
+                } else {
+                    // Vaga não está ocupada
+                    delete vagasInfo[vId];
+                    tEl.text("00:00:00");
+                    
+                    // Remover do localStorage
+                    try {
+                        const vagasStorage = JSON.parse(localStorage.getItem('parkNow_vagasInfo') || '{}');
+                        delete vagasStorage[vId];
+                        localStorage.setItem('parkNow_vagasInfo', JSON.stringify(vagasStorage));
+                    } catch (e) {
+                        console.warn('Erro ao remover do localStorage:', e);
+                    }
+                }
+            } catch (e) {
+                console.warn(`Warn tempo V:${vId}:`, e.message);
+                tEl.text("--:--:--");
+            }
+        }
+        
+        // Carregar informações salvas do localStorage ao iniciar
+        function carregarVagasDoLocalStorage() {
+            try {
+                const vagasStorage = JSON.parse(localStorage.getItem('parkNow_vagasInfo') || '{}');
+                
+                // Para cada vaga salva, atualizar a interface com o tempo calculado
+                Object.keys(vagasStorage).forEach(vId => {
+                    const vaga = vagasStorage[vId];
+                    const tEl = $(`#tempoEstacionado-${vId}`);
+                    
+                    if (tEl.length > 0 && vaga.entrada && vaga.status === 'ocupada') {
+                        // Restaurar a configuração de sincronização de tempo se disponível
+                        if (vaga.timeSyncOffset !== undefined) {
+                            // Inicializar com o offset salvo
+                            timeSync.offset = vaga.timeSyncOffset;
+                            timeSync.initialized = true;
+                            timeSync.lastSync = Date.now();
+                            timeSync.samples = [vaga.timeSyncOffset]; // Iniciar com uma amostra
+                        }
+                        
+                        // Converter entrada para moment
+                        const entradaMoment = moment(vaga.entrada);
+                        
+                        // Calcular tempo usando moment.js
+                        let tempoTotal;
+                        if (vaga.ultimoTempoCalculado !== undefined && vaga.ultimoCalculo) {
+                            // Calcular com base no último cálculo + tempo decorrido
+                            const ultimoCalculoMoment = moment(vaga.ultimoCalculo);
+                            const agoraMoment = getAdjustedMoment();
+                            const tempoDecorrido = agoraMoment.diff(ultimoCalculoMoment, 'seconds');
+                            tempoTotal = Math.max(0, vaga.ultimoTempoCalculado + tempoDecorrido);
+                        } else {
+                            // Calcular direto da entrada até agora
+                            tempoTotal = calcularTempoEstacionado(vaga.entrada, vId);
+                        }
+                        
+                        // Atualizar a interface
+                        tEl.text(formatarTempoSegundos(tempoTotal));
+                        
+                        // Iniciar o timer para atualização contínua
+                        vagasInfo[vId] = {
+                            entrada: vaga.entrada,
+                            status: vaga.status,
+                            usuario_id: vaga.usuario_id,
+                            ultimoTempoCalculado: tempoTotal,
+                            ultimoCalculo: getAdjustedTimestamp()
+                        };
+                        
+                        // Iniciar o contador em tempo real
+                        if (timersAtivos[vId]) clearInterval(timersAtivos[vId]);
+                        timersAtivos[vId] = setInterval(() => atualizarContadorTempoReal(vId), 1000);
+                    }
+                });
+            } catch (e) {
+                console.warn('Erro ao carregar do localStorage:', e);
+            }
+        }
+        
+        // Iniciar o timer para uma vaga
+        function iniciarTimerVaga(vId) {
+            // Limpar qualquer timer existente
+            if (timersAtivos[vId]) {
+                clearInterval(timersAtivos[vId]);
+                delete timersAtivos[vId];
+            }
+            
+            // Limpar qualquer timer de sincronização existente
+            if (sincronizacaoTimers[vId]) {
+                clearInterval(sincronizacaoTimers[vId]);
+                delete sincronizacaoTimers[vId];
+            }
+            
+            // Buscar informações atualizadas do servidor
+            atualizarTempoVaga(vId);
+            
+            // Configurar uma sincronização periódica com o servidor
+            sincronizacaoTimers[vId] = setInterval(() => {
+                atualizarTempoVaga(vId);
+            }, 60000); // Sincronizar a cada 1 minuto
+        }
+        
+        // Iniciar contador de tempo real para uma vaga
+        function iniciarContadorTempoReal(vId, entradaTimestamp) {
+            // Limpar qualquer timer existente
+            pararContadorTempoReal(vId);
+            
+            // Converter para objeto moment para manipulação consistente
+            let entradaMoment;
+            if (typeof entradaTimestamp === 'string') {
+                entradaMoment = moment(entradaTimestamp);
+            } else if (typeof entradaTimestamp === 'number') {
+                entradaMoment = moment(entradaTimestamp);
+            } else if (moment.isMoment(entradaTimestamp)) {
+                entradaMoment = entradaTimestamp;
+            } else {
+                // Fallback para o momento atual se inválido
+                console.warn(`Timestamp de entrada inválido para vaga ${vId}. Usando momento atual.`);
+                entradaMoment = moment();
+            }
+            
+            // Se o timestamp for futuro, usar o timestamp atual
+            if (entradaMoment.isAfter(moment())) {
+                console.warn(`Timestamp futuro detectado para vaga ${vId}. Ajustando para o momento atual.`);
+                entradaMoment = moment();
+            }
+            
+            // Armazenar informações da vaga
+            vagasInfo[vId] = {
+                entrada: entradaMoment.valueOf(), // Armazenar como timestamp para compatibilidade
+                entradaISO: entradaMoment.toISOString(), // Armazenar também como ISO string
+                status: 'ocupada',
+                ultimaSincronizacao: getAdjustedTimestamp()
+            };
+            
+            // Iniciar o contador em tempo real
+            timersAtivos[vId] = setInterval(() => atualizarContadorTempoReal(vId), 1000);
+            
+            // Salvar no localStorage para persistência
+            try {
+                const vagasStorage = JSON.parse(localStorage.getItem('parkNow_vagasInfo') || '{}');
+                vagasStorage[vId] = {
+                    entrada: entradaMoment.valueOf(),
+                    entradaISO: entradaMoment.toISOString(),
+                    status: 'ocupada',
+                    ultimoTempoCalculado: 0, // Iniciar em zero para novas ocupações
+                    ultimoCalculo: getAdjustedTimestamp(),
+                    usuario_id: infoUsuario?.id,
+                    timeSyncOffset: timeSync.offset,
+                    clientTimezone: clientTimezone,
+                    version: '2.0' // Versão do formato para compatibilidade futura
+                };
+                localStorage.setItem('parkNow_vagasInfo', JSON.stringify(vagasStorage));
+            } catch (e) {
+                console.warn('Erro ao salvar no localStorage:', e);
+            }
+        }
+        
+        // Parar contador de tempo real para uma vaga
+        function pararContadorTempoReal(vId) {
+            // Limpar timer ativo
+            if (timersAtivos[vId]) {
+                clearInterval(timersAtivos[vId]);
+                delete timersAtivos[vId];
+            }
+            
+            // Limpar timer de sincronização
+            if (sincronizacaoTimers[vId]) {
+                clearInterval(sincronizacaoTimers[vId]);
+                delete sincronizacaoTimers[vId];
+            }
+            
+            // Remover informações da vaga
+            delete vagasInfo[vId];
+            
+            // Remover do localStorage
+            try {
+                const vagasStorage = JSON.parse(localStorage.getItem('parkNow_vagasInfo') || '{}');
+                delete vagasStorage[vId];
+                localStorage.setItem('parkNow_vagasInfo', JSON.stringify(vagasStorage));
+            } catch (e) {
+                console.warn('Erro ao remover do localStorage:', e);
+            }
+        }
+
+        // --- Inicialização ---
+        $(document).ready(function() { 
+            // Inicializar animações
+            AOS.init({duration:800, easing:'ease-in-out', once:true}); 
+            
+            // Inicializar o serviço de notificações (já criado globalmente pelo notificationService.js)
+            notificationService.init({
+                containerSelector: '#notificationContainer',
+                userId: infoUsuario?.id,
+                token: localStorage.getItem('authToken'),
+                onNotificationReceived: function(notification) {
+                    console.log('Nova notificação recebida:', notification);
+                    // Exibir notificação usando o sistema de toast existente
+                    mostrarNotificacao(notification.titulo, notification.mensagem, notification.tipo || 'info');
+                }
+            });
+            
+            // Obter ID do estacionamento da URL
+            const urlP = new URLSearchParams(window.location.search); 
+            currentEstacionamentoId = urlP.get('estacionamentoId'); 
+            
+            if(currentEstacionamentoId && getAuthToken()){ 
+                // Carregar dados do localStorage primeiro para exibição imediata
+                carregarVagasDoLocalStorage();
+                
+                // Carregar dados do servidor e conectar ao socket
+                carregarDadosIniciais(currentEstacionamentoId).then(() => { 
+                    if (config?.realtime?.enabled ?? true) connectSocketIO(); 
+                }); 
+            } else if(!currentEstacionamentoId){
+                // Mostrar erro se não houver ID de estacionamento
+                $('#estacionamentoNome').text('Erro');
+                $('#vagasContainer').html('<p class="text-center text-danger col-12">ID Estacionamento N/A.</p>');
+            } 
+            
+            // Limpar recursos quando a página for fechada
+            window.addEventListener('beforeunload', () => {
+                disconnectSocketIO();
+                limparTodosTimers();
+            });
+            
+            // --- Socket.IO ---
+            function connectSocketIO() {
+                // Desconectar se já existir
+                disconnectSocketIO();
+                
+                // Conectar com autenticação
+                socket = io(window.location.origin, {
+                    auth: { token: getAuthToken() },
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                    timeout: 10000
+                });
+                
+                socket.on('connect', () => {
+                    console.log('Socket.IO conectado!');
+                    if (currentEstacionamentoId) {
+                        // Entrar na sala do estacionamento atual
+                        socket.emit('join_estacionamento', currentEstacionamentoId);
+                        // Solicitar estado atual das vagas
+                        socket.emit('solicitar_estado_vagas', currentEstacionamentoId);
+                    }
+                });
+                
+                socket.on('connect_error', (err) => {
+                    console.error('Erro de conexão Socket.IO:', err.message);
+                    // Tentar reconectar manualmente após 5 segundos
+                    setTimeout(() => {
+                        if (socket && !socket.connected) {
+                            console.log('Tentando reconectar manualmente...');
+                            socket.connect();
+                        }
+                    }, 5000);
+                });
+                
+                socket.on('disconnect', (reason) => {
+                    console.log('Socket.IO desconectado:', reason);
+                    // Se a desconexão não foi intencional, tentar reconectar
+                    if (reason === 'io server disconnect' || reason === 'transport close') {
+                        setTimeout(() => {
+                            console.log('Tentando reconectar após desconexão...');
+                            if (socket) socket.connect();
+                        }, 3000);
+                    }
+                });
+                
+                // Eventos específicos da aplicação
+                socket.on('vaga_atualizada', (data) => {
+                    console.log('Vaga atualizada via socket:', data);
+                    
+                    // Atualizar informações de sincronização de tempo se disponíveis
+                    if (data.timezone) {
+                        syncTimeWithServer(data.timezone.serverTime, {
+                            serverTimezone: data.timezone.serverTimezone,
+                            offsetHours: data.timezone.offsetHours
+                        });
+                    }
+                    
+                    // Verificar e corrigir timestamp de entrada se estiver no futuro
+                    if (data.entrada && data.status === 'ocupada') {
+                        // Verificar se a data de entrada é uma string com 'Z' (UTC)
+                        if (typeof data.entrada === 'string' && data.entrada.endsWith('Z')) {
+                            // Converter para moment UTC e depois para local
+                            const entradaMoment = moment.utc(data.entrada).local();
+                            const agora = moment();
+                            
+                            if (entradaMoment.isAfter(agora)) {
+                                const diffMinutos = entradaMoment.diff(agora, 'minutes');
+                                console.warn(`Recebido timestamp futuro para vaga ${data.vagaId}: ${diffMinutos} minutos à frente`);
+                                
+                                // Verificar se a diferença corresponde ao offset de fuso horário conhecido
+                                const offsetMinutos = Math.abs(timeSync.offsetHours * 60);
+                                
+                                if (Math.abs(diffMinutos - offsetMinutos) < 10) {
+                                    console.warn(`Corrigindo problema de fuso horário (${timeSync.offsetHours} horas) para vaga ${data.vagaId}`);
+                                    // Aplicar a correção de fuso horário
+                                    const corrigido = entradaMoment.add(timeSync.offsetHours, 'hours');
+                                    // Manter o formato UTC para consistência
+                                    data.entrada = corrigido.utc().toISOString();
+                                } else if (diffMinutos <= 5) {
+                                    // Pequena diferença, provavelmente sincronização - usar o tempo atual
+                                    data.entrada = moment().utc().toISOString();
+                                }
+                            }
+                        }
+                    }
+                    
+                    atualizarVagaNaTela(data);
+                    
+                    // Se a vaga foi ocupada pelo usuário atual, iniciar contador
+                    if (data.status === 'ocupada' && data.usuario_id === infoUsuario?.id) {
+                        // Converter a string de entrada para timestamp se necessário
+                        let entradaTimestamp = data.entrada;
+                        if (typeof data.entrada === 'string') {
+                            // Usar moment para parsear corretamente datas UTC
+                            if (data.entrada.endsWith('Z')) {
+                                entradaTimestamp = moment.utc(data.entrada).local().valueOf();
+                            } else {
+                                entradaTimestamp = moment(data.entrada).valueOf();
+                            }
+                        }
+                        iniciarContadorTempoReal(data.vagaId, entradaTimestamp);
+                    }
+                    // Se a vaga foi liberada, parar contador
+                    else if (data.status === 'livre') {
+                        pararContadorTempoReal(data.vagaId);
+                    }
+                });
+                
+                socket.on('estado_vagas_atualizado', (data) => {
+                    console.log('Estado completo das vagas atualizado:', data);
+                    if (data.estacionamentoId == currentEstacionamentoId) {
+                        // Atualizar todas as vagas na interface
+                        data.vagas.forEach(vaga => {
+                            atualizarVagaNaTela(vaga);
+                        });
+                        
+                        // Atualizar contagem de vagas livres
+                        const vagasLivres = data.vagas.filter(v => v.status === 'livre').length;
+                        $('#vagasLivresCount').text(vagasLivres);
+                    }
+                });
+                
+                socket.on('tempo_vaga_atualizado', (data) => {
+                    console.log('Tempo de vaga atualizado:', data);
+                    if (data.status === 'ocupada') {
+                        // Atualizar o tempo na interface
+                        const tempoFormatado = formatarTempoSegundos(data.segundos);
+                        $(`#tempoEstacionado-${data.vagaId}`).text(tempoFormatado);
+                        
+                        // Atualizar as informações da vaga
+                        vagasInfo[data.vagaId] = {
+                            entrada: data.entrada,
+                            status: data.status,
+                            segundos: data.segundos,
+                            usuario_id: data.usuario_id,
+                            isOcupante: data.isOcupante,
+                            ultimaSincronizacao: Date.now()
+                        };
+                        
+                        // Se for o ocupante, iniciar contador em tempo real
+                        if (data.isOcupante) {
+                            iniciarContadorTempoReal(data.vagaId, data.entrada);
+                        }
+                    }
+                });
+                
+                socket.on('notificacao_usuario', (data) => {
+                    console.log('Notificação recebida:', data);
+                    
+                    // Exibir notificação na interface
+                    if (data.tipo === 'vaga_ocupada') {
+                        exibirNotificacao('Vaga Ocupada', `Você ocupou a vaga ${data.numeroVaga} no estacionamento ${data.estacionamentoNome || data.estacionamentoId}`);
+                    } 
+                    else if (data.tipo === 'vaga_liberada') {
+                        const tempoFormatado = formatarTempoSegundos(data.tempoEstacionado);
+                        exibirNotificacao('Vaga Liberada', `Você liberou a vaga ${data.numeroVaga}. Tempo estacionado: ${tempoFormatado}`);
+                    }
+                });
+            }
+            
+            function disconnectSocketIO() {
+                if (socket) {
+                    // Sair da sala do estacionamento atual
+                    if (currentEstacionamentoId) {
+                        socket.emit('leave_estacionamento', currentEstacionamentoId);
+                    }
+                    socket.disconnect();
+                    socket = null;
+                }
+            }
+            
+            // Função para exibir notificações na interface
+            function exibirNotificacao(titulo, mensagem) {
+                // Criar ID único para a notificação
+                const notificacaoId = `notif-${Date.now()}`;
+                
+                // Criar elemento de notificação
+                const notificacaoHTML = `
+                    <div id="${notificacaoId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+                        <div class="toast-header">
+                            <strong class="mr-auto">${titulo}</strong>
+                            <small>Agora</small>
+                            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="toast-body">
+                            ${mensagem}
+                        </div>
+                    </div>
+                `;
+                
+                // Adicionar à área de notificações
+                const notificacoesArea = document.getElementById('notificacoesArea');
+                if (!notificacoesArea) {
+                    // Criar área de notificações se não existir
+                    const areaHTML = `<div id="notificacoesArea" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>`;
+                    document.body.insertAdjacentHTML('beforeend', areaHTML);
+                }
+                
+                // Adicionar notificação à área
+                document.getElementById('notificacoesArea').insertAdjacentHTML('beforeend', notificacaoHTML);
+                
+                // Mostrar notificação
+                $(`#${notificacaoId}`).toast('show');
+                
+                // Adicionar à lista de notificações ativas
+                notificacoesAtivas.push(notificacaoId);
+                
+                // Remover da lista quando fechada
+                $(`#${notificacaoId}`).on('hidden.bs.toast', function() {
+                    const index = notificacoesAtivas.indexOf(notificacaoId);
+                    if (index > -1) {
+                        notificacoesAtivas.splice(index, 1);
+                    }
+                    $(this).remove();
+                });
+            } 
+            
+            // Atualizar timers quando a página voltar a ficar visível
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && currentEstacionamentoId) {
+                    // Recarregar vagas para atualizar os tempos
+                    carregarVagas(currentEstacionamentoId);
+                }
+            });
+            
+            // Verificar periodicamente se há vagas ocupadas pelo usuário atual
+            // mesmo quando o usuário não está na página de estacionamento
+            setInterval(() => {
+                // Verificar se há vagas ocupadas pelo usuário no localStorage
+                try {
+                    const vagasStorage = JSON.parse(localStorage.getItem('parkNow_vagasInfo') || '{}');
+                    Object.keys(vagasStorage).forEach(vId => {
+                        const vaga = vagasStorage[vId];
+                        if (vaga.status === 'ocupada' && vaga.entrada) {
+                            // Atualizar o tempo calculado
+                            const tempoDecorrido = Math.floor((Date.now() - vaga.ultimoCalculo) / 1000);
+                            const tempoTotal = vaga.ultimoTempoCalculado + tempoDecorrido;
+                            vagasStorage[vId].ultimoTempoCalculado = tempoTotal;
+                            vagasStorage[vId].ultimoCalculo = Date.now();
+                        }
+                    });
+                    localStorage.setItem('parkNow_vagasInfo', JSON.stringify(vagasStorage));
+                } catch (e) {
+                    console.warn('Erro ao atualizar tempos no localStorage:', e);
+                }
+            }, 30000); // Atualizar a cada 30 segundos
+        });
+    </script>
+    </body>
+    </html>

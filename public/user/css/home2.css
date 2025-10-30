@@ -1,0 +1,110 @@
+/* public/user/css/home2.css */
+/* Estilos alternativos para user/home.html ou outra página 'home' */
+
+/* --- Reset e Padrões --- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body.home2-page { /* Classe específica */
+    font-family: 'Roboto', sans-serif; /* Fonte Roboto */
+    background-color: #f0f2f5; /* Fundo cinza mais neutro */
+    color: #333a40; /* Texto cinza escuro */
+    line-height: 1.6;
+}
+
+/* --- Seção Central 'meio' --- */
+.meio {
+    text-align: center;
+    padding: 50px 25px;
+    background-color: #ffffff;
+    margin: 30px auto; /* Margem para destacar */
+    max-width: 900px; /* Largura máxima da seção */
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.meio h1 {
+    font-family: 'Days One', sans-serif;
+    color: #1c3a54; /* Azul petróleo */
+    margin-bottom: 25px;
+    font-size: 2em;
+}
+
+/* --- Barra de Pesquisa (Estilo 2) --- */
+.search { display: flex; justify-content: center; align-items: center; margin-top: 20px; margin-bottom: 40px; }
+.search-box.style2 {
+    display: flex; align-items: center; height: 50px; width: 90%; max-width: 550px;
+    padding: 8px 10px 8px 20px; border-radius: 6px; border: 1px solid #d0d9e3; /* Borda azulada clara */
+    background-color: #fcfdff; box-shadow: inset 0 1px 3px rgba(0,0,0,0.04);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.search-box.style2:focus-within { border-color: #4a90e2; box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15); }
+.search-txt { flex-grow: 1; border: none; background: none; outline: none; padding: 0 10px 0 0; font-size: 1rem; line-height: normal; color: #333a40; }
+.search-txt::placeholder { color: #aab4be; }
+.search-box.style2 .search-btn {
+    background-color: #4a90e2; /* Azul mais claro */ border-radius: 4px; padding: 9px 12px; border: none; cursor: pointer; transition: background-color 0.2s ease;
+}
+.search-box.style2 .search-btn img { width: 16px; height: 16px; filter: brightness(0) invert(1); }
+.search-box.style2 .search-btn:hover { background-color: #357abd; }
+
+
+/* --- Botão Prosseguir (Estilo 2) --- */
+.proseguir { display: flex; justify-content: center; align-items: center; margin-top: 30px; }
+.btn.style2 {
+    min-width: 200px; max-width: 300px; padding: 14px 35px; /* Botão maior */
+    background-color: #4a90e2; color: #fff; border: none; border-radius: 6px;
+    cursor: pointer; font-size: 1.15rem; font-weight: 600;
+    transition: all 0.3s ease; box-shadow: 0 4px 8px rgba(0,0,0,0.15); letter-spacing: 0.5px;
+}
+.btn.style2:hover { background-color: #357abd; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(74, 144, 226, 0.3); }
+
+/* --- Seção do Mapa (Estilo 2) --- */
+.map { display: flex; justify-content: center; align-items: center; background: linear-gradient(180deg, #f0f2f5, #e4e8ed); padding: 60px 20px; }
+.mapBox.style2 {
+    position: relative; height: 500px; /* Altura */ width: 95%; max-width: 900px; /* Largura */
+    background-color: #fff; border: 1px solid #d5dbe1; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+}
+.mapBox.style2 iframe, .mapBox.style2 #map { width: 100%; height: 100%; border: none; border-radius: 8px; }
+
+/* --- Título H11 (Estilo 2) --- */
+.h11.style2 {
+    background: #2c3e50; color: #ffffff; padding: 20px; font-size: 1.8em;
+    margin-bottom: 30px; font-family: 'Days One', sans-serif; text-align: center; border-radius: 5px;
+}
+
+/* --- Texto Justificado --- */
+.texto { text-align: justify; padding: 0 30px 30px 30px; line-height: 1.8; color: #4a5568; font-size: 1.05rem;}
+
+/* --- Seção 'fundo' (Estilo 2) --- */
+.fundo.style2 {
+    margin: 45px auto; display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+    background-color: #ffffff; padding: 40px; border-radius: 10px;
+    max-width: 1000px; gap: 35px; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+}
+.fundo.style2 img { height: auto; max-width: 230px; border-radius: 50%; border: 6px solid #f0f2f5; box-shadow: 0 5px 12px rgba(0,0,0,0.1); }
+.fundo.style2 div { flex: 1; min-width: 340px; }
+.fundo.style2 div h2 { font-family: 'Days One', sans-serif; font-size: 1.7em; color: #4a90e2; padding-bottom: 10px; margin-bottom: 18px; border-bottom: 3px solid #4a90e2; display: inline-block; }
+.fundo.style2 div p { margin-bottom: 18px; text-align: left; line-height: 1.75; color: #4a5568; font-size: 1rem; }
+
+/* --- Responsividade --- */
+@media screen and (max-width: 991px) {
+    .fundo.style2 { max-width: 90%; }
+    .fundo.style2 img { max-width: 200px; }
+    .mapBox.style2 { max-width: 90%; }
+}
+@media screen and (max-width: 767px) {
+    .search-box.style2 { width: 95%; }
+    .btn.style2 { width: 90%; max-width: 350px; }
+    .fundo.style2 { padding: 30px 20px; flex-direction: column; }
+    .fundo.style2 img { max-width: 180px; margin-bottom: 30px; }
+    .fundo.style2 div { min-width: auto; }
+    .mapBox.style2 { height: 420px; width: 95%; }
+    .meio { padding: 40px 15px; } .meio h1 { font-size: 1.9em; }
+    .h11.style2 { font-size: 1.6em; }
+}
+@media screen and (max-width: 575px) {
+    .meio h1 { font-size: 1.7em; }
+    .h11.style2 { font-size: 1.5em; }
+    .mapBox.style2 { height: 380px; }
+    .fundo.style2 img { max-width: 160px; }
+    .fundo.style2 div h2 { font-size: 1.5em; }
+    .fundo.style2 div p { font-size: 0.95rem; }
+}

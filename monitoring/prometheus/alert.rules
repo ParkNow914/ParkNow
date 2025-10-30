@@ -1,0 +1,38 @@
+groups:
+- name: postgresql.rules
+  rules:
+  - alert: PostgresqlDown
+    expr: pg_up == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "PostgreSQL down (instance {{ $labels.instance }})"
+      description: "PostgreSQL instance is down\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: PostgresqlHighConnections
+    expr: sum by (datname) (pg_stat_activity_count{datname!~"template.*|postgres"} > (pg_settings_max_connections * 0.8))
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "PostgreSQL high connections (instance {{ $labels.instance }})"
+      description: "PostgreSQL instance has more than 80% of max connections in use\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: PostgresqlSlowQueries
+    expr: rate(pg_stat_statements_total_time_seconds[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "PostgreSQL slow queries (instance {{ $labels.instance }})"
+      description: "PostgreSQL has slow queries\n  VALUE = {{ $value }}\n  QUERY = {{ $labels.query }}"
+
+  - alert: PostgresqlHighRollbackRate
+    expr: rate(pg_stat_database_xact_rollback_total[5m]) / rate(pg_stat_database_xact_commit_total[5m] + pg_stat_database_xact_rollback_total[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "PostgreSQL high rollback rate (instance {{ $labels.instance }})"
+      description: "PostgreSQL has high rollback rate (>10% of all transactions)\n  VALUE = {{ $value }}\n  DATABASE = {{ $labels.datname }}"

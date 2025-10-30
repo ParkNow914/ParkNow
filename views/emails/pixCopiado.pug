@@ -1,0 +1,98 @@
+doctype html
+html
+  head
+    style.
+      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+      .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+      .content { padding: 20px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 5px 5px; }
+      .button { 
+        display: inline-block; 
+        padding: 12px 24px; 
+        color: white; 
+        text-decoration: none; 
+        border-radius: 5px; 
+        margin: 10px 5px; 
+        font-weight: bold;
+        text-align: center;
+        border: none;
+        cursor: pointer;
+      }
+      .button-confirm {
+        background-color: #4CAF50;
+      }
+      .button-cancel {
+        background-color: #dc3545;
+      }
+      .button-container {
+        text-align: center;
+        margin: 25px 0;
+      }
+      .footer { margin-top: 20px; font-size: 12px; color: #777; text-align: center; }
+      .resumo { 
+        background-color: #f9f9f9; 
+        padding: 15px; 
+        border-radius: 8px; 
+        margin: 20px 0; 
+        border-left: 4px solid #4CAF50;
+      }
+      .codigo-pix { 
+        font-family: monospace; 
+        font-size: 16px; 
+        padding: 10px; 
+        background-color: #f0f0f0; 
+        border-radius: 4px; 
+        word-break: break-all;
+        display: block;
+        margin: 10px 0;
+      }
+      .info-label {
+        font-weight: bold;
+        color: #555;
+      }
+  body
+    .header
+      h1 Solicitação de Pagamento PIX - ParkNow
+    .content
+      p Olá #{estacionamentoNome},
+      p Um cliente solicitou o pagamento via PIX para a reserva ##{reservaId}.
+      
+      .resumo
+        h3(style="margin-top: 0; margin-bottom: 15px; color: #2c3e50;") DETALHES DA RESERVA
+        p 
+          span.info-label Cliente: 
+          | #{clienteNome}
+        p 
+          span.info-label Veículo: 
+          | #{veiculoPlaca}
+        p 
+          span.info-label Valor: 
+          | #{valor}
+        p 
+          span.info-label Data/Hora da Reserva: 
+          | #{dataHora}
+        p 
+          span.info-label Chave PIX: 
+          span.codigo-pix #{codigoPix}
+      
+      p Por favor, verifique o recebimento do pagamento em sua conta bancária e confirme abaixo:
+      
+      .button-container
+        a(href=`${urlBase}/api/reservas/${reservaId}/confirmar-pagamento?token=${tokenConfirmacao}`, class="button button-confirm") ✅ Confirmar Pagamento
+        a(href=`${urlBase}/api/reservas/${reservaId}/cancelar-reserva?token=${tokenCancelamento}`, class="button button-cancel") ❌ Pagamento não efetuado
+      
+      p(style="font-size: 12px; color: #777; margin-top: 10px;")
+        | Se os botões não funcionarem, copie e cole os links abaixo no seu navegador:
+        br
+        | Confirmar: ${urlBase}/api/reservas/${reservaId}/confirmar-pagamento?token=${tokenConfirmacao}
+        br
+        | Cancelar: ${urlBase}/api/reservas/${reservaId}/cancelar-reserva?token=${tokenCancelamento}
+      
+      p(style="margin-top: 20px; font-size: 13px; color: #666;")
+        | Esta ação deve ser realizada em até 30 minutos. Após este prazo, a reserva será cancelada automaticamente.
+      
+      p(style="margin-top: 30px;")
+        | Atenciosamente,
+        br
+        | Equipe ParkNow
+    .footer
+      p © #{new Date().getFullYear()} ParkNow. Todos os direitos reservados.

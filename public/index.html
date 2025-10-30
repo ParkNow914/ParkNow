@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkNow - Estacionamento Inteligente e Reserva de Vagas</title> <!-- Título Otimizado -->
+    <meta name="description" content="Encontre, reserve e pague por vagas de estacionamento de forma fácil e segura com o ParkNow. Gerencie seu estacionamento com nossa solução completa."> <!-- Meta Descrição -->
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <link rel="stylesheet" href="/style.css"> <!-- CSS Principal -->
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Days+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23000' d='M135.2 117.4L109.1 192H402.9l-26.1-74.6C372.3 104.6 360.2 96 346.6 96H165.4c-13.6 0-25.7 8.6-30.2 21.4zM39.6 196.8L74.8 96.3C88.3 57.8 124.6 32 165.4 32H346.6c40.8 0 77.1 25.8 90.6 64.3l35.2 100.5c23.2 9.6 39.6 32.5 39.6 59.2V400v48c0 17.7-14.3 32-32 32H448c-17.7 0-32-14.3-32-32V400H96v48c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32V400 256c0-26.7 16.4-49.6 39.6-59.2zM128 288a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm288 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64z'/></svg>">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16 32x32">
+    <link rel="apple-touch-icon" href="/favicon.ico">
+    <meta name="theme-color" content="#000000">
+
+</head>
+<body>
+
+    <!-- Cabeçalho -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar navbar-expand-lg navbar-dark bg-transparent py-0"> <!-- py-0 para reduzir altura -->
+                <a class="navbar-brand" href="/">
+                    <img src="/img/logo.png" alt="Logo ParkNow" class="logo">
+                </a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                    <ul class="navbar-nav align-items-center">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#features">Recursos</a>
+                        </li>
+                         <li class="nav-item">
+                            <a class="nav-link" href="#contato">Contato</a>
+                        </li>
+                         <li class="nav-item d-lg-none"> <!-- Aparece só em mobile -->
+                            <a class="nav-link" href="#" data-toggle="modal" data-target="#loginModal">Entrar</a>
+                        </li>
+                         <li class="nav-item d-lg-none"> <!-- Aparece só em mobile -->
+                             <a class="nav-link" href="#" data-toggle="modal" data-target="#registerForm">Cadastre-se</a>
+                        </li>
+                         <li class="nav-item ml-lg-3 d-none d-lg-block"> <!-- Aparece só em desktop -->
+                              <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#loginModal">
+                                  <i class="fas fa-sign-in-alt mr-1"></i> Entrar
+                              </button>
+                         </li>
+                        <li class="nav-item ml-lg-2 d-none d-lg-block"> <!-- Aparece só em desktop -->
+                             <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#registerForm">
+                                 <i class="fas fa-user-plus mr-1"></i> Cadastre-se
+                             </button>
+                         </li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Seção Banner Principal -->
+    <section class="banner">
+        <img src="/img/banner.jpeg" alt="Estacionamento moderno ao entardecer" class="banner-image" loading="lazy" fetchpriority="high"> <!-- Otimização imagem -->
+        <div class="container">
+            
+        </div>
+    </section>
+
+    <!-- Seção para Donos de Estacionamento -->
+    <section class="section-inscricao py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                     <h2 class="section-title days-one-regular" style="color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">É Dono de Estacionamento?</h2>
+                    <p class="section-paragraph days-one-regular mb-5">Aumente sua receita, otimize a ocupação e ofereça uma experiência moderna aos seus clientes.</p>
+                    <a href="/admin_home/admin-home.html" class="btn btn-success btn-lg px-5 py-3">
+                       <i class="fas fa-chart-line mr-2"></i> Gerenciar Meu Negócio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção de Features/Recursos (Estático) -->
+    <section class="section-features py-5" id="features">
+        <div class="container">
+            <h2 class="section-title text-center days-one-regular mb-5" style="color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); background-color: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 8px; display: inline-block;">Recursos Exclusivos</h2>
+            
+            <!-- Features estáticas -->
+            <div class="row justify-content-center">
+                <!-- Feature 1 -->
+                <div class="col-lg-4 col-md-4 col-sm-12 mb-4">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-map-marker-alt fa-3x"></i>
+                        </div>
+                        <h3 class="feature-title">Localização em Tempo Real</h3>
+                        <p class="feature-description">Encontre estacionamentos próximos a você com informações de disponibilidade e preços atualizados em tempo real.</p>
+                    </div>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="col-lg-4 col-md-4 col-sm-12 mb-4">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-calendar-alt fa-3x"></i>
+                        </div>
+                        <h3 class="feature-title">Reserva Antecipada</h3>
+                        <p class="feature-description">Garanta sua vaga com antecedência. Reserve pelo app e chegue tranquilo, sem preocupações com lotamento.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    
+
+    <!-- Seção Mapa e Newsletter -->
+    <section class="section-mapa-inscricao py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <aside class="col-lg-5 col-md-6 order-md-1 inscricao mb-4 mb-md-0">
+                    <div class="inscricao-conteudo">
+                        <h2 class="section-title days-one-regular" style="color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Fique por Dentro!</h2>
+                        <p class="section-paragraph days-one-regular">Receba novidades e ofertas ParkNow no seu email.</p>
+                    </div>
+                    <form id="newsletterForm" class="inscricao-formulario" novalidate autocomplete="on">
+                        <div id="newsletter-feedback" style="display: none;"></div>
+                        <div class="form-group">
+                            <label for="newsletterNome" class="sr-only">Nome</label>
+                            <input type="text" class="form-control form-control-lg" id="newsletterNome" name="nome" placeholder="Seu nome *" required autocomplete="name">
+                            <div class="invalid-feedback">Nome obrigatório.</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="newsletterEmail" class="sr-only">Email</label>
+                            <input type="email" class="form-control form-control-lg" id="newsletterEmail" name="email" placeholder="Seu email *" required autocomplete="email">
+                             <div class="invalid-feedback">Email inválido.</div>
+                        </div>
+                        <button type="submit" id="signUpButton" class="btn btn-primary btn-lg">
+                             <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                            <i class="fas fa-paper-plane mr-2"></i> Inscrever-se
+                        </button>
+                    </form>
+                </aside>
+                <article class="col-lg-7 col-md-6 order-md-2 mapa">
+                    <h3 class="text-center days-one-regular mb-3 d-md-none">Encontre Estacionamentos</h3>
+                    <div id="map" style="height: 450px; width: 100%; border-radius: 10px;"></div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção de Contato -->
+    <section class="section-contato py-5" id="contato">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 text-center">
+                    <h2 class="section-title days-one-regular mb-4" style="color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Fale Conosco</h2>
+                    <p class="section-paragraph days-one-regular mb-5">Dúvidas, sugestões ou problemas? Estamos aqui para ajudar!</p>
+                </div>
+            </div>
+            <form id="contatoForm" method="post" novalidate autocomplete="on">
+                <div id="contato-feedback" style="display: none;"></div>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="contatoNome">Nome*</label>
+                        <input type="text" class="form-control" id="contatoNome" name="nome" required autocomplete="name">
+                         <div class="invalid-feedback">Nome obrigatório.</div>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="contatoEmail">Email*</label>
+                        <input type="email" class="form-control" id="contatoEmail" name="email" required autocomplete="email">
+                         <div class="invalid-feedback">Email inválido.</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="contatoAssunto">Assunto*</label>
+                    <input type="text" class="form-control" id="contatoAssunto" name="assunto" required autocomplete="off">
+                     <div class="invalid-feedback">Assunto obrigatório.</div>
+                </div>
+                <div class="form-group">
+                    <label for="contatoMensagem">Mensagem*</label>
+                    <textarea class="form-control" id="contatoMensagem" name="mensagem" rows="5" required autocomplete="off"></textarea>
+                     <div class="invalid-feedback">Mensagem obrigatória.</div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                     <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                    <i class="fas fa-envelope mr-2"></i> Enviar Mensagem
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Rodapé -->
+    <footer class="footer">
+        <div class="container text-center">
+            <p class="direitos days-one-regular">ParkNow © 2024 - Todos os direitos reservados.</p>
+            <ul class="social-links">
+                <li><a href="#" target="_blank" aria-label="Facebook" title="Facebook"><i class="fab fa-facebook-f"></i></a></li>
+                <li><a href="#" target="_blank" aria-label="Twitter" title="Twitter"><i class="fab fa-twitter"></i></a></li>
+                <li><a href="#" target="_blank" aria-label="Instagram" title="Instagram"><i class="fab fa-instagram"></i></a></li>
+            </ul>
+        </div>
+    </footer>
+
+    <!-- Modais -->
+    <div id="modais">
+        <!-- Modal de Login -->
+        <div id="loginModal" class="modal fade" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="loginModalLabel">Acessar Conta</h5>
+                        <button type="button" class="close" data-dismiss="modal">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="login-feedback" style="display: none;"></div>
+                        <form id="loginUserForm" method="POST" novalidate autocomplete="on">
+                            <div class="form-group">
+                                <label for="loginEmail">Email</label>
+                                <input type="email" class="form-control" id="loginEmail" name="email" autocomplete="username">
+                                <div class="invalid-feedback">Email inválido.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="loginPassword">Senha</label>
+                                <input type="password" class="form-control" id="loginPassword" name="senha" autocomplete="current-password">
+                                <div class="invalid-feedback">Senha obrigatória.</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                                Entrar
+                            </button>
+                            <div class="text-center mt-3">
+                                <a href="#" data-toggle="modal" data-target="#forgotPasswordModal" data-dismiss="modal">Esqueci minha senha</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Cadastro -->
+        <div id="registerForm" class="modal fade" tabindex="-1" aria-labelledby="registerFormLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="registerFormLabel">Criar Conta</h5>
+                        <button type="button" class="close" data-dismiss="modal">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="register-feedback" style="display: none;"></div>
+                        <form id="registerUserForm" method="POST" novalidate autocomplete="on">
+                            <div class="form-group">
+                                <label for="newUsername">Nome Completo*</label>
+                                <input type="text" class="form-control" id="newUsername" name="nome" required autocomplete="name">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="newEmail">Email*</label>
+                                <input type="email" class="form-control" id="newEmail" name="email" autocomplete="username" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">Senha*</label>
+                                <input type="password" class="form-control" id="newPassword" name="senha" autocomplete="new-password" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmarSenha">Confirmar Senha*</label>
+                                <input type="password" class="form-control" id="confirmarSenha" name="confirmarSenha" autocomplete="new-password" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="newTelefone">Telefone*</label>
+                                <input type="tel" class="form-control" id="newTelefone" name="telefone" placeholder="(XX) XXXXX-XXXX" required autocomplete="tel">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="tipoVeiculo">Tipo de Veículo*</label>
+                                <select class="form-control" id="tipoVeiculo" name="tipo_veiculo" required>
+                                    <option value="" selected disabled>Selecione o tipo de veículo</option>
+                                    <option value="Carro">Carro</option>
+                                    <option value="Moto">Moto</option>
+                                    <option value="SUV">SUV</option>
+                                    <option value="Van">Van</option>
+                                    <option value="Pickup">Pickup</option>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="placaVeiculo">Placa Veículo*</label>
+                                <input type="text" class="form-control" id="placaVeiculo" name="placa_veiculo" placeholder="AAA0A00 ou AAA0000" required autocomplete="off">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="newCpf">CPF (Opcional)</label>
+                                <input type="text" class="form-control" id="newCpf" name="cpf" placeholder="000.000.000-00" autocomplete="off">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                                Cadastrar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+         <!-- Modal Esqueci Senha -->
+        <div id="forgotPasswordModal" class="modal fade" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="forgotPasswordModalLabel">Redefinir Senha</h5>
+                        <button type="button" class="close" data-dismiss="modal">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="forgot-feedback" style="display: none;"></div>
+                        <form id="forgotPasswordForm" method="POST" novalidate autocomplete="on">
+                            <p class="text-muted small">Digite seu email cadastrado para receber o link de redefinição.</p>
+                            <div class="form-group">
+                                <label for="forgotEmail">Email</label>
+                                <input type="email" class="form-control" id="forgotEmail" name="email" placeholder="Seu email" required autocomplete="email">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                                Enviar Link
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Definir Nova Senha (Ativado via JS pela URL/hash) -->
+        <div id="resetPasswordModal" class="modal fade" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="resetPasswordModalLabel">Definir Nova Senha</h5>
+                        <button type="button" class="close" data-dismiss="modal">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="reset-feedback" style="display: none;"></div>
+                        <form id="resetPasswordForm" method="POST" novalidate autocomplete="on">
+                            <input type="hidden" id="resetToken" name="token" value="">
+                            <div style="display:none">
+                                <label for="resetPasswordUsername">Nome de usuário</label>
+                                <input type="text" id="resetPasswordUsername" name="username" autocomplete="username">
+                            </div>
+                            <div class="form-group">
+                                <label for="resetPasswordInput">Nova Senha*</label>
+                                <input type="password" class="form-control" id="resetPasswordInput" name="password" autocomplete="new-password" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="resetPasswordConfirm">Confirmar Nova Senha*</label>
+                                <input type="password" class="form-control" id="resetPasswordConfirm" name="confirmPassword" autocomplete="new-password" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                                Redefinir Senha
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- Fim #modais -->
+
+    <!-- Scripts JS -->
+    <!-- 1. React e ReactDOM (devem vir primeiro) - VERSÃO DE PRODUÇÃO -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Verificação do React -->
+    <script src="/js/checkReact.js"></script>
+    
+    <!-- 2. Outras bibliotecas JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <!-- 3. Utilitários do site -->
+    <script src="/js/timezone.js"></script>
+    <script src="/js/dateUtils.js"></script>
+    <script src="/js/formDateHandler.js"></script>
+    <script src="/js/notificationService.js"></script>
+    <script src="/js/appUtils.js"></script>
+    <script src="/js/pixPayment.js"></script>
+    
+    <!-- 4. Componentes React (devem vir após o React e ReactDOM) -->
+    <script src="/js/components/ManualPixPaymentModal.js"></script>
+    <script src="/js/components/PixPaymentModal.js"></script>
+    <script src="/js/components/ReservaButton.js"></script>
+    
+    <!-- 5. Inicialização do React (deve vir após os componentes) -->
+    <script src="/js/initReact.js"></script>
+    
+    <!-- 6. Scripts da página (últimos a carregar) -->
+    <script src="/index/index.js"></script>
+
+    <!-- Elemento raiz para componentes React -->
+    <div id="react-root"></div>
+    <div id="pix-payment-root"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verifica se o React está disponível
+            if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+                // Renderiza o botão de reserva em todos os elementos com a classe 'react-reserva-button'
+                document.querySelectorAll('.react-reserva-button').forEach(button => {
+                    try {
+                        const vagaId = button.getAttribute('data-vaga-id');
+                        const estacionamentoId = button.getAttribute('data-estacionamento-id');
+                        const valor = button.getAttribute('data-valor');
+                        
+                        ReactDOM.render(
+                            React.createElement(ReservaButton, {
+                                vagaId: vagaId,
+                                estacionamentoId: estacionamentoId,
+                                valor: valor,
+                                onReservaSuccess: function() {
+                                    // Lógica após reserva bem-sucedida
+                                }
+                            }),
+                            button
+                        );
+                    } catch (error) {
+                        console.error('Erro ao montar ReservaButton:', error);
+                    }
+                });
+            } else {
+                console.error('React ou ReactDOM não estão disponíveis');
+            }
+        });
+    </script>
+
+    <script>
+        // Script adicional específico da página (se necessário)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Exemplo: Scroll suave para links internos
+            $('a[href*="#"]:not([href="#"]):not([data-toggle])').click(function(event) { 
+                if (location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '') && location.hostname == this.hostname) { 
+                    var target = $(this.hash); 
+                    target = target.length ? target : $('[name=' + this.hash.slice(1) + ']'); 
+                    if (target.length) { 
+                        event.preventDefault(); 
+                        $('html, body').animate({ scrollTop: target.offset().top - 60 }, 800); 
+                        return false; 
+                    } 
+                } 
+            });
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,163 @@
+/* public/user/css/estacionamento.css */
+/* Estilos específicos para a página de detalhes/agendamento de estacionamento (user/estacionamento.html) */
+
+/* Herdando estilos base do Bootstrap e possivelmente de um CSS global */
+
+/* Ajustes no header específico desta página (se necessário) */
+header.app-header {
+    /* Exemplo: Se o header precisar de cor diferente nesta página */
+    /* background: linear-gradient(to right, var(--secondary-color, #54C87D), #3a8a5b); */
+    /* Estilos já definidos no HTML inline ou global? Se sim, remover daqui */
+    background: linear-gradient(to right, #004080, #002850);
+    padding: 10px 0;
+    color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1030;
+    height: 70px;
+    display: flex;
+    align-items: center;
+}
+
+header.app-header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+header.app-header img.logo {
+    max-width: 150px;
+    height: auto;
+    max-height: 45px;
+}
+
+/* Botão Voltar */
+.btn-voltar {
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 15px;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+.btn-voltar i {
+    margin-right: 6px;
+}
+.btn-voltar:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: #fff;
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Título e Endereço */
+h1#estacionamentoNome {
+    color: var(--primary-color, #004080);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 2.1em; /* Reduzido ligeiramente */
+    text-align: center;
+}
+
+p#estacionamentoEndereco {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 1.1em; /* Reduzido ligeiramente */
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+h2.vagas-title {
+    font-size: 1.6em;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #0056b3;
+    font-weight: 400;
+    font-family: 'Days One', sans-serif; /* Garante fonte */
+}
+
+/* Container das Vagas */
+.vagas-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); /* Layout responsivo */
+    gap: 18px; /* Espaçamento */
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+    border: 1px solid #e9ecef;
+    min-height: 200px; /* Altura mínima para mostrar placeholders */
+}
+
+/* Estilo da Vaga Individual */
+.vaga {
+    aspect-ratio: 1 / 1;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background-color: #f8f9fa;
+}
+.vaga:hover:not(.ocupada):not(.reservada):not(.indisponivel) {
+    transform: translateY(-5px) scale(1.04);
+    box-shadow: 0 9px 18px rgba(0,0,0,0.15);
+    border-color: #54C87D;
+}
+
+/* Status das Vagas (Cores e Bordas) */
+.vaga.livre { background: #e8f5e9; border-color: #c8e6c9; color: #388e3c; }
+.vaga.ocupada { background: #ffebee; border-color: #ffcdd2; color: #d32f2f; cursor: not-allowed; opacity: 0.9; }
+.vaga.reservada { background: #e3f2fd; border-color: #bbdefb; color: #1976d2; cursor: help; opacity: 0.95; }
+.vaga.indisponivel { background: #f5f5f5; border-color: #eeeeee; color: #757575; cursor: not-allowed; opacity: 0.75; }
+.vaga.ocupada:hover, .vaga.reservada:hover, .vaga.indisponivel:hover { transform: none; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+
+/* Conteúdo Interno da Vaga */
+.vaga .numero { font-size: 1.8em; font-weight: bold; font-family: 'Days One', sans-serif; line-height: 1; margin-bottom: 5px; }
+.vaga .status-vaga { font-size: 0.68em; font-weight: 700; text-transform: uppercase; margin-top: 2px; letter-spacing: 0.6px; display: inline-block; padding: 3px 9px; border-radius: 12px; background-color: rgba(0,0,0,0.08); line-height: 1.2; }
+.vaga.livre .status-vaga { background-color: rgba(84, 200, 125, 0.2); }
+.vaga.ocupada .status-vaga { background-color: rgba(220, 53, 69, 0.2); }
+.vaga.reservada .status-vaga { background-color: rgba(0, 123, 255, 0.2); }
+.vaga.indisponivel .status-vaga { background-color: rgba(108, 117, 125, 0.2); }
+.vaga .placa-veiculo { font-size: 0.72em; font-family: 'Courier New', monospace; font-weight: bold; margin-top: 5px; background-color: rgba(255,255,255,0.7); color: inherit; padding: 3px 7px; border-radius: 4px; display: inline-block; max-width: 95%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vaga.ocupada .placa-veiculo { color: #b71c1c; }
+.vaga .tempo-estacionado { font-size: 0.82em; color: #212529; margin-top: 7px; font-weight: 600; position: absolute; bottom: 9px; left: 0; right: 0; font-family: 'Courier New', monospace; background-color: rgba(255, 255, 255, 0.8); padding: 2px 0; border-radius: 3px; }
+.vaga.livre .tempo-estacionado, .vaga.reservada .tempo-estacionado, .vaga.indisponivel .tempo-estacionado { display: none; }
+
+/* Loading Placeholder */
+.loading-placeholder { text-align: center; color: #6c757d; font-style: italic; padding: 50px 0; font-size: 1.1rem;}
+.loading-placeholder i { margin-right: 10px; font-size: 1.3rem;}
+
+/* Modal de Confirmação */
+#modalConfirmacao .modal-body p { font-size: 1.05rem; margin-bottom: 0.8rem;}
+#modalConfirmacao .modal-body strong#modalConfirmacaoVagaNum { font-size: 1.15em; color: #54C87D; }
+#modalConfirmacao .modal-body strong#modalConfirmacaoPlacaUser { font-family: 'Courier New', monospace; background-color: #eee; padding: 2px 4px; border-radius: 3px; }
+#btnConfirmarAgendamento { min-width: 140px; font-size: 0.95rem;}
+#confirm-feedback .alert { font-size: 0.9rem; }
+
+/* Footer */
+footer.app-footer { background-color: #343a40; padding: 20px 0; color: #adb5bd; text-align: center; margin-top: 50px; font-size: 0.9rem; border-top: 1px solid #495057; }
+footer.app-footer p { margin: 0; }
+
+/* Responsividade */
+@media (max-width: 991px) { .vagas-container { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 18px; } }
+@media (max-width: 767px) { body { padding-top: 60px; } header.app-header { height: 60px; } header.app-header img.logo { max-width: 130px; max-height: 40px; } .btn-voltar { font-size: 0.8rem; padding: 6px 12px; } main.container { padding: 25px 10px; } h1#estacionamentoNome { font-size: 1.8em; } p#estacionamentoEndereco { font-size: 1em; margin-bottom: 25px; } h2.vagas-title {font-size: 1.4em;} .vagas-container { grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 15px; padding: 15px; } .vaga .numero { font-size: 1.6em; } .vaga .status-vaga { font-size: 0.65em; } .vaga .placa-veiculo { font-size: 0.7em; } .vaga .tempo-estacionado { font-size: 0.75em; bottom: 7px;} }
+@media (max-width: 480px) { .vagas-container { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 12px; } .vaga .numero { font-size: 1.4em;} h1#estacionamentoNome { font-size: 1.7em; } }

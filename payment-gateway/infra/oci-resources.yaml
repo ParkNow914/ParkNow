@@ -1,0 +1,191 @@
+# Oracle Cloud Infrastructure Resource Manager Stack Configuration
+# Referência: https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Concepts/resourcemanager_toc.htm
+
+# Definição da stack
+resource "oci_resourcemanager_stack" "payment_gateway_stack" {
+  compartment_id = var.compartment_id
+  display_name   = "payment-gateway-stack"
+  description    = "Stack para implantação do Gateway de Pagamentos no Oracle Cloud"
+  
+  # Configuração do Terraform
+  terraform_version = "1.2.x"
+  
+  # Variáveis de entrada
+  variables = {
+    compartment_id = var.compartment_id
+    region         = var.region
+    tenancy_ocid   = var.tenancy_ocid
+    
+    # Configurações da VCN
+    vcn_cidr_block           = "10.0.0.0/16"
+    public_subnet_cidr_block = "10.0.1.0/24"
+    
+    # Configurações do Autonomous Database
+    db_name          = "paymentdb"
+    db_cpu_core_count = 1
+    db_storage_size_tb = 1
+    db_admin_password = var.db_admin_password
+    
+    # Configurações do Compute
+    compute_shape = "VM.Standard.E2.1.Micro" # Always Free
+    
+    # Configurações do Load Balancer
+    load_balancer_shape = "flexible"
+    load_balancer_shape_details_maximum_bandwidth_in_mbps = 10
+    load_balancer_shape_details_minimum_bandwidth_in_mbps = 10
+    
+    # Tags
+    project     = "payment-gateway"
+    environment = "production"
+  }
+  
+  # Configuração do fonte do Terraform
+  config_source {
+    config_source_type = "ZIP_UPLOAD"
+    working_directory  = "infra/oci-terraform"
+  }
+  
+  # Timeout em minutos
+  timeout_in_minutes = 30
+}
+
+# Outputs
+output "load_balancer_public_ip" {
+  description = "IP Público do Load Balancer"
+  value       = module.load_balancer.load_balancer_ip
+}
+
+output "autonomous_database_connection_strings" {
+  description = "Strings de conexão do Autonomous Database"
+  value       = module.database.autonomous_database_connection_strings
+}
+
+output "object_storage_bucket_name" {
+  description = "Nome do bucket de armazenamento de objetos"
+  value       = module.storage.bucket_name
+}
+
+# Módulos
+module "network" {
+  source = "./modules/network"
+  
+  compartment_id = var.compartment_id
+  vcn_cidr_block = var.vcn_cidr_block
+  public_subnet_cidr_block = var.public_subnet_cidr_block
+  
+  project     = var.project
+  environment = var.environment
+}
+
+module "database" {
+  source = "./modules/database"
+  
+  compartment_id = var.compartment_id
+  db_name        = var.db_name
+  db_admin_password = var.db_admin_password
+  db_cpu_core_count = var.db_cpu_core_count
+  db_storage_size_tb = var.db_storage_size_tb
+  
+  subnet_id = module.network.private_subnet_id
+  
+  project     = var.project
+  environment = var.environment
+}
+
+module "compute" {
+  source = "./modules/compute"
+  
+  compartment_id = var.compartment_id
+  subnet_id      = module.network.public_subnet_id
+  compute_shape  = var.compute_shape
+  
+  project     = var.project
+  environment = var.environment
+}
+
+module "load_balancer" {
+  source = "./modules/load_balancer"
+  
+  compartment_id = var.compartment_id
+  subnet_ids     = [module.network.public_subnet_id]
+  shape          = var.load_balancer_shape
+  shape_details  = {
+    maximum_bandwidth_in_mbps = var.load_balancer_shape_details_maximum_bandwidth_in_mbps
+    minimum_bandwidth_in_mbps = var.load_balancer_shape_details_minimum_bandwidth_in_mbps
+  }
+  
+  project     = var.project
+  environment = var.environment
+}
+
+module "storage" {
+  source = "./modules/storage"
+  
+  compartment_id = var.compartment_id
+  
+  project     = var.project
+  environment = var.environment
+}
+
+# Configuração do provedor
+provider "oci" {
+  tenancy_ocid     = var.tenancy_ocid
+  user_ocid        = var.user_ocid
+  private_key_path = var.private_key_path
+  fingerprint      = var.fingerprint
+  region           = var.region
+}
+
+# Variáveis de entrada
+variable "tenancy_ocid" {}
+variable "user_ocid" {}
+variable "private_key_path" {}
+variable "fingerprint" {}
+variable "region" {}
+variable "compartment_id" {}
+variable "db_admin_password" {}
+
+# Variáveis com valores padrão
+variable "project" {
+  default = "payment-gateway"
+}
+
+variable "environment" {
+  default = "production"
+}
+
+variable "vcn_cidr_block" {
+  default = "10.0.0.0/16"
+}
+
+variable "public_subnet_cidr_block" {
+  default = "10.0.1.0/24"
+}
+
+variable "db_name" {
+  default = "paymentdb"
+}
+
+variable "db_cpu_core_count" {
+  default = 1
+}
+
+variable "db_storage_size_tb" {
+  default = 1
+}
+
+variable "compute_shape" {
+  default = "VM.Standard.E2.1.Micro"
+}
+
+variable "load_balancer_shape" {
+  default = "flexible"
+}
+
+variable "load_balancer_shape_details_maximum_bandwidth_in_mbps" {
+  default = 10
+}
+
+variable "load_balancer_shape_details_minimum_bandwidth_in_mbps" {
+  default = 10
+}

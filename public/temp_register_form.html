@@ -1,0 +1,67 @@
+<!-- Modal de Cadastro -->
+<div id="registerForm" class="modal fade" tabindex="-1" aria-labelledby="registerFormLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="registerFormLabel">Criar Conta</h5>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="register-feedback" style="display: none;"></div>
+                <form id="registerUserForm" method="POST" novalidate autocomplete="on">
+                    <div class="form-group">
+                        <label for="newUsername">Nome Completo*</label>
+                        <input type="text" class="form-control" id="newUsername" name="nome" required autocomplete="name">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newEmail">Email*</label>
+                        <input type="email" class="form-control" id="newEmail" name="email" autocomplete="username" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">Senha*</label>
+                        <input type="password" class="form-control" id="newPassword" name="senha" autocomplete="new-password" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmarSenha">Confirmar Senha*</label>
+                        <input type="password" class="form-control" id="confirmarSenha" name="confirmarSenha" autocomplete="new-password" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newTelefone">Telefone*</label>
+                        <input type="tel" class="form-control" id="newTelefone" name="telefone" placeholder="(XX) XXXXX-XXXX" required autocomplete="tel">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="tipoVeiculo">Tipo de Veículo*</label>
+                        <select class="form-control" id="tipoVeiculo" name="tipo_veiculo" required>
+                            <option value="" selected disabled>Selecione o tipo de veículo</option>
+                            <option value="Carro">Carro</option>
+                            <option value="Moto">Moto</option>
+                            <option value="SUV">SUV</option>
+                            <option value="Van">Van</option>
+                            <option value="Pickup">Pickup</option>
+                        </select>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="placaVeiculo">Placa Veículo*</label>
+                        <input type="text" class="form-control" id="placaVeiculo" name="placa_veiculo" placeholder="AAA0A00 ou AAA0000" required autocomplete="off">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newCpf">CPF (Opcional)</label>
+                        <input type="text" class="form-control" id="newCpf" name="cpf" placeholder="000.000.000-00" autocomplete="off">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                        Cadastrar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

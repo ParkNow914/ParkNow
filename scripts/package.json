@@ -1,0 +1,20 @@
+{
+  "name": "database-backup",
+  "version": "1.0.0",
+  "description": "Automatic PostgreSQL database backup service",
+  "main": "databaseBackup.js",
+  "scripts": {
+    "start": "node databaseBackup.js",
+    "backup:now": "node -e 'require(\"./databaseBackup\").createBackup()'"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "node-cron": "^3.0.0",
+    "node-windows": "^1.0.0-beta.8",
+    "pg": "^8.11.0",
+    "winston": "^3.8.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

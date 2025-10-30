@@ -1,0 +1,301 @@
+// controllers/approvalController.js
+const config = require('../config');
+const db = require('../config/db');
+const redisClient = require('../utils/redisClient');
+const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
+
+// Configuração do transporte de email
+const transporter = nodemailer.createTransport({
+  host: config.email.host,
+  port: config.email.port,
+  secure: config.email.secure,
+  auth: {
+    user: config.email.auth.user,
+    pass: config.email.auth.pass
+  }
+});
+
+/**
+ * Aprova automaticamente uma solicitação de parceria via token
+ * Cria o admin e o estacionamento no banco de dados
+ */
+exports.approvePartner = async (req, res) => {
+  try {
+    const { token } = req.params;
+    
+    // Buscar dados da solicitação no Redis
+    let solicitacaoData;
+    try {
+      const solicitacaoJson = await redisClient.get(`parceria:${token}`);
+      if (!solicitacaoJson) {
+        return res.status(404).render('approval-error', {
+          title: 'Token Inválido',
+          message: 'O token de aprovação é inválido ou expirou. Por favor, solicite um novo token.'
+        });
+      }
+      
+      solicitacaoData = JSON.parse(solicitacaoJson);
+      console.log('Dados da solicitação recuperados:', solicitacaoData);
+    } catch (redisError) {
+      console.error('Erro ao buscar dados no Redis:', redisError);
+      return res.status(500).render('approval-error', {
+        title: 'Erro Interno',
+        message: 'Ocorreu um erro ao processar a solicitação. Por favor, tente novamente mais tarde.'
+      });
+    }
+    
+    // Iniciar transação para garantir que todos os dados sejam salvos corretamente
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      // 1. Criar o admin
+      const hashedPassword = await bcrypt.hash(solicitacaoData.senha, 12);
+      
+      const [adminResult] = await connection.execute(
+        'INSERT INTO admins (nome, email, senha, status, data_criacao) VALUES (?, ?, ?, ?, NOW())',
+        [solicitacaoData.nome, solicitacaoData.email, hashedPassword, 'ativo']
+      );
+      
+      const adminId = adminResult.insertId;
+      
+      // 2. Criar o estacionamento
+      const [estacionamentoResult] = await connection.execute(
+        `INSERT INTO estacionamentos 
+         (nome, endereco, numero_vagas, preco_hora, preco_dia, latitude, longitude, descricao, admin_id, cnpj, data_criacao) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        [
+          solicitacaoData.nomeEstacionamento,
+          solicitacaoData.enderecoEstacionamento,
+          solicitacaoData.numeroVagas,
+          solicitacaoData.precoHora,
+          solicitacaoData.precoDia,
+          solicitacaoData.latitude || null,
+          solicitacaoData.longitude || null,
+          solicitacaoData.descricao || '',
+          adminId,
+          solicitacaoData.cnpj
+        ]
+      );
+      
+      const estacionamentoId = estacionamentoResult.insertId;
+      
+      // 3. Criar vagas para o estacionamento
+      const vagasPromises = [];
+      for (let i = 1; i <= solicitacaoData.numeroVagas; i++) {
+        vagasPromises.push(
+          connection.execute(
+            'INSERT INTO vagas (numero, status, estacionamento_id) VALUES (?, ?, ?)',
+            [i, 'livre', estacionamentoId]
+          )
+        );
+      }
+      
+      await Promise.all(vagasPromises);
+      
+      // Commit da transação
+      await connection.commit();
+      
+      // Remover dados da solicitação do Redis
+      await redisClient.del(`parceria:${token}`);
+      
+      // Enviar e-mail de confirmação para o parceiro
+      const confirmationMail = {
+        from: config.email.from,
+        to: solicitacaoData.email,
+        subject: 'Bem-vindo ao ParkNow! Sua parceria foi aprovada',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Parceria Aprovada</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background-color: #004080; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+              .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 5px 5px; }
+              .button { display: inline-block; background-color: #54C87D; color: white; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; margin: 20px 0; }
+              .footer { margin-top: 30px; font-size: 12px; color: #777; text-align: center; }
+              .highlight { color: #004080; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>Parceria Aprovada!</h1>
+            </div>
+            
+            <div class="content">
+              <p>Olá <span class="highlight">${solicitacaoData.nome}</span>,</p>
+              
+              <p>Temos o prazer de informar que sua solicitação de parceria para o estacionamento <span class="highlight">${solicitacaoData.nomeEstacionamento}</span> foi aprovada!</p>
+              
+              <p>Seu estacionamento já está cadastrado em nosso sistema e você pode começar a gerenciá-lo imediatamente.</p>
+              
+              <p>Para acessar o painel de administração, utilize as seguintes credenciais:</p>
+              <ul>
+                <li><strong>Email:</strong> ${solicitacaoData.email}</li>
+                <li><strong>Senha:</strong> A senha que você cadastrou na solicitação</li>
+              </ul>
+              
+              <p>Clique no botão abaixo para acessar o painel de administração:</p>
+              
+              <div style="text-align: center;">
+                <a href="${config.baseUrl || 'http://localhost:3000'}/admin_home/admin-home.html" class="button">ACESSAR PAINEL DE ADMINISTRAÇÃO</a>
+              </div>
+              
+              <p>Estamos muito felizes em tê-lo como parceiro do ParkNow!</p>
+              
+              <p>Atenciosamente,<br>Equipe ParkNow</p>
+              
+              <div class="footer">
+                <p>Esta é uma mensagem automática. Por favor, não responda a este email.</p>
+                <p>&copy; ${new Date().getFullYear()} ParkNow. Todos os direitos reservados.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `
+      };
+      
+      try {
+        await transporter.sendMail(confirmationMail);
+        console.log('Email de confirmação de aprovação enviado com sucesso');
+      } catch (emailError) {
+        console.error('Erro ao enviar email de confirmação de aprovação:', emailError);
+        // Continuar mesmo se o email falhar
+      }
+      
+      // Renderizar página de sucesso
+      return res.status(200).render('approval-success', {
+        title: 'Parceria Aprovada',
+        estacionamento: solicitacaoData.nomeEstacionamento,
+        parceiro: solicitacaoData.nome
+      });
+      
+    } catch (dbError) {
+      // Rollback em caso de erro
+      await connection.rollback();
+      console.error('Erro ao criar admin e estacionamento:', dbError);
+      
+      return res.status(500).render('approval-error', {
+        title: 'Erro no Cadastro',
+        message: 'Ocorreu um erro ao cadastrar o parceiro e estacionamento. Por favor, tente novamente mais tarde.'
+      });
+    } finally {
+      // Liberar conexão
+      connection.release();
+    }
+    
+  } catch (error) {
+    console.error('Erro ao processar aprovação de parceria:', error);
+    return res.status(500).render('approval-error', {
+      title: 'Erro Interno',
+      message: 'Ocorreu um erro ao processar a solicitação. Por favor, tente novamente mais tarde.'
+    });
+  }
+};
+
+/**
+ * Rejeita uma solicitação de parceria via token
+ */
+exports.rejectPartner = async (req, res) => {
+  try {
+    const { token } = req.params;
+    
+    // Buscar dados da solicitação no Redis
+    let solicitacaoData;
+    try {
+      const solicitacaoJson = await redisClient.get(`parceria:${token}`);
+      if (!solicitacaoJson) {
+        return res.status(404).render('approval-error', {
+          title: 'Token Inválido',
+          message: 'O token de reprovação é inválido ou expirou. Por favor, solicite um novo token.'
+        });
+      }
+      
+      solicitacaoData = JSON.parse(solicitacaoJson);
+      console.log('Dados da solicitação recuperados para rejeição:', solicitacaoData);
+    } catch (redisError) {
+      console.error('Erro ao buscar dados no Redis:', redisError);
+      return res.status(500).render('approval-error', {
+        title: 'Erro Interno',
+        message: 'Ocorreu um erro ao processar a solicitação. Por favor, tente novamente mais tarde.'
+      });
+    }
+    
+    // Remover dados da solicitação do Redis
+    await redisClient.del(`parceria:${token}`);
+    
+    // Enviar e-mail de rejeição para o solicitante
+    const rejectionMail = {
+      from: config.email.from,
+      to: solicitacaoData.email,
+      subject: 'Atualização sobre sua solicitação de parceria - ParkNow',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Resposta da Solicitação</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #004080; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+            .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 5px 5px; }
+            .footer { margin-top: 30px; font-size: 12px; color: #777; text-align: center; }
+            .highlight { color: #004080; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Resposta da Solicitação</h1>
+          </div>
+          
+          <div class="content">
+            <p>Olá <span class="highlight">${solicitacaoData.nome}</span>,</p>
+            
+            <p>Agradecemos seu interesse em fazer parte da rede ParkNow com o estacionamento <span class="highlight">${solicitacaoData.nomeEstacionamento}</span>.</p>
+            
+            <p>Após análise cuidadosa da sua solicitação, informamos que no momento não poderemos prosseguir com a parceria.</p>
+            
+            <p>Isso não impede que você faça uma nova solicitação no futuro, com informações atualizadas ou complementares.</p>
+            
+            <p>Se desejar mais informações ou tiver dúvidas sobre esta decisão, por favor, entre em contato com nossa equipe de suporte.</p>
+            
+            <p>Atenciosamente,<br>Equipe ParkNow</p>
+          </div>
+          
+          <div class="footer">
+            <p>Esta é uma mensagem automática. Por favor, não responda a este email.</p>
+            <p>&copy; ${new Date().getFullYear()} ParkNow. Todos os direitos reservados.</p>
+          </div>
+        </body>
+        </html>
+      `
+    };
+    
+    try {
+      await transporter.sendMail(rejectionMail);
+      console.log('Email de rejeição enviado com sucesso');
+    } catch (emailError) {
+      console.error('Erro ao enviar email de rejeição:', emailError);
+      // Continuar mesmo se o email falhar
+    }
+    
+    // Renderizar página de confirmação de rejeição
+    return res.status(200).render('approval-rejection', {
+      title: 'Solicitação Rejeitada',
+      estacionamento: solicitacaoData.nomeEstacionamento,
+      parceiro: solicitacaoData.nome
+    });
+    
+  } catch (error) {
+    console.error('Erro ao processar rejeição de parceria:', error);
+    return res.status(500).render('approval-error', {
+      title: 'Erro Interno',
+      message: 'Ocorreu um erro ao processar a solicitação. Por favor, tente novamente mais tarde.'
+    });
+  }
+};
