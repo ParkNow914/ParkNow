@@ -1,0 +1,82 @@
+/* public/css/usuario.css */
+/* Estilos potencialmente para página de perfil ou visão específica do usuário */
+
+/* --- Reset e Padrões --- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body.usuario-page { /* Classe específica */
+    font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #f0f4f8; /* Fundo azul bem pálido */
+    color: #343a40; /* Cinza escuro */
+    line-height: 1.6;
+}
+
+/* --- Seção Central 'meio' --- */
+.meio {
+    text-align: center;
+    padding: 60px 20px; /* Mais padding */
+}
+.meio h1 {
+     font-family: 'Days One', sans-serif;
+     color: #004080;
+     margin-bottom: 40px;
+     font-size: 2.5em; /* Maior */
+     text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+
+/* --- Barra de Pesquisa (Estilo 3 - Refinado) --- */
+.search { width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 60px; }
+.search-box.style3 {
+    display: flex; align-items: center; height: 58px; /* Mais alta */ width: 90%; max-width: 700px; /* Mais larga */
+    padding: 0 12px 0 28px; border-radius: 30px; border: 1px solid #bfc9d4; /* Borda azulada */
+    background-color: #fff; box-shadow: 0 5px 18px rgba(0, 0, 0, 0.09);
+    transition: all 0.3s ease-in-out;
+}
+.search-box.style3:focus-within { border-color: #54C87D; box-shadow: 0 0 0 4px rgba(84, 200, 125, 0.2); }
+.search-txt { flex-grow: 1; border: none; background: none; outline: none; padding: 0 18px 0 0; font-size: 1.1rem; /* Maior */ line-height: normal; color: #444; }
+.search-txt::placeholder { color: #b0b8c0; font-style: italic; }
+.search-btn.style3 {
+    width: 48px; height: 48px; border-radius: 50%; background-color: #004080; border: none;
+    display: flex; justify-content: center; align-items: center; cursor: pointer; transition: background-color 0.3s ease; flex-shrink: 0;
+}
+.search-btn.style3:hover { background-color: #003366; }
+.search-btn.style3 i, .search-btn.style3 img { color: #fff; font-size: 1.4em; }
+
+/* --- Seção Mapa (Estilo 3 - Refinado) --- */
+.map.style3 { display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #e4e9f2, #f0f4f8); /* Gradiente suave */ padding: 70px 25px; margin-bottom: 50px; }
+.mapBox.style3 {
+    position: relative; height: 580px; /* Maior */ width: 95%; max-width: 1050px; /* Maior */
+    background-color: #ffffff; border: 1px solid #d8dce3; border-radius: 15px; /* Mais arredondado */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); overflow: hidden;
+}
+.mapBox.style3 iframe, .mapBox.style3 #map { width: 100%; height: 100%; border: none; border-radius: 15px; }
+
+/* --- Seção 03 (Container Geral) --- */
+.sessao03 { margin: 50px 25px; padding: 40px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.07); }
+
+/* --- Seção Imagens 3 (Grid Imagens Redondas) --- */
+.sessaoimg3 { text-align: center; padding: 35px 0; margin-bottom: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); /* Colunas maiores */ gap: 40px; max-width: 1140px; margin-left: auto; margin-right: auto; }
+.imgr { border-radius: 50%; width: 100%; max-width: 250px; height: auto; aspect-ratio: 1 / 1; object-fit: cover; border: 8px solid #f0f4f8; /* Borda na cor do fundo */ box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease; margin: 0 auto; }
+.imgr:hover { transform: scale(1.06) rotate(1.5deg); box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2); }
+
+/* --- Responsividade --- */
+@media (max-width: 991px) {
+    .search-box.style3 { max-width: 600px; }
+    .mapBox.style3 { max-width: 90%; }
+    .sessaoimg3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; }
+    .imgr { max-width: 220px; }
+}
+@media (max-width: 767px) {
+    .meio { padding: 50px 15px; } .meio h1 { font-size: 2.1em; }
+    .search-box.style3 { height: 52px; padding: 0 8px 0 20px; } .search-txt { font-size: 1rem; }
+    .search-btn.style3 { width: 42px; height: 42px; } .search-btn.style3 i, .search-btn.style3 img { font-size: 1.2em;}
+    .map.style3 { padding: 50px 15px; } .mapBox.style3 { height: 480px; width: 95%; }
+    .sessao03 { margin: 35px 10px; padding: 30px; }
+    .sessaoimg3 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 25px; }
+    .imgr { max-width: 180px; border-width: 6px;}
+}
+@media (max-width: 575px) {
+     .meio h1 { font-size: 1.9em; }
+     .mapBox.style3 { height: 420px; }
+     .imgr { max-width: 160px; }
+}

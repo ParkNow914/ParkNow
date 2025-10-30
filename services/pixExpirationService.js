@@ -1,0 +1,128 @@
+const db = require('../utils/dbUtils');
+const logger = require('../utils/logger');
+const { RESERVATION_STATUS } = require('../models/reservaModel');
+const emailService = require('./emailService');
+
+class PixExpirationService {
+    /**
+     * Cancela automaticamente reservas PIX não pagas que expiraram
+     * @returns {Promise<{cancelled: number, total: number}>} Número de reservas canceladas e total processado
+     */
+    static async cancelarReservasExpiradas() {
+        const client = await db.getClient();
+        
+        try {
+            await client.query('BEGIN');
+            
+            // Busca reservas PIX pendentes de pagamento que já expiraram
+            const minutosExpiracao = parseInt(process.env.PIX_CONFIRMATION_TIMEOUT_MINUTES || '30');
+            const sql = `
+                UPDATE reservas r
+                SET 
+                    status = $1,
+                    updated_at = NOW()
+                FROM pagamentos p
+                WHERE 
+                    r.id = p.reserva_id
+                    AND p.metodo_pagamento = 'pix'
+                    AND p.status = 'pendente'
+                    AND r.created_at < NOW() - INTERVAL '${minutosExpiracao} minutes'
+                    AND r.status = '${RESERVATION_STATUS.PENDING}'
+                RETURNING r.*
+            `;
+            
+            const result = await client.query(sql, [RESERVATION_STATUS.CANCELLED]);
+            
+            if (result.rowCount > 0) {
+                // Atualiza também os pagamentos PIX para status 'cancelado'
+                const reservaIds = result.rows.map(r => r.id);
+                await client.query(
+                    `UPDATE pagamentos 
+                     SET status = 'cancelado', 
+                         data_atualizacao = NOW() 
+                     WHERE reserva_id = ANY($1) 
+                     AND metodo_pagamento = 'pix' 
+                     AND status = 'pendente'`,
+                    [reservaIds]
+                );
+                
+                logger.info(`Canceladas ${result.rowCount} reservas PIX expiradas`);
+                
+                // Notifica os usuários sobre o cancelamento
+                await this.notificarCancelamentos(result.rows, client);
+            }
+            
+            await client.query('COMMIT');
+            
+            return {
+                cancelled: result.rowCount,
+                total: result.rowCount
+            };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            logger.error('Erro ao cancelar reservas PIX expiradas', {
+                error: error.message,
+                stack: error.stack
+            });
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+    
+    /**
+     * Envia notificações de cancelamento para os usuários
+     * @param {Array} reservas - Lista de reservas canceladas
+     * @param {object} client - Conexão com o banco de dados
+     * @returns {Promise<void>}
+     */
+    static async notificarCancelamentos(reservas, client) {
+        try {
+            // Busca detalhes dos usuários para enviar os e-mails
+            const userIds = [...new Set(reservas.map(r => r.usuario_id))];
+            const { rows: usuarios } = await client.query(
+                'SELECT id, nome, email FROM usuarios WHERE id = ANY($1)',
+                [userIds]
+            );
+            
+            const usuariosMap = new Map(usuarios.map(u => [u.id, u]));
+            
+            // Envia e-mail para cada reserva cancelada
+            await Promise.all(reservas.map(async (reserva) => {
+                const usuario = usuariosMap.get(reserva.usuario_id);
+                if (!usuario) return;
+                
+                try {
+                    await emailService.enviarEmailCancelamentoReserva({
+                        nome: usuario.nome,
+                        email: usuario.email,
+                        reservaId: reserva.id,
+                        dataReserva: reserva.data_criacao,
+                        motivo: 'Pagamento não realizado dentro do prazo de 30 minutos.'
+                    });
+                    
+                    logger.info(`Notificação de cancelamento enviada para reserva ${reserva.id}`, {
+                        reservaId: reserva.id,
+                        usuarioId: usuario.id,
+                        email: usuario.email
+                    });
+                } catch (emailError) {
+                    logger.error('Erro ao enviar e-mail de cancelamento', {
+                        error: emailError.message,
+                        reservaId: reserva.id,
+                        usuarioId: usuario.id,
+                        stack: emailError.stack
+                    });
+                }
+            }));
+        } catch (error) {
+            logger.error('Erro no processo de notificação de cancelamentos', {
+                error: error.message,
+                stack: error.stack
+            });
+            // Não propaga o erro para não afetar o fluxo principal
+        }
+    }
+}
+
+module.exports = PixExpirationService;

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ParkNow - Portal do Administrador</title> <!-- Título Claro -->
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Days+One&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <style>
+    /* Estilos gerais e de fundo */
+    body { font-family: 'Open Sans', sans-serif; min-height: 100vh; background: linear-gradient(135deg, #004080, #002850, #111); background-position: center; background-repeat: no-repeat; background-attachment: fixed; background-size: cover; color: #e9ecef; display: flex; flex-direction: column; }
+
+    /* Header */
+    .header { background-color: rgba(0, 0, 0, 0.88); padding: 10px 0; position: sticky; top: 0; z-index: 1030; box-shadow: 0 3px 7px rgba(0,0,0,0.4); }
+    .logo { width: 170px; height: auto; transition: transform 0.3s ease; } .logo:hover { transform: scale(1.03); }
+    .navbar { padding: 0.2rem 1rem; }
+
+    /* Área Principal */
+    .main { flex-grow: 1; padding: 50px 0; display: flex; align-items: center; justify-content: center; }
+
+    /* Container Formulário */
+    .form-container-wrapper { width: 100%; max-width: 650px; margin: 20px; }
+    .form-title { margin-bottom: 35px; text-shadow: 1px 1px 4px rgba(0,0,0,0.6); }
+    .form-title h1, .form-title h2 { font-family: 'Days One', sans-serif; color: #fff; }
+    .form-title h1 { font-size: 2.4rem; margin-bottom: 8px; } .form-title h2 { font-size: 1.2rem; font-family: 'Open Sans', sans-serif; font-weight: 400; color: #ccc;}
+
+    /* Botões Alternância */
+    .login-register-buttons { display: flex; justify-content: center; margin-bottom: 35px; gap: 18px; }
+    .login-register-buttons .btn { font-family: 'Days One', sans-serif; font-size: 1.15rem; border-radius: 50px; padding: 13px 40px; transition: all 0.3s ease; box-shadow: 0 4px 8px rgba(0,0,0,0.2); border-width: 2px; border-style: solid; }
+    .login-register-buttons .btn.active { background-color: #54C87D; color: #111; border-color: #54C87D; transform: scale(1.05); font-weight: 600; }
+    .login-register-buttons .btn:not(.active) { background-color: transparent; color: #fff; border-color: rgba(255,255,255,0.8); }
+    .login-register-buttons .btn:not(.active):hover { background-color: rgba(255, 255, 255, 0.15); border-color: #fff; }
+
+    /* Wrapper Formulário */
+    .form-wrapper { background-color: rgba(15, 30, 45, 0.9); padding: 40px 45px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); }
+    .form-wrapper h2 { font-family: 'Days One', sans-serif; color: #54C87D; font-size: 2rem; text-align: center; margin-bottom: 35px; }
+    .form-wrapper h3 { color: #ced4da; font-size: 1.4rem; margin-bottom: 20px; text-align: center; font-family: 'Days One', sans-serif; border-top: 1px solid #444; padding-top: 30px; margin-top: 30px; }
+
+    /* Grupo Formulário */
+    .form-group { margin-bottom: 1.5rem; position: relative; }
+    .form-group label { font-weight: 600; color: #ced4da; font-size: 1rem; margin-bottom: 7px; display: block; }
+
+    /* Inputs */
+    .input-group .form-control { border-radius: 0 5px 5px 0; border-left: none; padding-left: 12px; }
+    .input-group .input-group-prepend .input-group-text { background-color: #2a3b4e; border: 1px solid #405a74; border-right: none; border-radius: 5px 0 0 5px; color: #adb5bd; width: 45px; justify-content: center; }
+    .form-control { width: 100%; padding: 13px 18px; border: 1px solid #405a74; border-radius: 5px; box-sizing: border-box; font-size: 1rem; background-color: #1c2a38; color: #fff; transition: all 0.3s ease; }
+    .form-control::placeholder { color: #8896a7; }
+    .form-control:focus { box-shadow: 0 0 0 0.2rem rgba(84, 200, 125, 0.25); border-color: #54C87D; background-color: #213446; outline: none; color: #fff; }
+
+    /* Input Arquivo */
+    .form-control-file { background-color: #1c2a38; color: #adb5bd; border: 1px solid #405a74; padding: 8px 12px; border-radius: 5px; cursor: pointer;}
+    .form-control-file:hover { border-color: #5c7a99; }
+    .form-text.text-muted { color: #adb5bd !important; font-size: 0.85rem; }
+
+    /* Botão Submit */
+    .btn-submit { background: linear-gradient(to right, #54C87D, #43a065); border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all 0.3s ease; color: #fff; padding: 13px 35px; font-size: 1.2rem; border-radius: 50px; width: 100%; font-family: 'Days One', sans-serif; margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-submit:hover { background: linear-gradient(to right, #43a065, #54C87D); box-shadow: 0 6px 18px rgba(84, 200, 125, 0.4); transform: translateY(-2px); }
+    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+    .btn-submit .spinner-border-sm { width: 1.1rem; height: 1.1rem; }
+
+    /* Links */
+    .form-link { display: block; margin-top: 20px; text-align: center; font-size: 0.9rem; color: #adb5bd; text-decoration: none; transition: color 0.3s ease; }
+    .form-link:hover { color: #54C87D; text-decoration: underline; }
+
+    /* Ocultar Registro Padrão */
+    #registerForm { display: none; }
+
+    /* Popup Sucesso */
+    #successPopup .modal-content { background-color: #2a3b4e; color: #fff; border: 1px solid #405a74; } #successPopup .modal-header { border-bottom: 1px solid #405a74; background-color: #1c2a38; } #successPopup .modal-header .close { color: #fff; opacity: 0.8; } #successPopup .modal-footer { border-top: 1px solid #405a74; } #successPopup .btn-secondary { background-color: #495057; border-color: #495057; } #successPopup .btn-secondary:hover { background-color: #5a6268; border-color: #545b62; }
+
+    /* Validação */
+    .invalid-feedback { display: none; width: 100%; margin-top: .25rem; font-size: 80%; color: #f5a9a9; } /* Vermelho mais claro */
+    .password-strength .progress { background-color: #2a3b4e; margin-top: 5px; }
+    .password-strength .progress-bar { transition: width 0.3s ease, background-color 0.3s ease; }
+    .password-strength .text-danger { color: #f5a9a9 !important; }
+    .password-strength .text-success { color: #54C87D !important; }
+    #password-requirements div { margin: 2px 0; font-size: 0.8rem; }
+    .form-control.is-invalid { border-color: #dc3545 !important; }
+    .is-invalid ~ .invalid-feedback { display: block; }
+
+    /* Alertas */
+    .alert { font-size: 0.95rem; border-radius: 5px; }
+
+    /* Footer */
+    .footer { background-color: rgba(0, 0, 0, 0.9); color: #aaa; padding: 20px 0; text-align: center; width: 100%; margin-top: auto; box-shadow: 0 -2px 5px rgba(0,0,0,0.2); }
+    .footer p { margin: 0; font-size: 0.9rem; }
+
+    /* Responsividade */
+    @media (max-width: 767px) { body { padding-top: 66px; } header.header { position: fixed; width: 100%; } .main { padding: 30px 0; align-items: flex-start; } .form-container-wrapper { margin: 15px; } .form-title h1 { font-size: 1.9rem; } .form-title h2 { font-size: 1.05rem; } .login-register-buttons .btn { padding: 11px 30px; font-size: 1.05rem; } .form-wrapper { padding: 30px 25px; } .form-wrapper h2 { font-size: 1.7rem; } .btn-submit { padding: 11px 30px; font-size: 1.1rem; } }
+
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="container">
+      <nav class="navbar navbar-dark">
+        <a class="navbar-brand" href="/"> <!-- Link para landing page -->
+          <img src="/img/logo.png" alt="Logo ParkNow" class="logo">
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="container form-container-wrapper">
+      <div class="form-title text-center">
+        <h1>Portal do Administrador</h1>
+        <h2>Acesse ou crie sua conta para gerenciar</h2>
+      </div>
+
+      <div class="login-register-buttons">
+        <button id="btn-login" class="btn active">Login</button>
+        <button id="btn-register" class="btn">Criar Conta de Gestor</button>
+      </div>
+
+      <div class="form-wrapper">
+        <!-- Feedback Geral -->
+        <div id="admin-form-feedback" style="display: none;"></div>
+
+        <!-- Formulário de Login -->
+        <form id="loginForm" class="form" method="POST" novalidate>
+          <h2><i class="fas fa-sign-in-alt mr-2"></i>Login</h2>
+          <div class="form-group">
+            <label for="loginEmail">Email:</label>
+            <div class="input-group">
+              <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-envelope fa-fw"></i></span></div>
+              <input type="email" class="form-control" id="loginEmail" name="email" placeholder="Email de administrador" required autocomplete="username">
+              <div class="invalid-feedback">Email inválido.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="loginSenha">Senha:</label>
+            <div class="input-group">
+                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-lock fa-fw"></i></span></div>
+                <input type="password" class="form-control" id="loginSenha" name="senha" placeholder="Sua senha" required autocomplete="current-password" form="loginForm">
+                <div class="invalid-feedback">Senha obrigatória.</div>
+            </div>
+          </div>
+          <button type="submit" class="btn-submit">
+            <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+            <i class="fas fa-check mr-1"></i> Entrar
+          </button>
+          <a href="#" class="form-link" id="forgotPasswordLink">Esqueceu sua senha?</a>
+        </form>
+
+        <!-- Formulário de Cadastro -->
+        <form id="registerForm" class="form" method="POST" novalidate>
+          <h2><i class="fas fa-user-plus mr-2"></i>Solicitar Parceria com ParkNow</h2>
+          <!-- Dados do Admin -->
+          <div class="form-group">
+            <label for="nome">Nome do Responsável*:</label>
+            <div class="input-group">
+                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-user fa-fw"></i></span></div>
+                <input type="text" class="form-control" id="nome" name="nome" placeholder="Nome completo do responsável" required autocomplete="name">
+                <div class="invalid-feedback">Nome obrigatório.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="cnpj">CNPJ do Estacionamento*:</label>
+            <div class="input-group">
+                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-building fa-fw"></i></span></div>
+                <input type="text" class="form-control" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required maxlength="18" autocomplete="organization">
+                <div class="invalid-feedback">CNPJ inválido.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="registerEmail">Email*:</label>
+             <div class="input-group">
+              <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-envelope fa-fw"></i></span></div>
+              <input type="email" class="form-control" id="registerEmail" name="email" placeholder="Seu melhor email" required autocomplete="email">
+              <div class="invalid-feedback">Email inválido.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="telefone">Telefone:</label>
+            <div class="input-group">
+              <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-phone fa-fw"></i></span></div>
+              <input type="tel" class="form-control" id="telefone" name="telefone" placeholder="(00) 00000-0000" autocomplete="tel">
+              <div class="invalid-feedback">Telefone inválido.</div>
+            </div>
+            <small class="form-text text-muted">Opcional - Para contato sobre o estacionamento</small>
+          </div>
+          <div class="form-group">
+            <label for="registerSenha">Senha*:</label>
+            <div class="input-group">
+                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-lock fa-fw"></i></span></div>
+                <input type="password" class="form-control" id="registerSenha" name="senha" 
+                       placeholder="Mínimo 8 caracteres, incluindo letras maiúsculas, números e caracteres especiais" 
+                       required autocomplete="new-password" 
+                       pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':\">
+                <div class="input-group-append">
+                  <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+            </div>
+            <div class="password-strength mt-2">
+              <div class="progress" style="height: 5px;">
+                <div id="password-strength-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+              <small id="password-strength-text" class="form-text">Segurança da senha: <span>Muito fraca</span></small>
+              <div id="password-requirements" class="small mt-1">
+                <div class="text-danger" id="length">✓ Pelo menos 8 caracteres</div>
+                <div class="text-danger" id="uppercase">✓ Pelo menos 1 letra maiúscula</div>
+                <div class="text-danger" id="number">✓ Pelo menos 1 número</div>
+                <div class="text-danger" id="special">✓ Pelo menos 1 caractere especial</div>
+              </div>
+            </div>
+            <div class="invalid-feedback">A senha deve conter pelo menos 8 caracteres, incluindo letras maiúsculas, números e caracteres especiais.</div>
+          </div>
+          <div class="form-group">
+            <label for="confirmarSenha">Confirmar Senha*:</label>
+             <div class="input-group">
+                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-lock fa-fw"></i></span></div>
+                <input type="password" class="form-control" id="confirmarSenha" name="confirmarSenha" placeholder="Confirme sua senha" required autocomplete="new-password">
+                <div class="invalid-feedback">As senhas não coincidem.</div>
+            </div>
+          </div>
+
+          <!-- Dados do Estacionamento -->
+          <h3><i class="fas fa-warehouse mr-2"></i>Dados do Estacionamento</h3>
+          <div class="form-group">
+            <label for="nomeEstacionamento">Nome do Estacionamento*:</label>
+            <div class="input-group">
+                 <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-store-alt fa-fw"></i></span></div>
+                 <input type="text" class="form-control" id="nomeEstacionamento" name="nomeEstacionamento" placeholder="Nome fantasia do local" required autocomplete="organization">
+                 <div class="invalid-feedback">Nome obrigatório.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="cepEstacionamento">CEP*:</label>
+            <div class="input-group">
+                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-map-pin fa-fw"></i></span></div>
+                <input type="text" class="form-control" id="cepEstacionamento" name="cepEstacionamento" placeholder="00000-000" required maxlength="9" autocomplete="postal-code">
+                <div class="invalid-feedback">CEP inválido.</div>
+            </div>
+            <small class="form-text text-muted">Digite o CEP para preencher o endereço automaticamente.</small>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group col-md-10">
+              <label for="logradouroEstacionamento">Logradouro*:</label>
+              <div class="input-group">
+                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-road fa-fw"></i></span></div>
+                <input type="text" class="form-control" id="logradouroEstacionamento" name="logradouroEstacionamento" placeholder="Rua, Avenida, etc" required autocomplete="address-line1">
+                <div class="invalid-feedback">Logradouro obrigatório.</div>
+              </div>
+            </div>
+            <div class="form-group col-md-2">
+              <label for="numeroEstacionamento">Número*:</label>
+              <input type="text" class="form-control" id="numeroEstacionamento" name="numeroEstacionamento" placeholder="Nº" required autocomplete="off">
+              <div class="invalid-feedback">Número obrigatório.</div>
+            </div>
+          </div>
+          
+          <!-- Campo de complemento removido conforme solicitado -->
+          
+          <div class="form-row">
+            <div class="form-group col-md-5">
+              <label for="bairroEstacionamento">Bairro*:</label>
+              <input type="text" class="form-control" id="bairroEstacionamento" name="bairroEstacionamento" placeholder="Bairro" required autocomplete="address-level2">
+              <div class="invalid-feedback">Bairro obrigatório.</div>
+            </div>
+            <div class="form-group col-md-5">
+              <label for="cidadeEstacionamento">Cidade*:</label>
+              <input type="text" class="form-control" id="cidadeEstacionamento" name="cidadeEstacionamento" placeholder="Cidade" required autocomplete="address-level2">
+              <div class="invalid-feedback">Cidade obrigatória.</div>
+            </div>
+            <div class="form-group col-md-2">
+              <label for="ufEstacionamento">UF*:</label>
+              <input type="text" class="form-control" id="ufEstacionamento" name="ufEstacionamento" placeholder="UF" required maxlength="2" autocomplete="address-level1">
+              <div class="invalid-feedback">UF obrigatória.</div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="enderecoEstacionamento">Endereço Completo*:</label>
+            <div class="input-group">
+              <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-map-marker-alt fa-fw"></i></span></div>
+              <input type="text" class="form-control" id="enderecoEstacionamento" name="enderecoEstacionamento" placeholder="Endereço completo (gerado automaticamente)" required readonly autocomplete="address-line1">
+              <div class="invalid-feedback">Endereço obrigatório.</div>
+            </div>
+            <small class="form-text text-muted">Este campo será preenchido automaticamente com base nos dados acima.</small>
+          </div>
+           <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="latitude">Latitude:</label>
+                     <div class="input-group">
+                        <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-map-pin fa-fw"></i></span></div>
+                        <input type="text" class="form-control" id="latitude" name="latitude" placeholder="Ex: -22.123456" autocomplete="off">
+                         <div class="invalid-feedback">Latitude inválida.</div>
+                    </div>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="longitude">Longitude:</label>
+                     <div class="input-group">
+                        <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-map-pin fa-fw"></i></span></div>
+                        <input type="text" class="form-control" id="longitude" name="longitude" placeholder="Ex: -45.123456" autocomplete="off">
+                         <div class="invalid-feedback">Longitude inválida.</div>
+                    </div>
+                </div>
+           </div>
+          <div class="form-group">
+            <label for="numeroVagas">Número Inicial de Vagas*:</label>
+             <div class="input-group">
+                 <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car fa-fw"></i></span></div>
+                 <input type="number" class="form-control" id="numeroVagas" name="numeroVagas" placeholder="Total de vagas" required min="0" autocomplete="off"> <!-- Permite 0 vagas? -->
+                 <div class="invalid-feedback">Número de vagas inválido (mínimo 0).</div>
+            </div>
+          </div>
+           <div class="form-row">
+                 <div class="form-group col-md-6">
+                    <label for="precoHora">Preço por Hora (R$)*:</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><span class="input-group-text">R$</span></div>
+                        <input type="number" step="0.01" min="0" class="form-control" id="precoHora" name="precoHora" placeholder="Ex: 5.00" required autocomplete="off">
+                        <div class="invalid-feedback">Preço inválido (mínimo 0.00).</div>
+                    </div>
+                </div>
+                 <div class="form-group col-md-6">
+                    <label for="precoDia">Preço por Dia (R$)*:</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><span class="input-group-text">R$</span></div>
+                        <input type="number" step="0.01" min="0" class="form-control" id="precoDia" name="precoDia" placeholder="Ex: 30.00" required autocomplete="off">
+                        <div class="invalid-feedback">Preço inválido (mínimo 0.00).</div>
+                    </div>
+                </div>
+           </div>
+           <!-- Dados de Pagamento PIX -->
+           <h3><i class="fas fa-money-bill-wave mr-2"></i>Dados de Pagamento PIX</h3>
+           <div class="form-group">
+               <input type="hidden" id="tipoChavePix" name="tipoChavePix" value="cnpj" required>
+               <label>CNPJ*:</label>
+               <div class="alert alert-info small" role="alert">
+                   <i class="fas fa-info-circle mr-1"></i> O pagamento será realizado apenas via PIX utilizando o CNPJ cadastrado.
+               </div>
+           </div>
+           <div class="form-group">
+               <label for="chavePix">Chave PIX*:</label>
+               <div class="input-group">
+                   <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-key fa-fw"></i></span></div>
+                   <input type="text" class="form-control" id="chavePix" name="chavePix" placeholder="Sua chave PIX" required>
+                   <div class="invalid-feedback">Chave PIX é obrigatória.</div>
+               </div>
+               <small class="form-text text-muted">Esta é a chave que será usada para receber pagamentos.</small>
+           </div>
+           <div class="form-group">
+               <label for="nomeTitularPix">Nome do Titular da Chave PIX*:</label>
+               <div class="input-group">
+                    <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-user fa-fw"></i></span></div>
+                    <input type="text" class="form-control" id="nomeTitularPix" name="nomeTitularPix" placeholder="Nome completo do titular da chave PIX" required>
+                    <div class="invalid-feedback">Nome do titular é obrigatório.</div>
+                </div>
+            </div>
+            
+            <!-- Foto do Estacionamento -->
+            <h3><i class="fas fa-camera mr-2"></i>Foto do Estacionamento</h3>
+            <div class="form-group">
+                <label for="fotoEstacionamento">Foto do Local (Opcional):</label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="fotoEstacionamento" name="fotoEstacionamento" accept="image/jpeg,image/png,image/jpg,image/webp">
+                    <label class="custom-file-label" for="fotoEstacionamento">Escolher arquivo...</label>
+                    <div class="invalid-feedback">Formato inválido. Use JPG, PNG ou WEBP.</div>
+                </div>
+                <small class="form-text text-muted">
+                    <i class="fas fa-info-circle"></i> Adicione uma foto do seu estacionamento para atrair mais clientes. 
+                    Tamanho máximo: 5MB. Formatos aceitos: JPG, PNG, WEBP.
+                </small>
+                <!-- Preview da imagem -->
+                <div id="imagePreviewContainer" style="display: none; margin-top: 15px;">
+                    <img id="imagePreview" src="" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 2px solid #ddd;">
+                    <button type="button" class="btn btn-sm btn-danger mt-2" id="removeImageBtn">
+                        <i class="fas fa-times"></i> Remover Foto
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Horário de Funcionamento -->
+            <h3><i class="fas fa-clock mr-2"></i>Horário de Funcionamento</h3>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="horarioAbertura">Horário de Abertura*:</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><span class="input-group-text"><i class="far fa-clock fa-fw"></i></span></div>
+                        <input type="time" class="form-control" id="horarioAbertura" name="horarioAbertura" required>
+                        <div class="invalid-feedback">Horário de abertura é obrigatório.</div>
+                    </div>
+                    <small class="form-text text-muted">Horário que o estacionamento abre.</small>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="horarioFechamento">Horário de Fechamento*:</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><span class="input-group-text"><i class="far fa-clock fa-fw"></i></span></div>
+                        <input type="time" class="form-control" id="horarioFechamento" name="horarioFechamento" required>
+                        <div class="invalid-feedback">Horário de fechamento é obrigatório.</div>
+                    </div>
+                    <small class="form-text text-muted">Horário que o estacionamento fecha.</small>
+                </div>
+            </div>
+            
+            <button type="button" id="submitRegistration" class="btn-submit">
+            <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+            <i class="fas fa-paper-plane mr-1"></i> Enviar Solicitação
+          </button>
+          <a href="#" class="form-link" onclick="showLoginForm()">Já tem uma conta? Faça Login</a>
+        </form>
+
+        <!-- Popup de Sucesso -->
+        <div id="successPopup" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="successPopupLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document"> 
+              <div class="modal-content"> 
+                <div class="modal-header" style="background-color: #54C87D; color: white;"> 
+                  <h5 class="modal-title" id="successPopupLabel">Solicitação Enviada!</h5> 
+                  <button type="button" class="close" data-dismiss="modal" style="color: white;">×</button> 
+                </div> 
+                <div class="modal-body"> 
+                  <div class="text-center mb-4">
+                    <i class="fas fa-check-circle" style="font-size: 48px; color: #54C87D;"></i>
+                  </div>
+                  <p>Sua solicitação de parceria foi enviada com sucesso!</p> 
+                  <p>Nossa equipe irá analisar os dados do seu estacionamento e você receberá um email com a resposta em breve.</p>
+                  <p>O cadastro do seu estacionamento só será realizado após a aprovação da nossa equipe.</p>
+                </div> 
+                <div class="modal-footer"> 
+                  <button type="button" class="btn btn-primary" data-dismiss="modal">Entendi</button> 
+                </div> 
+              </div> 
+            </div>
+        </div>
+
+        <!-- Modal Esqueci Senha Admin -->
+        <div id="forgotPasswordModal" class="modal fade" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+             <div class="modal-dialog modal-dialog-centered"> <div class="modal-content"> <div class="modal-header"> <h5 class="modal-title" id="forgotPasswordModalLabel">Redefinir Senha Admin</h5> <button type="button" class="close" data-dismiss="modal">×</button> </div> <div class="modal-body"> <div id="forgot-admin-feedback" style="display: none;"></div> <form id="forgotPasswordAdminForm" method="POST" novalidate> <p class="text-muted small">Digite seu email de administrador:</p> <div class="form-group"> <label for="forgotAdminEmail" class="sr-only">Email</label> <input type="email" class="form-control" id="forgotAdminEmail" name="email" placeholder="Email de admin" required autocomplete="username"> <div class="invalid-feedback"></div> </div> <button type="submit" class="btn btn-primary btn-block"><span class="spinner-border spinner-border-sm" style="display: none;"></span> Enviar Link</button> </form> </div> </div> </div>
+        </div>
+
+      </div> <!-- Fim .form-wrapper -->
+    </div> <!-- Fim .container -->
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2024 ParkNow - Portal do Administrador.</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vanilla-masker@1.1.1/build/vanilla-masker.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="script.js"></script>
+  <script src="emailValidation.js"></script>
+  <script src="password-validation.js"></script>
+</body>
+</html>

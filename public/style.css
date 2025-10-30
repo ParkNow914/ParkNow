@@ -1,0 +1,1749 @@
+/* public/style.css - Adapted and Modified */
+
+/* Estilos Globais */
+*, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  /* Different gradient animations for different sections */
+  @keyframes gradientAnimation1 {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  @keyframes gradientAnimation2 {
+    0% {
+      background-position: 100% 0%;
+    }
+    50% {
+      background-position: 0% 100%;
+    }
+    100% {
+      background-position: 100% 0%;
+    }
+  }
+  
+  @keyframes gradientAnimation3 {
+    0% {
+      background-position: 50% 0%;
+    }
+    50% {
+      background-position: 50% 100%;
+    }
+    100% {
+      background-position: 50% 0%;
+    }
+  }
+  
+  @keyframes gradientAnimation4 {
+    0% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    100% {
+      background-position: 0% 0%;
+    }
+  }
+
+  body {
+    /* Changed default font to Days One */
+    font-family: 'Days One', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f8f8; /* Solid background color */
+    color: #222; /* Darkened for better contrast */
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  
+  /* Apply gradient animation to specific sections only */
+  .section-features,
+  .section-inscricao,
+  .section-mapa-inscricao,
+  .section-contato {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Configuração para a seção features */
+  .section-features {
+    position: relative;
+  }
+  
+  /* Gradient for Features section */
+  .section-features::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, #54C87D, #54C87D, #54C87D, #004080, #000);
+    background-size: 400% 400%;
+    animation: gradientAnimation1 15s ease infinite;
+    z-index: -1;
+  }
+  
+  /* Gradient for Inscription section */
+  .section-inscricao::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, #54C87D, #54C87D, #54C87D, #004080, #000);
+    background-size: 400% 400%;
+    animation: gradientAnimation2 18s ease infinite;
+    z-index: -1;
+  }
+  
+  /* Overlay para melhorar contraste */
+  .section-inscricao::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: -1;
+    pointer-events: none;
+  }
+  
+  /* Gradient for Map section */
+  .section-mapa-inscricao::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, #54C87D, #54C87D, #54C87D, #004080, #000);
+    background-size: 400% 400%;
+    animation: gradientAnimation3 20s ease infinite;
+    z-index: -1;
+  }
+  
+  /* Gradient for Contact section */
+  .section-contato::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, #54C87D, #54C87D, #54C87D, #004080, #000);
+    background-size: 400% 400%;
+    animation: gradientAnimation4 22s ease infinite;
+    z-index: -1;
+  }
+  
+  /* Overlay para melhorar contraste */
+  .section-contato::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+    pointer-events: none;
+  }
+  
+  /* Removido o filtro branco para mostrar o gradiente completo */
+
+  .container {
+    max-width: 1200px; /* Target Width */
+    margin: 0 auto;
+    padding: 0 20px; /* Target Padding */
+  }
+
+  /* Seção de Recursos */
+  .section-features {
+    padding: 60px 0; /* Added padding for content */
+    position: relative;
+    min-height: 400px; /* Target Height */
+    color: #ffffff; /* Enhanced contrast for accessibility */
+    z-index: 1;
+  }
+  
+  /* Dark overlay for better contrast with white feature boxes */
+  .section-features::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+    pointer-events: none;
+  }
+  
+  /* Estilos para a seção de features */
+  
+  .feature-item {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 30px 25px;
+    height: 100%;
+    transition: all 0.4s ease;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+    background-color: #ffffff; /* Ensuring solid background for text contrast */
+  }
+  
+  .feature-item:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    background: linear-gradient(to right, #54C87D, #004080);
+  }
+  
+  .feature-item:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+  }
+  
+  .feature-icon {
+    color: #54C87D;
+    margin-bottom: 20px;
+    text-align: center;
+    position: relative;
+    display: inline-block;
+  }
+  
+  .feature-icon i {
+    background: linear-gradient(#54C87D, #004080);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  }
+  
+  .feature-title {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #333;
+    font-weight: bold;
+    position: relative;
+    padding-bottom: 10px;
+  }
+  
+  .feature-title:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background: #54C87D;
+  }
+  
+  .feature-description {
+    color: #555;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  /* Header - Adapted Layout */
+  header {
+    background: linear-gradient(to right, #54C87D, #54C87D, #54C87D, #004080, #000); /* Target Gradient */
+    padding: 15px 0; /* Adjusted Padding */
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* Using container for content alignment instead of direct flex on header */
+  }
+
+  header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+
+  .logo {
+    max-width: 200px; /* Adjusted from target for potential better fit */
+    max-height: 60px; /* Adjusted */
+    height: auto;
+    /* margin-left: -30px; /* Removed negative margin, adjust if needed */
+  }
+
+  /* Adapting Bootstrap Navbar structure slightly to fit flex */
+  .navbar {
+    padding: 0; /* Remove Bootstrap padding */
+  }
+  .navbar-nav {
+     flex-direction: row; /* Ensure horizontal layout */
+     align-items: center;
+     gap: 15px; /* Increased gap between nav items */
+     justify-content: space-around; /* Distribute items evenly */
+  }
+  
+  .nav-item {
+      margin: 0 5px; /* Even spacing on both sides */
+  }
+  
+  .navbar-dark .navbar-nav .nav-link {
+    color: rgba(255,255,255,0.9) !important; /* Target Link Color */
+    font-weight: 500; /* Slightly bolder */
+    font-size: 0.95rem;
+    padding: 0.5rem 1.2rem; /* Increased horizontal padding */
+    transition: all 0.3s ease, transform 0.2s ease;
+    position: relative;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .navbar-dark .navbar-nav .nav-link:hover {
+    color: #fff !important;
+    transform: translateY(-2px); /* Slight lift effect on hover */
+  }
+  
+  .navbar-dark .navbar-nav .nav-link:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: #54C87D;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+  }
+  
+  .navbar-dark .navbar-nav .nav-link:hover:after {
+    width: 70%;
+  }
+  
+  .navbar-dark .navbar-collapse {
+    justify-content: flex-end; /* Ensure content is aligned to the right */
+  }
+  .navbar-dark .navbar-nav .btn { /* Target button style */
+      padding: 10px 25px; /* Adjusted */
+      font-size: 0.9rem;
+      margin-left: 15px;
+      /* font-family removed, inherits from body */
+  }
+  /* Hide toggler on desktop if using flex */
+  @media (min-width: 992px) {
+      .navbar-toggler {
+          display: none;
+      }
+      .navbar-collapse {
+          display: flex !important;
+          flex-basis: auto;
+      }
+  }
+  /* Keep mobile toggler functional */
+  @media (max-width: 991px) {
+      header .container {
+          flex-wrap: wrap; /* Allow wrapping */
+      }
+      .navbar {
+          width: 100%; /* Full width for collapse */
+      }
+       .navbar-collapse {
+          margin-top: 10px;
+          background: rgba(0, 40, 80, 0.95); /* Keep mobile background */
+          padding: 15px;
+          border-radius: 5px;
+          width: 100%;
+      }
+      .navbar-nav {
+          flex-direction: column;
+          align-items: flex-start;
+      }
+      .nav-item {
+          margin-left: 0;
+          margin-bottom: 5px;
+      }
+       .navbar-dark .navbar-nav .btn {
+           margin-left: 0;
+           margin-top: 10px;
+           width: 100%;
+       }
+  }
+
+
+  /* Target Search Bar Styles (won't apply without HTML element) */
+  .search-bar {
+    border-radius: 30px;
+    padding-right: 40px;
+    position: relative;
+    background-color: #fff;
+    border: none;
+    width: 100%; /* Define a largura como 100% */
+    padding-left: 15px; /* Added for text input */
+    height: 35px; /* Added height */
+  }
+  .search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #000;
+    cursor: pointer;
+  }
+
+  /* Banner Principal */
+  .banner {
+    background-image: url('/img/banner.jpeg'); /* Target Image */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 500px; /* Target Height */
+    display: flex;
+    align-items: center;
+    position: relative;
+    z-index: 1; /* Ensure banner is above the body background */
+    /* padding removed, using container for spacing */
+  }
+  .banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* MODIFIED: Removed dark overlay (blur effect) */
+    background-color: rgba(0, 0, 0, 0); /* Was rgba(0, 0, 0, 0.7) */
+    z-index: 1; /* Above image, below text */
+  }
+  .banner-image { /* This might be redundant if using background-image */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0; /* Behind overlay */
+    display: none; /* Hide if using background-image on .banner */
+  }
+  .banner .container { /* Use container to position text */
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      padding-bottom: 40px; /* Space from bottom */
+  }
+  .banner-text {
+    /* Removed absolute positioning, rely on container and flex alignment */
+    max-width: 600px;
+    z-index: 2;
+  }
+  .banner-text h1 { /* Added basic H1 styling */
+      font-size: 2.8em;
+      color: #fff;
+      margin-bottom: 15px;
+      line-height: 1.2;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5); /* Kept shadow for readability */
+  }
+  .banner-text p {
+    color: #fff;
+    font-size: 1.1em; /* Target Size */
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.4); /* Kept shadow for readability */
+  }
+
+
+  /* Banner Buttons */
+  .banner-buttons {
+    padding: 30px 0; /* Adjusted Padding */
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    background-color: #000; /* Target BG */
+  }
+  .banner-buttons .btn {
+    flex: 1 1 250px; /* Allow shrinking */
+    text-align: center;
+    background-color: #54C87D; /* Target BG */
+    color: #fff;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 15px 30px; /* Consistent padding */
+    border-radius: 20px; /* Match general button style */
+    font-weight: 600; /* Match general button style */
+    /* font-family removed, inherits from body */
+    text-transform: uppercase; /* Added for emphasis */
+    letter-spacing: 0.5px; /* Added */
+  }
+  .banner-buttons .btn:hover {
+    background-color: #004080; /* Target Hover BG */
+    background-size: cover;
+    background-position: center;
+    min-height: 500px; /* Target Height */
+    display: flex;
+    align-items: flex-end; /* Align text to bottom */
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      /* MODIFIED: Removed dark overlay (blur effect) */
+      background-color: rgba(0, 0, 0, 0); /* Adjust opacity as needed - was rgba(0, 0, 0, 0.5) */
+      z-index: 1;
+  }
+  .section-features .container {
+      position: relative; /* Ensure container is above overlay */
+      z-index: 2;
+  }
+  .section-features .row {
+      justify-content: center; /* Center feature items */
+  }
+
+  .feature-item {
+    text-align: center;
+    padding: 30px 20px; /* Increased padding */
+    border-radius: 10px; /* Target radius */
+    background-color: rgba(255, 255, 255, 0.85); /* Target BG, slightly less transparent */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Slightly stronger shadow */
+    margin-bottom: 30px; /* Increased margin */
+    transition: all 0.3s ease;
+    color: #333; /* Dark text on light background */
+    animation: fadeInUp 1s ease-in-out; /* Target Animation */
+    min-height: 200px; /* Ensure some height */
+    display: flex; /* Added for vertical alignment */
+    flex-direction: column; /* Added */
+    justify-content: center; /* Added */
+  }
+  .feature-item:hover {
+    transform: scale(1.05) translateY(-5px); /* Target Hover + Lift */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Target Hover Shadow */
+  }
+  .feature-icon { /* Keep icon styles from original HTML */
+      margin-bottom: 20px;
+  }
+  .feature-icon i {
+      font-size: 3em; /* Adjusted size */
+      line-height: 1;
+      /* Use text colors from original HTML (text-success, text-info, text-primary) */
+      /* Icons usually use specific icon fonts, so Days One won't apply here */
+  }
+  .feature-icon .text-success { color: #54C87D !important; }
+  .feature-icon .text-info { color: #17a2b8 !important; }
+  .feature-icon .text-primary { color: #004080 !important; }
+
+  .feature-title {
+    font-size: 1.5em; /* Increased size for better visibility */
+    font-weight: bold; /* Target Weight */
+    margin-bottom: 15px; /* Adjusted Margin */
+    /* font-family removed, inherits from body */
+    color: #003366; /* Darkened blue for better contrast */
+  }
+  .feature-description {
+    font-size: 1em; /* Target Size */
+    color: #444; /* Darkened for better contrast */
+    margin-top: auto; /* Push to bottom if using flex */
+    font-weight: 500; /* Added weight for better contrast */
+  }
+
+  /* Seção de Inscrição */
+  /* This section already uses styles to center its content */
+  .section-inscricao {
+    background-color: #000; /* Target BG */
+    color: #fff; /* Target Text Color */
+    padding: 70px 0; /* Adjusted Padding */
+    text-align: center; /* Centers text within elements */
+    display: flex; /* Use flexbox */
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
+  }
+  .section-inscricao h2 {
+    font-size: 2.5em; /* Aumentado tamanho */
+    margin-bottom: 20px;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); /* Sombra mais forte */
+    letter-spacing: 1px; /* Melhor espaçamento entre letras */
+    font-weight: bold;
+  }
+  .section-inscricao p {
+    font-size: 1.2em; /* Aumentado tamanho */
+    margin-bottom: 40px;
+    color: #ffffff;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7); /* Sombra mais forte */
+    line-height: 1.8; /* Melhor espaçamento entre linhas */
+    letter-spacing: 0.5px; /* Melhor espaçamento entre letras */
+  }
+  .section-inscricao .btn-success { /* Reusing general button class */
+    /* Styles defined in .btn-success below */
+     padding: 15px 40px; /* Specific padding if needed */
+     font-size: 1.2rem;
+     /* font-family removed, inherits from body */
+  }
+
+  /* Seção do Mapa e Inscrição */
+  .section-mapa-inscricao {
+    padding: 80px 0; /* Target Padding */
+    background-image: url(/img/section-mapa.png); /* Target Image */
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    color: #fff;
+    position: relative; /* Needed for overlay */
+  }
+  .section-mapa-inscricao::before { /* Target Overlay */
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.65); /* Adjusted Opacity */
+    z-index: 1; /* Behind content */
+  }
+  .section-mapa-inscricao .container .row { /* Use row for layout */
+      position: relative; /* Ensure row is above overlay */
+      z-index: 2;
+      align-items: center; /* Vertically align map and form */
+  }
+  .inscricao, .mapa {
+    z-index: 2; /* Ensure content is above overlay */
+  }
+  .inscricao {
+    text-align: left; /* Align text left */
+  }
+  .mapa {
+      text-align: center;
+  }
+  .inscricao-conteudo {
+    margin-bottom: 30px; /* Adjusted Margin */
+  }
+  .inscricao-conteudo h2 {
+    font-size: 2.3em; /* Adjusted Size */
+    margin-bottom: 20px; /* Adjusted Margin */
+    font-weight: bold; /* Target Weight */
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Target Shadow */
+    /* font-family removed, inherits from body */
+  }
+  .inscricao-conteudo p {
+    font-size: 1.15em; /* Adjusted Size */
+    margin-bottom: 30px; /* Adjusted Margin */
+    color: rgba(255,255,255,0.9); /* Lighter Text */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); /* Target Shadow */
+  }
+  .inscricao-formulario {
+    padding: 30px; /* Adjusted Padding */
+    width: 100%;
+    background-color: rgba(0,0,0,0.4); /* Subtle dark background */
+    border-radius: 8px;
+  }
+  .inscricao-formulario .form-group {
+    position: relative; /* Needed for target label effect */
+    margin-bottom: 25px; /* Increased spacing */
+  }
+  /* Target Input Styling (Floating Label) */
+  .inscricao-formulario input {
+    width: 100%;
+    padding: 14px 14px 10px 14px; /* Padding for label */
+    border: none;
+    border-radius: 5px;
+    background-color: rgba(255,255,255,0.9); /* Light background */
+    color: #333; /* Dark text */
+    border-bottom: 2px solid #ddd; /* Target Border */
+    transition: box-shadow 0.3s ease, border-bottom-color 0.3s ease; /* Target Transition */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Target Shadow */
+    font-size: 1rem; /* Adjusted Size */
+    /* font-family inherits from body */
+  }
+  .inscricao-formulario input:focus {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Adjusted Focus Shadow */
+    outline: none;
+    border-bottom-color: #54C87D; /* Target Focus Border */
+    background-color: #fff;
+  }
+  .inscricao-formulario label {
+    position: absolute;
+    top: 15px; /* Initial position */
+    left: 15px;
+    pointer-events: none;
+    transition: all 0.2s ease-out; /* Adjusted Transition */
+    font-size: 1rem; /* Match input size initially */
+    color: #333; /* Darker color for better contrast */
+    font-weight: 700; /* Bold for better visibility */
+    background-color: rgba(255, 255, 255, 0.9); /* Light background for contrast */
+    padding: 2px 5px; /* Some padding for better visibility */
+    border-radius: 3px; /* Rounded corners */
+    /* font-family inherits from body */
+  }
+  .inscricao-formulario input:focus ~ label,
+  .inscricao-formulario input:not(:placeholder-shown) ~ label { /* Use :not(:placeholder-shown) */
+    top: 4px; /* Target Position */
+    font-size: 0.85em; /* Slightly larger for better readability */
+    color: #003366; /* Darker color for better contrast */
+    background-color: #ffffff; /* Ensure visible background */
+    padding: 2px 8px; /* More padding for visibility */
+    font-weight: 700; /* Bold for better visibility */
+  }
+  /* Add placeholder styles */
+  .inscricao-formulario input::placeholder {
+      color: transparent; /* Hide placeholder initially */
+  }
+  .inscricao-formulario input:focus::placeholder {
+      color: #aaa; /* Show placeholder on focus if needed */
+  }
+
+  .inscricao-formulario button {
+    background-color: #54C87D; /* Target BG */
+    color: #fff;
+    padding: 14px 25px; /* Adjusted Padding */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; /* Added transform */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Target Shadow */
+    font-size: 1.1em; /* Target Size */
+    font-weight: bold; /* Target Weight */
+    width: 100%;
+    margin-top: 15px;
+    /* font-family removed, inherits from body */
+    display: flex; /* For icon */
+    align-items: center; /* For icon */
+    justify-content: center; /* For icon */
+    gap: 8px; /* For icon */
+  }
+  .inscricao-formulario button:hover {
+    background-color: #004080; /* Target Hover BG */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Target Hover Shadow */
+    transform: translateY(-2px); /* Added Lift */
+  }
+  #map {
+    height: 450px; /* Kept original height */
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+
+  /* Seção de Contato */
+  .section-contato {
+    background-color: #000; /* Target BG */
+    color: #fff; /* Target Text */
+    padding: 70px 0; /* Adjusted Padding */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .section-contato h2 {
+    font-size: 2.5em; /* Aumentado tamanho */
+    margin-bottom: 30px;
+    color: #fff;
+    text-align: center;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); /* Sombra mais forte */
+    letter-spacing: 1px; /* Melhor espaçamento entre letras */
+    font-weight: bold;
+  }
+  .section-contato form {
+    background: rgba(0, 0, 0, 0.3); /* Fundo semi-transparente */
+    max-width: 800px; /* Aumentado largura */
+    width: 90%;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); /* Sombra mais forte */
+    margin: 0 auto 50px; /* Centralizado */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Borda sutil */
+    -webkit-backdrop-filter: blur(5px); /* Efeito de desfoque para Safari/iOS */
+    backdrop-filter: blur(5px); /* Efeito de desfoque */
+  }
+  .section-contato label {
+    font-weight: bold; /* Target Weight */
+    color: #ffffff; /* Brightest white for maximum contrast */
+    margin-bottom: 8px; /* Adjusted Margin */
+    display: block; /* Ensure block display */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); /* Enhanced shadow for better legibility */
+    font-size: 16px; /* Ensuring readable size */
+    /* font-family inherits from body */
+    background-color: rgba(0, 0, 0, 0.7); /* Dark background for better text contrast */
+    padding: 5px 8px; /* Add padding for better readability */
+    border-radius: 4px; /* Rounded corners */
+  }
+  .section-contato input,
+  .section-contato textarea {
+    width: 100%;
+    padding: 12px 15px; /* Adjusted Padding */
+    margin-bottom: 20px; /* Adjusted Margin */
+    border: 1px solid #ddd; /* Borda mais clara */
+    border-radius: 8px; /* Bordas mais arredondadas */
+    box-sizing: border-box;
+    background-color: #ffffff; /* Fundo branco */
+    color: #333; /* Texto escuro */
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Sombra sutil */
+  }
+  .section-contato input::placeholder,
+  .section-contato textarea::placeholder {
+      color: rgba(0,0,0,0.4); /* Placeholder escuro */
+      font-style: italic;
+  }
+  
+  .section-contato input:focus,
+  .section-contato textarea:focus {
+      background-color: #ffffff;
+      border-color: #54C87D;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(84, 200, 125, 0.3); /* Glow effect */
+      transform: translateY(-2px); /* Leve efeito de elevação */
+  }
+  .section-contato textarea {
+    resize: vertical;
+    min-height: 120px; /* Added min-height */
+  }
+  .section-contato button {
+    background: linear-gradient(100deg, #54C87D, #004080); /* Gradiente igual ao btn-success */
+    color: #fff;
+    padding: 14px 35px; /* Padding maior */
+    border: none;
+    border-radius: 30px; /* Mais arredondado */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Sombra mais pronunciada */
+    font-weight: bold;
+    font-size: 1.1rem; /* Fonte maior */
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 10px;
+  }
+  
+  .section-contato button:hover {
+    background: linear-gradient(100deg, #004080, #54C87D); /* Gradiente invertido no hover */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* Sombra mais forte */
+    transform: translateY(-5px); /* Efeito de elevação maior */
+  }
+
+  /* Footer */
+  footer {
+    background: #000; /* Target BG */
+    padding: 40px 0; /* Adjusted Padding */
+    text-align: center;
+    color: #fff; /* Target Text Color */
+    margin-top: auto;
+    /* font-family inherits from body */
+  }
+  footer .container {
+    padding: 15px 0;
+  }
+  .direitos {
+    color: rgba(255,255,255,0.7); /* Adjusted Opacity */
+    font-size: 0.9em; /* Target Size */
+    margin: 0 0 20px 0; /* Added bottom margin */
+  }
+  .social-links {
+    list-style: none;
+    padding: 0;
+    margin: 0; /* Removed margin-top */
+    display: flex;
+    justify-content: center;
+    gap: 25px; /* Adjusted Gap */
+  }
+  .social-links li a {
+    color: #fff; /* Target Color */
+    font-size: 1.8em; /* Increased Size */
+    transition: color 0.3s ease, transform 0.3s ease; /* Added transform */
+    display: inline-block; /* Needed for transform */
+     /* Icon font usually set separately */
+  }
+  .social-links li a:hover {
+    color: #54C87D; /* Target Hover Color (Changed from F58025) */
+    transform: scale(1.1) translateY(-3px); /* Added effect */
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 992px) {
+    .container {
+      max-width: 95%;
+    }
+    
+    .navbar-brand img {
+      max-width: 130px;
+    }
+    
+    .banner-content h1 {
+      font-size: 2.8rem;
+    }
+    
+    .banner-content p {
+      font-size: 1.1rem;
+    }
+    
+    .section-title {
+      font-size: 2.2rem; /* Increased for better accessibility */
+      font-weight: 700; /* Making bolder for better contrast */
+    }
+    
+    .section-paragraph {
+      font-size: 1.1rem;
+    }
+    
+    .feature-item {
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .section-features .features-arrow {
+      width: 40px;
+      height: 40px;
+    }
+    
+    .section-features .carousel-control-prev {
+      left: 5px;
+    }
+    
+    .section-features .carousel-control-next {
+      right: 5px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .navbar-brand img {
+      max-width: 120px;
+    }
+    
+    .banner-content h1 {
+      font-size: 2.5rem;
+    }
+    
+    .banner-content p {
+      font-size: 1rem;
+    }
+    
+    .section-title {
+      font-size: 2rem; /* Increased for better accessibility */
+      font-weight: 700; /* Making bolder for better contrast */
+    }
+    
+    .section-paragraph {
+      font-size: 1rem;
+    }
+    
+    .feature-item {
+      padding: 15px;
+    }
+    
+    .feature-title {
+      font-size: 1.3rem;
+    }
+    
+    .feature-description {
+      font-size: 0.9rem;
+    }
+    
+    .section-inscricao .btn-success {
+      width: 100%;
+      margin-top: 15px;
+    }
+    
+    .section-contato input,
+    .section-contato textarea,
+    .section-contato button {
+      width: 100%;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .container {
+      max-width: 100%;
+      padding: 0 15px;
+    }
+    
+    .navbar-brand img {
+      max-width: 100px;
+    }
+    
+    .banner-content h1 {
+      font-size: 2rem;
+    }
+    
+    .banner-content p {
+      font-size: 0.9rem;
+    }
+    
+    .section-title {
+      font-size: 1.8rem; /* Increased for better accessibility */
+      font-weight: 700; /* Making bolder for better contrast */
+    }
+    
+    .section-paragraph {
+      font-size: 0.9rem;
+    }
+    
+    .feature-item {
+      padding: 10px;
+    }
+    
+    .feature-icon i {
+      font-size: 2em;
+    }
+    
+    .feature-title {
+      font-size: 1.2rem;
+      margin-top: 10px;
+    }
+    
+    .feature-description {
+      font-size: 0.85rem;
+    }
+    
+    .section-features .features-arrow {
+      width: 30px;
+      height: 30px;
+      background-color: rgba(255, 255, 255, 0.8); /* Enhanced for better visibility */
+    }
+    
+    .section-features .carousel-control-prev {
+      left: 0;
+    }
+    
+    .section-features .carousel-control-next {
+      right: 0;
+    }
+    
+    .section-features .carousel-control-prev-icon,
+    .section-features .carousel-control-next-icon {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+
+  /* Botões (General Styles based on Target) */
+  .btn {
+    border: none;
+    padding: 12px 30px; /* Default padding */
+    border-radius: 20px; /* Target Radius */
+    font-weight: 600; /* Kept specific weight for buttons */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    /* font-family removed, inherits from body */
+    /* font-weight: 400; /* Target Weight - Overridden by 600 above */
+    text-transform: uppercase; /* Added */
+    letter-spacing: 0.5px; /* Added */
+    display: inline-flex; /* Align icon and text */
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn:hover {
+    opacity: 0.9; /* Adjusted Opacity */
+    transform: scale(1.03) translateY(-2px); /* Default Hover Transform */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* Default Hover Shadow */
+  }
+
+  .btn-primary {
+    background: linear-gradient(100deg, #54C87D, #004080); /* Target Gradient */
+    color: #fff;
+  }
+  .btn-primary:hover {
+    /* Uses general .btn:hover */
+    filter: brightness(1.1); /* Add brightness */
+  }
+  
+  /* Estilos para formulários de login e cadastro */
+  #loginModal .modal-dialog,
+  #registerModal .modal-dialog,
+  #forgotPasswordModal .modal-dialog,
+  #resetPasswordModal .modal-dialog {
+    max-width: 450px;
+    width: 90%;
+  }
+  
+  #loginModal .modal-content,
+  #registerModal .modal-content,
+  #forgotPasswordModal .modal-content,
+  #resetPasswordModal .modal-content {
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    border: none;
+  }
+  
+  #loginModal .modal-body,
+  #registerModal .modal-body,
+  #forgotPasswordModal .modal-body,
+  #resetPasswordModal .modal-body {
+    padding: 25px;
+  }
+  
+  #loginModal .form-group,
+  #registerModal .form-group,
+  #forgotPasswordModal .form-group,
+  #resetPasswordModal .form-group {
+    margin-bottom: 20px;
+  }
+  
+  #loginModal .form-control,
+  #registerModal .form-control,
+  #forgotPasswordModal .form-control,
+  #resetPasswordModal .form-control {
+    padding: 12px 15px;
+    height: auto;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    transition: all 0.3s ease;
+  }
+  
+  #loginModal .form-control:focus,
+  #registerModal .form-control:focus,
+  #forgotPasswordModal .form-control:focus,
+  #resetPasswordModal .form-control:focus {
+    border-color: #54C87D;
+    box-shadow: 0 0 0 3px rgba(84, 200, 125, 0.2);
+  }
+  
+  #loginModal .btn,
+  #registerModal .btn,
+  #forgotPasswordModal .btn,
+  #resetPasswordModal .btn {
+    padding: 12px 0;
+    font-size: 1rem;
+  }
+
+  .btn-outline-light {
+    background: transparent; /* Outline */
+    color: #fff; /* Light text */
+    border: 2px solid #fff; /* Light border */
+  }
+  .btn-outline-light:hover {
+      background: rgba(255,255,255,0.1); /* Subtle background on hover */
+      color: #fff;
+      border-color: #fff;
+  }
+  /* Special case for buttons in header */
+  .navbar-dark .navbar-nav .btn-outline-light {
+      border-color: rgba(255,255,255,0.7);
+      color: rgba(255,255,255,0.9);
+  }
+  .navbar-dark .navbar-nav .btn-outline-light:hover {
+      border-color: #fff;
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+  }
+
+
+  .btn-success {
+    background: linear-gradient(100deg, #54C87D, #004080);
+    color: #fff;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border: none;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-success:hover {
+    filter: brightness(1.2); /* Mais brilho */
+    transform: translateY(-5px); /* Efeito de elevação */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); /* Sombra mais forte */
+  }
+
+  /* Estilos para o modal de pagamento PIX */
+.pix-payment-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.pix-payment-modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 25px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.pix-payment-modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.pix-payment-modal-close:hover {
+  color: #000;
+}
+
+/* Modais (Simpler Style based on Target) */
+  #modais .modal-dialog {
+    max-width: 450px; /* Adjusted Width */
+  }
+  #modais .modal-content {
+    border-radius: 10px; /* Target Radius */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); /* Adjusted Shadow */
+    border: none;
+    /* font-family inherits from body */
+  }
+  #modais .modal-header {
+    background-color: #54C87D; /* Target BG */
+    color: #fff; /* Target Text */
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+  }
+  #modais .modal-title {
+    /* font-family removed, inherits from body */
+    font-weight: 400; /* Target Weight */
+    color: #fff; /* Target Color */
+    font-size: 1.3rem; /* Adjusted Size */
+  }
+  #modais .modal-header .close {
+      color: #fff;
+      opacity: 0.8;
+      text-shadow: none;
+      font-size: 1.8rem;
+      padding: 1rem; /* Easier to click */
+      margin: -1rem -1rem -1rem auto;
+  }
+  #modais .modal-header .close:hover {
+      opacity: 1;
+  }
+  #modais .modal-body {
+    padding: 25px 30px; /* Adjusted Padding */
+  }
+  #modais .form-group {
+      margin-bottom: 1.2rem;
+  }
+  #modais label {
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+       /* font-family inherits from body */
+  }
+  #modais .form-control {
+    border-radius: 5px; /* Target Radius */
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1); /* Target Shadow */
+    border: 1px solid #ccc;
+    padding: 10px 12px;
+     /* font-family inherits from body */
+  }
+  #modais .form-control:focus {
+      border-color: #54C87D;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 0 0.2rem rgba(84, 200, 125, 0.25);
+      outline: none;
+  }
+  #modais .btn-primary {
+    background: linear-gradient(to right, #54C87D, #004080); /* Target Gradient */
+    color: #fff;
+    border: none;
+    padding: 10px 20px; /* Adjusted Padding */
+    border-radius: 5px; /* Target Radius */
+    cursor: pointer;
+    transition: all 0.3s ease; /* Target Transition */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Target Shadow */
+    width: 100%; /* Full width */
+    font-size: 1rem;
+    /* font-family removed, inherits from body */
+    font-weight: 400; /* Target Weight */
+  }
+  #modais .btn-primary:hover {
+    /* background-color: #004080; /* Target Hover BG */
+    filter: brightness(1.1); /* Use filter instead of changing background */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Target Hover Shadow */
+    transform: translateY(-1px);
+  }
+
+  /* Other Utilities */
+  .days-one-regular {
+    /* Updated for better contrast */
+    font-family: "Days One", sans-serif;
+    font-weight: 700; /* Increased weight for better contrast */
+  }
+
+  .invalid-feedback {
+    display: block; /* Ensure visible */
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 80%;
+    color: #dc3545; /* Target Color */
+     /* font-family inherits from body */
+  }
+  /* Ensure feedback shows with .is-invalid */
+  .form-control.is-invalid {
+      border-color: #dc3545;
+      padding-right: calc(1.5em + .75rem);
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23dc3545' viewBox='0 0 12 12'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right calc(.375em + .1875rem) center;
+      background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+  }
+  .form-control.is-invalid:focus {
+      border-color: #dc3545;
+      box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+  }
+  .was-validated .form-control:invalid { /* For Bootstrap validation */
+       border-color: #dc3545;
+       /* ... add background image etc. if needed */
+  }
+
+  /* Feedback divs (#login-feedback etc.) */
+  #login-feedback, #register-feedback, #forgot-feedback, #reset-feedback, #newsletter-feedback, #contato-feedback {
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      padding: 0.7rem 1rem;
+      border-radius: 5px;
+       /* font-family inherits from body */
+  }
+  
+  /* Estilos para formulários mais "gordinhos" */
+  .modal-dialog {
+      max-width: 700px; /* Aumentando ainda mais a largura do modal */
+      width: 98%;
+      margin: 1.5rem auto; /* Ajustando a margem vertical */
+  }
+  
+  /* Estilo específico para o modal de cadastro que tem mais campos */
+  #registerForm .modal-dialog {
+      max-width: 800px; /* Modal de cadastro ainda mais largo */
+  }
+  
+  /* Estilo específico para o modal de login */
+  #loginModal .modal-dialog {
+      max-width: 550px; /* Modal de login mais largo */
+  }
+  
+  /* Ajustes para o formulário de login */
+  #loginUserForm {
+      padding: 0 20px;
+  }
+  
+  #loginUserForm .form-group {
+      margin-bottom: 18px;
+  }
+  
+  /* Layout em duas colunas para o formulário de cadastro */
+  #registerUserForm {
+      display: flex;
+      flex-wrap: wrap;
+      margin-left: -10px;
+      margin-right: -10px;
+  }
+  
+  #registerUserForm .form-group {
+      flex: 0 0 50%; /* Cada campo ocupa metade da largura */
+      padding-left: 10px;
+      padding-right: 10px;
+      box-sizing: border-box;
+  }
+  
+  /* Botão ocupa a largura total */
+  #registerUserForm button[type="submit"] {
+      flex: 0 0 100%;
+      margin-left: 10px;
+      margin-right: 10px;
+  }
+  
+  .modal-content {
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .modal-body {
+      padding: 20px 35px; /* Aumentando o padding horizontal e reduzindo o vertical */
+  }
+  
+  .form-group {
+      margin-bottom: 12px; /* Reduzindo ainda mais o espaçamento entre os campos */
+  }
+  
+  .form-group label {
+      margin-bottom: 5px; /* Slightly more space for readability */
+      font-size: 16px; /* Increased size for better readability */
+      font-weight: 700; /* Bold weight for better contrast */
+      color: #000000; /* Maximum contrast black */
+      background-color: rgba(255, 255, 255, 0.9); /* Light background for dark modal contexts */
+      padding: 2px 5px; /* Some padding for text */
+      border-radius: 3px; /* Rounded corners */
+      display: inline-block; /* Allow background to wrap text */
+  }
+  
+  .form-control {
+      padding: 8px 12px; /* Reduzindo o padding para diminuir a altura */
+      border-radius: 8px;
+      border: 1px solid #ced4da;
+      font-size: 15px; /* Reduzindo ligeiramente o tamanho da fonte */
+      transition: all 0.3s ease;
+      height: auto; /* Garantindo que a altura seja baseada no conteúdo */
+  }
+  
+  .form-control:focus {
+      border-color: #54C87D;
+      box-shadow: 0 0 0 0.2rem rgba(84, 200, 125, 0.25);
+  }
+  
+  .btn-primary {
+      padding: 10px 20px; /* Reduzindo o padding vertical */
+      font-size: 15px; /* Reduzindo o tamanho da fonte */
+      border-radius: 8px;
+      background-color: #54C87D;
+      border-color: #54C87D;
+      transition: all 0.3s ease;
+      margin-top: 5px; /* Adicionando uma pequena margem superior */
+  }
+  
+  /* Estilo específico para os botões na navbar */
+  .navbar .btn-primary, .navbar .btn-outline-light {
+      border: 1px solid white;
+      padding: 8px 16px;
+      font-size: 14px;
+  }
+  
+  .btn-primary:hover {
+      background-color: #45a868;
+      border-color: #45a868;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Animações */
+  
+  /* Accessibility Helpers */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    color: #000000; /* Added high contrast color for screen readers */
+    font-weight: 700; /* Making bolder for better contrast */
+    font-size: 16px; /* Ensuring standard size */
+    background-color: #ffffff; /* Ensuring white background for contrast */
+  }
+  
+  /* placeholder styles sometimes used in the app - improved for accessibility */
+  #placeholder, .placeholder {
+    background-color: #ffffff; /* White background for maximum contrast */
+    color: #000000; /* Black text for maximum contrast (21:1 ratio) */
+    text-align: center;
+    padding: 20px;
+    border-radius: 5px;
+    font-weight: 700; /* Bolder text for better visibility */
+    font-size: 18px; /* Increased font size for better readability */
+    border: 2px solid #000000; /* Strong border for better visibility */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Added shadow for emphasis */
+  }
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Responsividade (Merging target's queries) */
+  @media (max-width: 768px) {
+    .container {
+        padding: 0 15px; /* Adjust padding */
+    }
+    .banner {
+      min-height: 400px; /* Adjusted Height */
+      align-items: center; /* Center align on smaller screens */
+      text-align: center; /* Center text */
+    }
+     .banner-text {
+          max-width: 90%;
+          margin: 0 auto; /* Center */
+     }
+     .banner-text h1 {
+         font-size: 2.2em;
+     }
+     .banner-text p {
+         font-size: 1em;
+     }
+
+    .banner-buttons .btn {
+        flex-basis: 100%; /* Full width buttons */
+    }
+
+    .section-features {
+      min-height: auto; /* Auto height */
+      padding: 50px 0;
+      /* background-image: none; /* Optional: remove image on mobile if too busy */
+      /* background-color: #111; /* Fallback dark color */
+    }
+     /* .section-features::before { */
+         /* background-color: rgba(0,0,0,0.3); /* Adjust overlay if image is removed */
+     /* } */
+     .feature-item {
+         width: 90%;
+         margin-left: auto;
+         margin-right: auto;
+         padding: 25px 15px;
+     }
+
+     .section-inscricao { padding: 60px 0; }
+     .section-inscricao h2 { font-size: 1.8em; }
+     .section-inscricao p { font-size: 1em; }
+
+    .section-mapa-inscricao {
+      padding: 60px 0; /* Target Padding */
+      /* background-image: none; /* Optional: remove image */
+      /* background-color: #222; /* Dark fallback */
+    }
+     /* .section-mapa-inscricao::before { */
+          /* background-color: rgba(0,0,0,0.4); */
+     /* } */
+     .inscricao-conteudo h2 { font-size: 1.9em; }
+     .inscricao-conteudo p { font-size: 1em; }
+     .inscricao-formulario { padding: 20px; max-width: 90%; margin-left: auto; margin-right: auto; } /* Added auto margins */
+     #map { height: 300px; }
+
+
+    .section-contato { padding: 60px 0; }
+    .section-contato h2 { font-size: 1.8em; }
+    .section-contato form {
+        width: 90%;
+        padding: 30px 25px;
+        margin-top: 10px;
+    }
+
+    footer .container {
+      padding: 10px 0;
+    }
+    .social-links {
+      margin-top: 20px; /* Target Margin */
+      gap: 20px;
+    }
+    .social-links li a {
+      font-size: 1.5em; /* Target Size */
+    }
+  }
+  
+  /* Estilos para o modal de pagamento PIX */
+  .pix-payment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  
+  .pix-payment-modal__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1;
+  }
+  
+  .pix-payment-modal__content {
+    position: relative;
+    background-color: #fff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    z-index: 2;
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+    padding: 25px;
+  }
+  
+  .pix-payment-modal__close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+  }
+  
+  .pix-payment-modal__header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .pix-payment-modal__header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 22px;
+  }
+  
+  .pix-payment-modal__timer {
+    color: #e74c3c;
+    font-weight: 500;
+    margin-top: 5px;
+  }
+  
+  .pix-payment-details {
+    text-align: center;
+  }
+  
+  .pix-payment-details__amount {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  
+  .pix-payment-details__amount strong {
+    color: #27ae60;
+  }
+  
+  .pix-qr-code {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+  }
+  
+  .pix-qr-code__placeholder {
+    color: #999;
+  }
+  
+  .pix-key {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    word-break: break-all;
+    position: relative;
+  }
+  
+  .pix-key__label {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 5px;
+  }
+  
+  .pix-key__value {
+    font-family: monospace;
+    font-size: 14px;
+    color: #333;
+  }
+  
+  .btn-copy-pix {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #e9ecef;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  
+  .btn-copy-pix:hover {
+    background: #dee2e6;
+  }
+  
+  .pix-payment-instructions {
+    margin-top: 20px;
+    text-align: left;
+  }
+  
+  .pix-payment-instructions h4 {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .pix-payment-instructions ol {
+    padding-left: 20px;
+    margin: 0;
+  }
+  
+  .pix-payment-instructions li {
+    margin-bottom: 8px;
+    color: #555;
+    font-size: 14px;
+  }
+  
+  .pix-payment-actions {
+    margin-top: 25px;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .btn-confirm-payment {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  
+  .btn-confirm-payment:hover {
+    background: #219653;
+  }
+  
+  .btn-cancel-payment {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  
+  .btn-cancel-payment:hover {
+    background: #c0392b;
+  }
