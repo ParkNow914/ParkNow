@@ -2,9 +2,12 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/ParkNow914/ParkNow?style=flat-square)](https://github.com/ParkNow914/ParkNow/releases)
 [![GitHub license](https://img.shields.io/github/license/ParkNow914/ParkNow?style=flat-square)](https://github.com/ParkNow914/ParkNow/blob/main/LICENSE)
+[![CI/CD](https://github.com/ParkNow914/ParkNow/actions/workflows/ci.yml/badge.svg)](https://github.com/ParkNow914/ParkNow/actions/workflows/ci.yml)
+[![Validação](https://github.com/ParkNow914/ParkNow/actions/workflows/validate.yml/badge.svg)](https://github.com/ParkNow914/ParkNow/actions/workflows/validate.yml)
+[![CodeQL](https://github.com/ParkNow914/ParkNow/actions/workflows/codeql.yml/badge.svg)](https://github.com/ParkNow914/ParkNow/actions/workflows/codeql.yml)
 [![GitHub issues](https://img.shields.io/github/issues/ParkNow914/ParkNow?style=flat-square)](https://github.com/ParkNow914/ParkNow/issues)
 [![GitHub stars](https://img.shields.io/github/stars/ParkNow914/ParkNow?style=flat-square)](https://github.com/ParkNow914/ParkNow/stargazers)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13%2B-blue?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
 
 Este projeto representa o backend do sistema de gerenciamento de estacionamento ParkNow, utilizando Node.js, Express.js, PostgreSQL e tecnologias adicionais para segurança, tempo real e robustez.
