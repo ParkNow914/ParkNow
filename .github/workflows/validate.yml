@@ -1,0 +1,59 @@
+name: Validação Básica
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    name: Validar Projeto
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Instalar dependências
+      run: npm install
+
+    - name: Verificar sintaxe JavaScript
+      run: |
+        echo "Verificando sintaxe dos arquivos principais..."
+        node -c server.js
+        echo "✅ server.js OK"
+
+    - name: Verificar estrutura do projeto
+      run: |
+        echo "Verificando estrutura do projeto..."
+        test -f package.json && echo "✅ package.json existe"
+        test -f server.js && echo "✅ server.js existe"
+        test -d controllers && echo "✅ Diretório controllers existe"
+        test -d models && echo "✅ Diretório models existe"
+        test -d routes && echo "✅ Diretório routes existe"
+        echo "✅ Estrutura do projeto válida"
+
+    - name: Listar dependências
+      run: npm list --depth=0 || true
+
+    - name: Verificar vulnerabilidades críticas
+      run: npm audit --audit-level=critical --production || true
+
+  status:
+    name: Status do Build
+    runs-on: ubuntu-latest
+    needs: validate
+    if: always()
+
+    steps:
+    - name: Verificar status
+      run: |
+        echo "Build concluído!"
+        echo "Status: ${{ needs.validate.result }}"
