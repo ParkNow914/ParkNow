@@ -1,0 +1,38 @@
+name: Dependency Update
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Toda semana aos domingos à meia-noite
+  workflow_dispatch:  # Permite execução manual
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Update dependencies
+      run: |
+        npm update
+        npm outdated || true
+    
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'chore: update dependencies'
+        title: 'chore: update npm dependencies'
+        body: |
+          Atualização automática de dependências
+          
+          - Dependências atualizadas para as versões mais recentes compatíveis
+          - Revise as mudanças antes de fazer merge
+        branch: dependency-updates
+        labels: dependencies, automated
