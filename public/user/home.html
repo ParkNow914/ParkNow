@@ -5696,29 +5696,50 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
             // Fechar o modal de agendamento
             $('#agendamentoModal').modal('hide');
             
-            // Extrair ID da reserva e sanitizar
+            // Extrair ID da reserva e garantir que são números inteiros válidos
             const reservaId = parseInt(result.data?.reserva?.id || result.data?.id) || 0;
             const pagamentoId = parseInt(result.data?.pagamento?.id || result.data?.id_pagamento) || 0;
             
             // Sempre mostrar o modal de pagamento PIX
             // Gerar um QR code placeholder simples se não houver um da API
-            // Sanitizar o reservaId para evitar XSS (converter para número inteiro)
-            const safeReservaId = String(reservaId).replace(/[^0-9]/g, '');
-            const qrCodePlaceholder = 'data:image/svg+xml;base64,' + btoa(`
-                <svg xmlns="http://www.w3.org/2000/svg" width="250" height="250" viewBox="0 0 250 250">
-                    <rect width="250" height="250" fill="#f0f0f0"/>
-                    <text x="125" y="125" font-size="16" text-anchor="middle" fill="#333">
-                        QR Code PIX
-                    </text>
-                    <text x="125" y="145" font-size="12" text-anchor="middle" fill="#666">
-                        Reserva #${safeReservaId}
-                    </text>
-                </svg>
-            `);
+            // Usar criação segura de SVG sem interpolação de strings
+            const svgNamespace = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNamespace, "svg");
+            svg.setAttribute("width", "250");
+            svg.setAttribute("height", "250");
+            svg.setAttribute("viewBox", "0 0 250 250");
+            
+            const rect = document.createElementNS(svgNamespace, "rect");
+            rect.setAttribute("width", "250");
+            rect.setAttribute("height", "250");
+            rect.setAttribute("fill", "#f0f0f0");
+            svg.appendChild(rect);
+            
+            const text1 = document.createElementNS(svgNamespace, "text");
+            text1.setAttribute("x", "125");
+            text1.setAttribute("y", "125");
+            text1.setAttribute("font-size", "16");
+            text1.setAttribute("text-anchor", "middle");
+            text1.setAttribute("fill", "#333");
+            text1.textContent = "QR Code PIX";
+            svg.appendChild(text1);
+            
+            const text2 = document.createElementNS(svgNamespace, "text");
+            text2.setAttribute("x", "125");
+            text2.setAttribute("y", "145");
+            text2.setAttribute("font-size", "12");
+            text2.setAttribute("text-anchor", "middle");
+            text2.setAttribute("fill", "#666");
+            text2.textContent = "Reserva #" + reservaId;
+            svg.appendChild(text2);
+            
+            const serializer = new XMLSerializer();
+            const svgString = serializer.serializeToString(svg);
+            const qrCodePlaceholder = 'data:image/svg+xml;base64,' + btoa(svgString);
             
             const pixData = {
                 qr_code: result.data?.pix_qr_code || qrCodePlaceholder,
-                qr_code_text: result.data?.pix_qr_code_text || `PIX_RESERVA_${safeReservaId}_${Date.now()}`,
+                qr_code_text: result.data?.pix_qr_code_text || 'PIX_RESERVA_' + reservaId + '_' + Date.now(),
                 payment_id: pagamentoId,
                 reserva_id: reservaId
             };
