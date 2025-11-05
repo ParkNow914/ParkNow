@@ -9,6 +9,7 @@ const { format, parseISO } = require('date-fns');
 // Status de reserva suportados
 const RESERVATION_STATUS = {
     PENDING: 'pendente',
+    PENDENTE_PAGAMENTO: 'pendente_pagamento',
     CONFIRMED: 'confirmada',
     ACTIVE: 'ativa',
     COMPLETED: 'concluida',
@@ -31,18 +32,18 @@ const RESERVATION_STATUS = {
  * @returns {Promise<object>} Objeto com ID da reserva
  */
 const createReserva = async (reservaData, connection = pool) => {
-    const { 
-        usuario_id, 
-        vaga_id, 
-        estacionamento_id, 
-        placa_veiculo, 
-        horario_inicio_reserva, 
+    const {
+        usuario_id,
+        vaga_id,
+        estacionamento_id,
+        placa_veiculo,
+        horario_inicio_reserva,
         horario_fim_reserva,
         status = RESERVATION_STATUS.CONFIRMED
     } = reservaData;
 
     // Validações iniciais
-    if (!usuario_id || !vaga_id || !estacionamento_id || !placa_veiculo || 
+    if (!usuario_id || !vaga_id || !estacionamento_id || !placa_veiculo ||
         !horario_inicio_reserva || !horario_fim_reserva) {
         throw new Error('Dados de reserva incompletos');
     }
@@ -54,14 +55,14 @@ const createReserva = async (reservaData, connection = pool) => {
 
     const sql = `
         INSERT INTO reservas (
-            usuario_id, 
-            vaga_id, 
-            estacionamento_id, 
-            placa_veiculo, 
-            data_reserva, 
-            data_entrada_prevista, 
-            data_saida_prevista, 
-            status, 
+            usuario_id,
+            vaga_id,
+            estacionamento_id,
+            placa_veiculo,
+            data_reserva,
+            data_entrada_prevista,
+            data_saida_prevista,
+            status,
             created_at,
             updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -70,12 +71,12 @@ const createReserva = async (reservaData, connection = pool) => {
 
     try {
         const result = await connection.query(sql, [
-            usuario_id, 
-            vaga_id, 
-            estacionamento_id, 
+            usuario_id,
+            vaga_id,
+            estacionamento_id,
             placa_veiculo.toUpperCase(),
             now, // data_reserva
-            inicioSql, 
+            inicioSql,
             fimSql,
             status,
             now,
@@ -87,8 +88,8 @@ const createReserva = async (reservaData, connection = pool) => {
         }
 
         const reserva = result.rows[0];
-        logger.info(`Reserva criada com sucesso`, { 
-            reservaId: reserva.id, 
+        logger.info(`Reserva criada com sucesso`, {
+            reservaId: reserva.id,
             usuario_id,
             vaga_id,
             status
@@ -96,8 +97,8 @@ const createReserva = async (reservaData, connection = pool) => {
 
         return reserva;
     } catch (error) {
-        logger.error('Erro ao criar reserva', { 
-            error: error.message, 
+        logger.error('Erro ao criar reserva', {
+            error: error.message,
             stack: error.stack,
             data: {
                 ...reservaData,
@@ -155,19 +156,19 @@ const findActiveReservaByUsuarioAndEstacionamento = async (usuarioId, estacionam
  */
 const findActiveReservaByEstacionamento = async (estacionamentoId, connection = pool) => {
     const sql = `
-        SELECT * 
-        FROM reservas 
-        WHERE estacionamento_id = $1 
+        SELECT *
+        FROM reservas
+        WHERE estacionamento_id = $1
           AND status = '${RESERVATION_STATUS.ACTIVE}'
-          AND data_saida_prevista > NOW() 
+          AND data_saida_prevista > NOW()
         LIMIT 1`;
     try {
         const { rows } = await connection.query(sql, [estacionamentoId]);
         return rows[0];
     } catch (error) {
-        logger.error(`Erro ao buscar reserva ativa para estacionamento ${estacionamentoId}:`, { 
+        logger.error(`Erro ao buscar reserva ativa para estacionamento ${estacionamentoId}:`, {
             error: error.message,
-            stack: error.stack 
+            stack: error.stack
         });
         throw error;
     }
@@ -181,7 +182,7 @@ const findActiveReservaByEstacionamento = async (estacionamentoId, connection = 
  */
 const findReservaById = async (reservaId, connection = pool) => {
     const sql = `
-        SELECT 
+        SELECT
                r.id,
                r.usuario_id,
                r.vaga_id,
@@ -196,29 +197,30 @@ const findReservaById = async (reservaId, connection = pool) => {
                r.created_at,
                r.updated_at,
                v.numero as numero_vaga,
-               e.nome as nome_estacionamento
+               e.nome as nome_estacionamento,
+               e.admin_id as estacionamento_usuario_id
         FROM reservas r
         LEFT JOIN vagas v ON r.vaga_id = v.id
         LEFT JOIN estacionamentos e ON r.estacionamento_id = e.id
         WHERE r.id = $1
         LIMIT 1
     `;
-    
+
     try {
         const { rows } = await connection.query(sql, [reservaId]);
-        
+
         if (!rows.length) {
             logger.warn(`Nenhuma reserva encontrada para o ID: ${reservaId}`);
             return null;
         }
 
         const reserva = rows[0];
-        
+
         return reserva;
     } catch (error) {
-        logger.error(`Erro ao buscar reserva por ID ${reservaId}:`, { 
-            error: error.message, 
-            stack: error.stack 
+        logger.error(`Erro ao buscar reserva por ID ${reservaId}:`, {
+            error: error.message,
+            stack: error.stack
         });
         throw error;
     }
@@ -240,9 +242,9 @@ const isVagaAvailableForPeriod = async (vagaId, inicio, fim, connection = pool) 
     const fimSql = format(fim, "yyyy-MM-dd HH:mm:ss");
 
     const sql = `
-        SELECT id 
-        FROM reservas 
-        WHERE vaga_id = $1 
+        SELECT id
+        FROM reservas
+        WHERE vaga_id = $1
           AND status NOT IN ('cancelada', 'rejeitada', 'expirada')
           AND (
               -- Verifica se existe sobreposição de horários
@@ -274,11 +276,11 @@ const isVagaAvailableForPeriod = async (vagaId, inicio, fim, connection = pool) 
  */
 const expireUnusedReservas = async (connection = pool) => {
     const sql = `
-        UPDATE reservas 
+        UPDATE reservas
         SET status = $1,
             updated_at = NOW()
-        WHERE status = $2 
-          AND data_entrada_prevista < NOW() 
+        WHERE status = $2
+          AND data_entrada_prevista < NOW()
           AND data_entrada_real IS NULL
         RETURNING id`;
 
@@ -318,14 +320,14 @@ async function findReservasByUsuario(usuarioId, options = {}, connection = pool)
     // Define query and params at function scope
     let query = '';
     let params = [];
-    
+
     try {
-        const { 
-            status, 
-            limit = 50, 
-            offset = 0, 
-            orderBy = 'data_reserva', 
-            order = 'DESC' 
+        const {
+            status,
+            limit = 50,
+            offset = 0,
+            orderBy = 'data_reserva',
+            order = 'DESC'
         } = options;
 
         const validOrderFields = ['data_reserva', 'data_entrada_prevista', 'data_saida_prevista'];
@@ -341,7 +343,7 @@ async function findReservasByUsuario(usuarioId, options = {}, connection = pool)
 
         // Build the query
         query = `
-            SELECT 
+            SELECT
                 r.*,
                 e.nome as estacionamento_nome,
                 e.endereco as estacionamento_endereco,
@@ -361,25 +363,25 @@ async function findReservasByUsuario(usuarioId, options = {}, connection = pool)
         params = [usuarioId, limit, offset];
         if (status) {
             // Se for string com vírgulas, converte para array, senão usa como array de um elemento
-            const statusArray = typeof status === 'string' && status.includes(',') 
+            const statusArray = typeof status === 'string' && status.includes(',')
                 ? status.split(',').map(s => s.trim())
                 : [status];
             params.push(statusArray);
         }
-        
-        logger.debug('Executando consulta SQL:', { 
-            query: query.replace(/\s+/g, ' ').trim(), 
-            params: JSON.stringify(params) 
+
+        logger.debug('Executando consulta SQL:', {
+            query: query.replace(/\s+/g, ' ').trim(),
+            params: JSON.stringify(params)
         });
-        
+
         const result = await connection.query(query, params);
-        
+
         // Log do resultado da consulta
         logger.info('Resultado da busca de reservas', {
             usuarioId,
             rowCount: result.rowCount,
             reservas: result.rows.map(r => ({
-                id: r.id, 
+                id: r.id,
                 status: r.status,
                 data_reserva: r.data_reserva,
                 data_entrada_prevista: r.data_entrada_prevista,
@@ -388,7 +390,7 @@ async function findReservasByUsuario(usuarioId, options = {}, connection = pool)
                 vaga_numero: r.vaga_numero
             }))
         });
-        
+
         return result.rows;
     } catch (error) {
         // Log the error with all available context
@@ -400,9 +402,9 @@ async function findReservasByUsuario(usuarioId, options = {}, connection = pool)
             params: JSON.stringify(params || []),
             stack: error.stack
         };
-        
+
         logger.error('Erro ao buscar reservas do usuário:', errorContext);
-        
+
         // Return an empty array instead of throwing to prevent the UI from breaking
         return [];
     }
@@ -441,22 +443,22 @@ async function atualizarStatus(reservaId, novoStatus, connection = pool) {
         if (!Object.values(RESERVATION_STATUS).includes(novoStatus)) {
             throw new Error(`Status de reserva inválido: ${novoStatus}`);
         }
-        
+
         const query = `
-            UPDATE reservas 
-            SET status = $1, 
+            UPDATE reservas
+            SET status = $1,
                 updated_at = NOW()
             WHERE id = $2
             RETURNING id
         `;
-        
+
         const { rowCount } = await connection.query(query, [novoStatus, reservaId]);
-        
+
         if (rowCount > 0) {
             logger.info(`Status da reserva ${reservaId} atualizado para: ${novoStatus}`);
             return true;
         }
-        
+
         return false;
     } catch (error) {
         logger.error('Erro ao atualizar status da reserva:', {
@@ -478,13 +480,13 @@ async function atualizarStatus(reservaId, novoStatus, connection = pool) {
 async function findByTxid(txid, connection = pool) {
     try {
         const query = `
-            SELECT r.* 
+            SELECT r.*
             FROM reservas r
             JOIN pagamentos p ON r.id = p.reserva_id
             WHERE p.dados_adicionais->>'txid' = $1
             LIMIT 1
         `;
-        
+
         const { rows } = await connection.query(query, [txid]);
         return rows[0];
     } catch (error) {
@@ -521,8 +523,8 @@ function calcularValorReserva(inicio, fim, precoHora) {
  */
 const atualizarStatusPagamento = async (reservaId, status, connection = pool, metodoPagamento = 'pix', detalhes = null) => {
     const sql = `
-        UPDATE pagamentos 
-        SET 
+        UPDATE pagamentos
+        SET
             status = $1,
             metodo_pagamento = $2,
             dados_adicionais = COALESCE($3, dados_adicionais),
@@ -572,7 +574,7 @@ const findReservasPendentesPagamento = async (minutosExpiracao = 30, connection 
         SELECT r.*, p.metodo_pagamento, p.status as status_pagamento
         FROM reservas r
         LEFT JOIN pagamentos p ON r.id = p.reserva_id
-        WHERE 
+        WHERE
             p.status = 'pendente'
             AND r.created_at > NOW() - INTERVAL '${minutosExpiracao} minutes'
             AND r.created_at < NOW() - INTERVAL '5 minutes' -- Evita pegar reservas muito recentes
@@ -595,12 +597,12 @@ const findReservasPendentesPagamento = async (minutosExpiracao = 30, connection 
 module.exports = {
     // Constantes
     RESERVATION_STATUS,
-    
+
     // Métodos principais
     createReserva,
     atualizarStatus,
     atualizarStatusPagamento, // Novo método adicionado
-    
+
     // Métodos de busca
     findActiveReservaByVagaId,
     findActiveReservaByUsuarioAndEstacionamento,
@@ -610,7 +612,7 @@ module.exports = {
     countReservasByUsuario,
     findByTxid,
     findReservasPendentesPagamento, // Novo método adicionado
-    
+
     // Métodos de verificação e cálculo
     isVagaAvailableForPeriod,
     expireUnusedReservas,

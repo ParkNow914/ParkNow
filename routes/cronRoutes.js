@@ -35,4 +35,18 @@ const { validateApiKey } = require('../middleware/authMiddleware');
  */
 router.post('/verificar-reservas-expiradas', validateApiKey, cronController.verificarReservasExpiradas);
 
+/**
+ * @swagger
+ * /cron/expirar-reservas-pendentes:
+ *   post:
+ *     summary: Expira reservas pendentes que já passaram do horário
+ *     tags: [Tarefas Agendadas]
+ *     security:
+ *       - apiKey: []
+ *     responses:
+ *       200:
+ *         description: Processamento concluído com sucesso
+ */
+router.post('/expirar-reservas-pendentes', validateApiKey, cronController.expirarReservasPendentes);
+
 module.exports = router;

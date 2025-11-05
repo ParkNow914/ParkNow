@@ -5,8 +5,8 @@ Este documento rastreia o status dos diferentes workflows de CI/CD do projeto.
 ## Workflows Ativos
 
 ### ✅ Validação Básica
-**Arquivo:** `.github/workflows/validate.yml`  
-**Executa em:** Push e PR na branch `main`  
+**Arquivo:** `.github/workflows/validate.yml`
+**Executa em:** Push e PR na branch `main`
 **Propósito:** Validação rápida de sintaxe e estrutura do projeto
 
 **Checks realizados:**
@@ -18,8 +18,8 @@ Este documento rastreia o status dos diferentes workflows de CI/CD do projeto.
 ---
 
 ### 🔄 CI/CD Pipeline
-**Arquivo:** `.github/workflows/ci.yml`  
-**Executa em:** Push e PR nas branches `main` e `develop`  
+**Arquivo:** `.github/workflows/ci.yml`
+**Executa em:** Push e PR nas branches `main` e `develop`
 **Propósito:** Testes completos, segurança e build
 
 **Jobs:**
@@ -34,8 +34,8 @@ Este documento rastreia o status dos diferentes workflows de CI/CD do projeto.
 ---
 
 ### 🔒 CodeQL Analysis
-**Arquivo:** `.github/workflows/codeql.yml`  
-**Executa em:** 
+**Arquivo:** `.github/workflows/codeql.yml`
+**Executa em:**
 - Push e PR na branch `main`
 - Semanalmente (segundas às 00:00 UTC)
 
@@ -48,8 +48,8 @@ Este documento rastreia o status dos diferentes workflows de CI/CD do projeto.
 ---
 
 ### 🤖 Dependency Update
-**Arquivo:** `.github/workflows/dependency-update.yml`  
-**Executa em:** 
+**Arquivo:** `.github/workflows/dependency-update.yml`
+**Executa em:**
 - Semanalmente (domingos às 00:00 UTC)
 - Manualmente via workflow_dispatch
 

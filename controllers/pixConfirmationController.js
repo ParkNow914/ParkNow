@@ -20,7 +20,7 @@ class PixConfirmationController {
 
       // Busca a reserva
       const reserva = await reservaModel.findReservaById(reservaId);
-      
+
       if (!reserva) {
         throw new AppError('Reserva não encontrada', 404);
       }
@@ -32,7 +32,7 @@ class PixConfirmationController {
 
       // Busca os dados do PIX do estacionamento
       const configPagamento = await estacionamentoModel.buscarConfiguracaoPagamento(reserva.estacionamento_id);
-      
+
       if (!configPagamento || !configPagamento.chave_pix) {
         throw new AppError('Estacionamento não configurado para receber PIX', 400);
       }
@@ -68,25 +68,36 @@ class PixConfirmationController {
    */
   async notificarPagamentoPix(req, res, next) {
     const client = await db.getClient();
-    
+
     try {
       await client.query('BEGIN');
-      
+
       const { reservaId } = req.params;
       const { tipo, codigoPix } = req.body;
       const usuarioId = req.user.id;
-      
+
       // Log da requisição recebida
       logger.info(`Notificação de pagamento PIX recebida`, {
         reservaId,
         tipo,
         usuarioId,
+        body: req.body,
         timestamp: new Date().toISOString()
       });
 
+      // Valida o tipo de notificação
+      const tiposSuportados = ['pix_copiado', 'pix_visualizado', 'pagamento_confirmado'];
+      if (!tipo || !tiposSuportados.includes(tipo)) {
+        logger.warn(`Tipo de notificação inválido: ${tipo}`, {
+          tiposSuportados,
+          recebido: tipo
+        });
+        throw new AppError(`Tipo de notificação inválido. Tipos suportados: ${tiposSuportados.join(', ')}`, 400);
+      }
+
       // Busca a reserva
       const reserva = await reservaModel.findReservaById(reservaId, client);
-      
+
       if (!reserva) {
         throw new AppError('Reserva não encontrada', 404);
       }
@@ -96,13 +107,13 @@ class PixConfirmationController {
         logger.warn(`Tentativa de acesso não autorizado à reserva ${reservaId} pelo usuário ${usuarioId}`);
         throw new AppError('Não autorizado', 403);
       }
-      
+
       // Verifica se a reserva está dentro do prazo de 30 minutos
       const agora = new Date();
       const dataCriacao = new Date(reserva.data_criacao);
       const minutosDecorridos = (agora - dataCriacao) / (1000 * 60);
       const minutosLimite = parseInt(process.env.PIX_CONFIRMATION_TIMEOUT_MINUTES || '30');
-      
+
       if (minutosDecorridos > minutosLimite) {
         logger.warn(`Tentativa de notificação fora do prazo para reserva ${reservaId}`, {
           minutosDecorridos: minutosDecorridos.toFixed(2),
@@ -114,28 +125,26 @@ class PixConfirmationController {
         throw new AppError(`O prazo para esta operação expirou (${minutosLimite} minutos)`, 400);
       }
 
-      // Tipos de notificação suportados
-      const tiposSuportados = ['pix_copiado', 'pagamento_confirmado'];
-      if (!tiposSuportados.includes(tipo)) {
-        throw new AppError('Tipo de notificação inválido', 400);
-      }
-
       // Log antes de enviar notificação
       logger.info(`Enviando notificação para o estacionamento`, {
         reservaId: reserva.id,
         tipo,
         usuarioDestino: reserva.estacionamento_usuario_id
       });
-      
+
       // Envia notificação para o estacionamento
       await notificacaoService.criarNotificacao({
         usuario_id: reserva.estacionamento_usuario_id,
-        tipo: tipo === 'pix_copiado' ? 'pix_copiado' : 'pagamento_confirmado',
-        titulo: tipo === 'pix_copiado' 
-          ? 'Cliente copiou o código PIX' 
+        tipo: tipo === 'pix_copiado' ? 'pix_copiado' : tipo === 'pix_visualizado' ? 'pix_visualizado' : 'pagamento_confirmado',
+        titulo: tipo === 'pix_copiado'
+          ? 'Cliente copiou o código PIX'
+          : tipo === 'pix_visualizado'
+          ? 'Cliente visualizou o QR Code PIX'
           : 'Cliente confirmou pagamento PIX',
         mensagem: tipo === 'pix_copiado'
           ? `O cliente copiou o código PIX da reserva #${reserva.id}. O pagamento deve ser confirmado em breve.`
+          : tipo === 'pix_visualizado'
+          ? `O cliente visualizou o QR Code PIX da reserva #${reserva.id}.`
           : `O cliente confirmou o pagamento PIX da reserva #${reserva.id}. Por favor, verifique o recebimento.`,
         dados_adicionais: {
           reserva_id: reserva.id,
@@ -144,19 +153,21 @@ class PixConfirmationController {
         }
       }, client);
 
-      // Se for uma cópia do código PIX ou confirmação de pagamento, envia e-mail para o estacionamento
-      if (tipo === 'pix_copiado') {
+      // Se for uma cópia do código PIX, visualização ou confirmação de pagamento, envia e-mail para o estacionamento
+      if (tipo === 'pix_copiado' || tipo === 'pix_visualizado') {
         // Busca os dados do estacionamento
         const estacionamento = await estacionamentoModel.buscarPorId(reserva.estacionamento_id, client);
-        
-        // Log da ação de cópia do PIX
-        logger.info(`Código PIX copiado para reserva ${reserva.id}`, {
+
+        // Log da ação
+        const acao = tipo === 'pix_copiado' ? 'copiado' : 'visualizado';
+        logger.info(`Código PIX ${acao} para reserva ${reserva.id}`, {
           reservaId: reserva.id,
           estacionamentoId: reserva.estacionamento_id,
           usuarioId: reserva.usuario_id,
+          tipo,
           timestamp: new Date().toISOString()
         });
-        
+
         if (estacionamento && estacionamento.email) {
           // Formata os dados para o e-mail
           const dataHoraFormatada = new Date().toLocaleString('pt-BR', {
@@ -166,15 +177,15 @@ class PixConfirmationController {
             hour: '2-digit',
             minute: '2-digit'
           });
-          
+
           const valorFormatado = new Intl.NumberFormat('pt-BR', {
             style: 'currency',
             currency: 'BRL'
           }).format(reserva.valor);
-          
+
           // URL para visualização da reserva (ajuste conforme sua rota)
           const urlReserva = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/reservas/${reserva.id}`;
-          
+
           // Envia o e-mail de notificação
           await emailService.enviarEmailPixCopiado({
             to: estacionamento.email,
@@ -203,7 +214,7 @@ class PixConfirmationController {
           data_hora: new Date().toISOString()
         }
       });
-      
+
     } catch (error) {
       await client.query('ROLLBACK');
       next(error);
@@ -221,7 +232,7 @@ class PixConfirmationController {
     try {
       // Busca os dados do estacionamento
       const estacionamento = await estacionamentoModel.buscarPorId(reserva.estacionamento_id, client);
-      
+
       if (!estacionamento || !estacionamento.email) {
         logger.warn(`Não foi possível enviar e-mail de confirmação: Estacionamento não encontrado ou sem e-mail cadastrado. Reserva ID: ${reserva.id}`);
         return;
@@ -245,7 +256,7 @@ class PixConfirmationController {
 
       // Envia o e-mail
       await emailService.enviarEmail(emailData);
-      
+
     } catch (error) {
       logger.error(`Erro ao enviar e-mail de confirmação de pagamento para o estacionamento: ${error.message}`, {
         reserva_id: reserva.id,
@@ -263,14 +274,14 @@ class PixConfirmationController {
    */
   async confirmarPagamentoPix(req, res, next) {
     const client = await db.getClient();
-    
+
     try {
       await client.query('BEGIN');
-      
+
       const { reservaId } = req.params;
       const { valorRecebido } = req.body;
       const usuarioId = req.user.id;
-      
+
       // Log da requisição de confirmação de pagamento
       logger.info('Recebida confirmação de pagamento PIX', {
         reservaId,
@@ -278,7 +289,7 @@ class PixConfirmationController {
         usuarioId,
         timestamp: new Date().toISOString()
       });
-      
+
       // Valida se o valor recebido é um número válido
       if (isNaN(parseFloat(valorRecebido)) || parseFloat(valorRecebido) <= 0) {
         throw new AppError('Valor de pagamento inválido', 400);
@@ -286,7 +297,7 @@ class PixConfirmationController {
 
       // Busca a reserva
       const reserva = await reservaModel.findReservaById(reservaId, client);
-      
+
       if (!reserva) {
         throw new AppError('Reserva não encontrada', 404);
       }
@@ -302,7 +313,7 @@ class PixConfirmationController {
       const valorRecebidoFloat = parseFloat(valorRecebido);
       const diferenca = valorRecebidoFloat - valorEsperado;
       const tolerancia = 0.01; // 1 centavo de tolerância para arredondamentos
-      
+
       if (isNaN(valorRecebidoFloat) || diferenca < -tolerancia) {
         logger.warn(`Valor insuficiente para a reserva ${reservaId}`, {
           valorEsperado,
@@ -311,7 +322,7 @@ class PixConfirmationController {
         });
         throw new AppError(`Valor insuficiente. Valor esperado: R$ ${valorEsperado.toFixed(2)}`, 400);
       }
-      
+
       // Log de confirmação de valores
       logger.info(`Valores validados para reserva ${reservaId}`, {
         valorEsperado,
@@ -322,7 +333,7 @@ class PixConfirmationController {
 
       // Atualiza o status da reserva para confirmada
       await reservaModel.atualizarStatus(reservaId, 'confirmada', client);
-      
+
       // Atualiza o status do pagamento
       await client.query(
         'UPDATE reservas SET status_pagamento = $1, data_pagamento = NOW() WHERE id = $2',

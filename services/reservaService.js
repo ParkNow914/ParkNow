@@ -22,7 +22,7 @@ class ReservaService {
    */
   async criarReservaComPagamento(reservaData, metodoPagamento = 'pix') {
     const client = await db.getClient();
-    
+
     try {
       logger.info('Dados recebidos em criarReservaComPagamento:', {
         reservaData,
@@ -31,7 +31,7 @@ class ReservaService {
         keys: Object.keys(reservaData)
       });
       await client.query('BEGIN');
-      
+
       let {
         estacionamento_id,
         usuario_id,
@@ -59,15 +59,15 @@ class ReservaService {
         }
         placa_veiculo = veiculoPadrao.placa_veiculo;
       }
-      
+
       // Cria a reserva no banco de dados
       const reservaQuery = `
         INSERT INTO reservas (
-          usuario_id, 
+          usuario_id,
           vaga_id,
-          estacionamento_id, 
+          estacionamento_id,
           data_reserva,
-          data_entrada_prevista, 
+          data_entrada_prevista,
           data_saida_prevista,
           status,
           valor_total,
@@ -77,7 +77,7 @@ class ReservaService {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
       `;
-      
+
       const reservaValues = [
         usuario_id,
         vaga_id || null,
@@ -93,54 +93,38 @@ class ReservaService {
       ];
 
       logger.debug('Criando reserva no banco de dados', { valores: reservaValues });
-      
+
       const reservaResult = await client.query(reservaQuery, reservaValues);
       const reserva = reservaResult.rows[0];
-      
+
       logger.info('Reserva criada com sucesso', { reserva_id: reserva.id, status: reserva.status });
 
-      // Cria um registro de pagamento no banco de dados
-      logger.info('Criando objeto de pagamento para reserva', {
-        reserva_id: reserva.id,
-        estacionamento_id,
-        valor_reserva,
-        metodoPagamento,
-        usuario_id: reservaData.usuario_id
-      });
-      
-      const pagamento = {
+      // Processar pagamento PIX usando o serviço de pagamento
+      const paymentProcessingService = require('./estacionamentoPaymentProcessingService');
+
+      logger.info('Processando pagamento PIX para reserva', {
         reserva_id: reserva.id,
         metodo: metodoPagamento,
-        valor: valor_reserva,
-        status: 'pendente',
-        id_usuario: reservaData.usuario_id,
-        id_estacionamento: estacionamento_id,
-        dados_adicionais: {
-          metodo_pagamento: metodoPagamento,
-          origem: 'reserva_online',
-          estacionamento_id: estacionamento_id,
-          usuario_id: reservaData.usuario_id,
-          reserva_id: reserva.id, // Garante que o ID da reserva está nos dados adicionais
-          data_reserva: new Date().toISOString()
-        }
-      };
-      
-      // Cria o pagamento usando o mesmo cliente de transação
-      const pagamentoId = await pagamentoModel.criarPagamento(pagamento, {}, client);
-      
-      if (!pagamentoId) {
-        throw new Error('Falha ao criar registro de pagamento: ID não retornado');
-      }
-      
-      // Atualiza o objeto da reserva com o status atualizado
-      reserva.status = 'pendente';
-      
-      logger.debug('Pagamento local gerado', { pagamentoId });
+        valor: valor_reserva
+      });
+
+      const resultadoPagamento = await paymentProcessingService.processarPagamento(
+        reserva.id,
+        metodoPagamento,
+        {}, // dados_pagamento vazio para PIX
+        client
+      );
+
+      logger.info('Pagamento PIX processado com sucesso', {
+        reserva_id: reserva.id,
+        pagamento_id: resultadoPagamento.pagamento_id,
+        tem_qr_code: !!resultadoPagamento.qr_code
+      });
 
       // Atualiza a reserva com o ID do pagamento
       const updateQuery = `
-        UPDATE reservas 
-        SET id_pagamento = $1, 
+        UPDATE reservas
+        SET id_pagamento = $1,
             updated_at = NOW(),
             status = 'pendente',
             status_pagamento = 'pendente'
@@ -148,31 +132,34 @@ class ReservaService {
         RETURNING *
       `;
 
-
-      await client.query(updateQuery, [pagamentoId, reserva.id]);
+      await client.query(updateQuery, [resultadoPagamento.pagamento_id, reserva.id]);
 
       // Commit da transação
       await client.query('COMMIT');
-      
-      logger.info('Reserva atualizada com sucesso', { 
-        reserva_id: reserva.id, 
-        payment_id: pagamentoId 
+
+      logger.info('Reserva atualizada com sucesso', {
+        reserva_id: reserva.id,
+        payment_id: resultadoPagamento.pagamento_id
       });
-      
-      // Busca os dados atualizados do pagamento
-      const pagamentoAtualizado = await pagamentoModel.buscarPagamentoPorId(pagamentoId);
-      
+
+      // Retorna os dados da reserva e pagamento com QR Code PIX REAL
       return {
         reserva: {
           ...reserva,
-          id_pagamento: pagamentoId,
+          id_pagamento: resultadoPagamento.pagamento_id,
           status_pagamento: 'pendente'
         },
         pagamento: {
-          id: pagamentoId,
-          status: 'pendente',
-          created_at: pagamentoAtualizado?.data_criacao || new Date()
-        }
+          id: resultadoPagamento.pagamento_id,
+          status: resultadoPagamento.status,
+          metodo_pagamento: metodoPagamento
+        },
+        pix_qr_code: resultadoPagamento.qr_code,
+        pix_qr_code_text: resultadoPagamento.qr_code_text,
+        chave_pix: resultadoPagamento.chave_pix,
+        nome_titular: resultadoPagamento.nome_titular,
+        valor: resultadoPagamento.valor,
+        expira_em: resultadoPagamento.expira_em
       };
     } catch (error) {
       // Rollback em caso de erro
@@ -183,11 +170,11 @@ class ReservaService {
         reservaData,
         metodoPagamento
       });
-      
+
       if (error instanceof AppError) {
         throw error;
       }
-      
+
       throw new AppError(
         `Falha ao processar a reserva: ${error.message || 'Erro desconhecido'}`,
         500
@@ -197,7 +184,7 @@ class ReservaService {
       client.release();
     }
   }
-  
+
   /**
    * Atualiza o status de uma reserva com base no status do pagamento
    * @param {string} paymentId - ID do pagamento no sistema
@@ -206,22 +193,22 @@ class ReservaService {
    */
   async atualizarStatusPorPagamento(paymentId, status) {
     const client = await db.getClient();
-    
+
     try {
       await client.query('BEGIN');
-      
+
       // Primeiro, busca a reserva pelo ID do pagamento
       const reservaResult = await client.query(
         'SELECT * FROM reservas WHERE id_pagamento = $1',
         [paymentId]
       );
-      
+
       if (reservaResult.rows.length === 0) {
         throw new AppError('Reserva não encontrada para o pagamento informado', 404);
       }
-      
+
       const reserva = reservaResult.rows[0];
-      
+
       // Define o status da reserva com base no status do pagamento
       let novoStatus;
       switch (status.toLowerCase()) {
@@ -240,30 +227,30 @@ class ReservaService {
         default:
           novoStatus = 'pendente_pagamento';
       }
-      
+
       // Atualiza a reserva
       const updateResult = await client.query(
-        `UPDATE reservas 
-         SET status = $1, 
-             data_atualizacao = NOW() 
-         WHERE id = $2 
+        `UPDATE reservas
+         SET status = $1,
+             data_atualizacao = NOW()
+         WHERE id = $2
          RETURNING *`,
         [novoStatus, reserva.id]
       );
-      
+
       const reservaAtualizada = updateResult.rows[0];
-      
+
       await client.query('COMMIT');
-      
+
       logger.info('Status da reserva atualizado com sucesso', {
         reserva_id: reservaAtualizada.id,
         status_anterior: reserva.status,
         novo_status: reservaAtualizada.status,
         payment_id: paymentId
       });
-      
+
       return reservaAtualizada;
-      
+
     } catch (error) {
       await client.query('ROLLBACK');
       logger.error('Erro ao atualizar status da reserva por pagamento:', {
@@ -272,21 +259,21 @@ class ReservaService {
         paymentId,
         status
       });
-      
+
       if (error instanceof AppError) {
         throw error;
       }
-      
+
       throw new AppError(
         `Falha ao atualizar status da reserva: ${error.message || 'Erro desconhecido'}`,
         500
       );
-      
+
     } finally {
       client.release();
     }
   }
-  
+
   /**
    * Obtém os detalhes de uma reserva pelo ID do pagamento
    * @param {string} paymentId - ID do pagamento
@@ -294,11 +281,11 @@ class ReservaService {
    */
   async obterReservaPorPagamento(paymentId) {
     const client = await db.getClient();
-    
+
     try {
       // Busca a reserva pelo ID do pagamento
       const reservaResult = await client.query(
-        `SELECT r.*, 
+        `SELECT r.*,
                 e.nome as estacionamento_nome,
                 e.endereco as estacionamento_endereco,
                 e.telefone as estacionamento_telefone,
@@ -310,11 +297,11 @@ class ReservaService {
          WHERE r.id_pagamento = $1`,
         [paymentId]
       );
-      
+
       if (reservaResult.rows.length === 0) {
         throw new AppError('Reserva não encontrada para o pagamento informado', 404);
       }
-      
+
       const reserva = reservaResult.rows[0];
 
       return {
@@ -333,11 +320,11 @@ class ReservaService {
       // Rollback em caso de erro
       await client.query('ROLLBACK');
       logger.error('Erro ao criar reserva com pagamento:', error);
-      
+
       if (error instanceof AppError) {
         throw error;
       }
-      
+
       throw new AppError(
         `Falha ao processar a reserva: ${error.message || 'Erro desconhecido'}`,
         500
@@ -355,11 +342,11 @@ class ReservaService {
    */
   async obterReservaPorPagamento(paymentId) {
     const client = await db.getClient();
-    
+
     try {
       // Busca a reserva pelo ID do pagamento
       const reservaResult = await client.query(
-        `SELECT r.*, 
+        `SELECT r.*,
                 e.nome as estacionamento_nome,
                 e.endereco as estacionamento_endereco,
                 e.telefone as estacionamento_telefone,
@@ -371,13 +358,13 @@ class ReservaService {
          WHERE r.id_pagamento = $1`,
         [paymentId]
       );
-      
+
       if (reservaResult.rows.length === 0) {
         throw new AppError('Reserva não encontrada para o pagamento informado', 404);
       }
-      
+
       const reserva = reservaResult.rows[0];
-      
+
       // Formata os dados de retorno
       return {
         id: reserva.id,
@@ -410,11 +397,11 @@ class ReservaService {
         stack: error.stack,
         paymentId
       });
-      
+
       if (error instanceof AppError) {
         throw error;
       }
-      
+
       throw new AppError(
         `Falha ao obter reserva: ${error.message || 'Erro desconhecido'}`,
         500

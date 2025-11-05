@@ -28,7 +28,7 @@ const CACHE_TTL = 300; // 5 minutos
 const criarPagamento = async (pagamentoData, dadosAdicionais = {}, client = null) => {
     const { reserva_id, metodo, valor, status } = pagamentoData;
     const { id_estacionamento, id_usuario } = pagamentoData;
-    
+
     logger.info('Criando pagamento no banco de dados:', {
         reserva_id,
         metodo,
@@ -39,18 +39,18 @@ const criarPagamento = async (pagamentoData, dadosAdicionais = {}, client = null
         hasIdEstacionamento: !!id_estacionamento,
         hasUserId: !!id_usuario
     });
-    
+
     if (!reserva_id) {
         throw new Error('ID da reserva é obrigatório para criar um pagamento');
     }
-    
+
     const query = `
-        INSERT INTO pagamentos 
+        INSERT INTO pagamentos
         (reserva_id, metodo_pagamento, valor, status, dados_retorno, id_estacionamento, id_usuario, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
         RETURNING id
     `;
-    
+
     const params = [
         reserva_id,
         metodo,
@@ -67,7 +67,7 @@ const criarPagamento = async (pagamentoData, dadosAdicionais = {}, client = null
         id_estacionamento || null,
         id_usuario || null
     ];
-    
+
     try {
         let result;
         if (client) {
@@ -77,11 +77,11 @@ const criarPagamento = async (pagamentoData, dadosAdicionais = {}, client = null
             // Usa o pool diretamente (para compatibilidade)
             result = await pool.query(query, params);
         }
-        
+
         if (!result.rows || result.rows.length === 0) {
             throw new Error('Falha ao criar pagamento: nenhum ID retornado');
         }
-        
+
         const pagamentoId = result.rows[0].id;
         logger.info(`Pagamento criado com sucesso. ID: ${pagamentoId}, Reserva: ${reserva_id}`);
         return pagamentoId;
@@ -100,25 +100,25 @@ const criarPagamento = async (pagamentoData, dadosAdicionais = {}, client = null
  */
 const atualizarStatusPagamento = async (pagamentoId, novoStatus, dadosAdicionais = null) => {
     const query = `
-        UPDATE pagamentos 
-        SET status = $1, 
+        UPDATE pagamentos
+        SET status = $1,
             updated_at = NOW()
             ${dadosAdicionais ? ', dados_retorno = dados_retorno || $3::jsonb' : ''}
         WHERE id = $2
         RETURNING id
     `;
-    
+
     try {
         const params = [novoStatus, pagamentoId];
         if (dadosAdicionais) params.push(JSON.stringify(dadosAdicionais));
-        
+
         const { rowCount } = await pool.query(query, params);
-        
+
         if (rowCount > 0) {
             logger.info(`Status do pagamento ${pagamentoId} atualizado para: ${novoStatus}`);
             return true;
         }
-        
+
         return false;
     } catch (error) {
         logger.error('Erro ao atualizar status do pagamento:', error);
@@ -133,7 +133,7 @@ const atualizarStatusPagamento = async (pagamentoId, novoStatus, dadosAdicionais
  */
 const buscarPagamentoPorId = async (pagamentoId) => {
     const query = 'SELECT * FROM pagamentos WHERE id = $1';
-    
+
     try {
         const { rows } = await pool.query(query, [pagamentoId]);
         return rows[0] || null;
@@ -150,7 +150,7 @@ const buscarPagamentoPorId = async (pagamentoId) => {
  */
 const buscarPagamentosPorReserva = async (reservaId) => {
     const query = 'SELECT * FROM pagamentos WHERE reserva_id = $1 ORDER BY data_criacao DESC';
-    
+
     try {
         const { rows } = await pool.query(query, [reservaId]);
         return rows;
@@ -167,12 +167,12 @@ const buscarPagamentosPorReserva = async (reservaId) => {
  */
 const buscarUltimoPagamentoPorReserva = async (reservaId) => {
     const query = `
-        SELECT * FROM pagamentos 
-        WHERE reserva_id = $1 
-        ORDER BY data_criacao DESC 
+        SELECT * FROM pagamentos
+        WHERE reserva_id = $1
+        ORDER BY data_criacao DESC
         LIMIT 1
     `;
-    
+
     try {
         const { rows } = await pool.query(query, [reservaId]);
         return rows[0] || null;
@@ -191,42 +191,42 @@ const buscarUltimoPagamentoPorReserva = async (reservaId) => {
  */
 async function listarPorUsuario(usuarioId, limite = 10, offset = 0) {
     const client = await pool.connect();
-    
+
     try {
         // Inicia uma transação
         await client.query('BEGIN');
-        
+
         // Primeiro, busca o total de registros
         const countQuery = `
-            SELECT COUNT(*) as total 
+            SELECT COUNT(*) as total
             FROM pagamentos p
             INNER JOIN reservas r ON p.reserva_id = r.id
             WHERE r.usuario_id = $1
         `;
-        
+
         const countResult = await client.query(countQuery, [usuarioId]);
         const total = parseInt(countResult.rows[0].total, 10);
-        
+
         // Depois busca os dados paginados
         const query = `
-            SELECT p.*, r.horario_entrada, r.horario_saida, r.status as status_reserva
+            SELECT p.*, r.horario_entrada, r.horario_saida, r.status
             FROM pagamentos p
             INNER JOIN reservas r ON p.reserva_id = r.id
             WHERE r.usuario_id = $1
             ORDER BY p.data_criacao DESC
             LIMIT $2 OFFSET $3
         `;
-        
+
         const { rows } = await client.query(query, [usuarioId, limite, offset]);
-        
+
         // Commit da transação
         await client.query('COMMIT');
-        
+
         return {
             pagamentos: rows,
             total
         };
-        
+
     } catch (error) {
         // Rollback em caso de erro
         await client.query('ROLLBACK');
@@ -252,9 +252,9 @@ async function buscarPorIdComPermissao(id, usuarioId = null) {
             INNER JOIN reservas r ON p.reserva_id = r.id
             WHERE p.id = $1
         `;
-        
+
         const params = [id];
-        
+
         // Se o usuário for fornecido, adiciona verificação de permissão
         if (usuarioId) {
             query += ' AND (r.usuario_id = $2 OR EXISTS (' +
@@ -263,15 +263,15 @@ async function buscarPorIdComPermissao(id, usuarioId = null) {
             '))';
             params.push(usuarioId);
         }
-        
+
         const { rows } = await pool.query(query, params);
-        
+
         if (rows.length === 0) {
             return null;
         }
-        
+
         return rows[0];
-        
+
     } catch (error) {
         logger.error('Erro ao buscar pagamento por ID com permissão:', error);
         throw error;
@@ -286,13 +286,13 @@ async function buscarPorIdComPermissao(id, usuarioId = null) {
  */
 async function atualizarDadosAdicionais(id, dadosAdicionais) {
     const query = `
-        UPDATE pagamentos 
-        SET dados_retorno = $1, 
-            updated_at = NOW() 
+        UPDATE pagamentos
+        SET dados_retorno = $1,
+            updated_at = NOW()
         WHERE id = $2
         RETURNING id
     `;
-    
+
     try {
         const { rowCount } = await pool.query(query, [dadosAdicionais, id]);
         return rowCount > 0;
@@ -310,12 +310,12 @@ async function atualizarDadosAdicionais(id, dadosAdicionais) {
  */
 async function buscarPorStatus(status, limite = 100) {
     const query = `
-        SELECT * FROM pagamentos 
+        SELECT * FROM pagamentos
         WHERE status = $1
         ORDER BY data_criacao DESC
         LIMIT $2
     `;
-    
+
     try {
         const { rows } = await pool.query(query, [status, limite]);
         return rows;
@@ -333,12 +333,12 @@ async function buscarPorStatus(status, limite = 100) {
  */
 async function buscarPorMetodo(metodo, limite = 100) {
     const query = `
-        SELECT * FROM pagamentos 
+        SELECT * FROM pagamentos
         WHERE metodo_pagamento = $1
         ORDER BY data_criacao DESC
         LIMIT $2
     `;
-    
+
     try {
         const { rows } = await pool.query(query, [metodo, limite]);
         return rows;
@@ -355,12 +355,12 @@ async function buscarPorMetodo(metodo, limite = 100) {
  */
 async function buscarPorTransacaoId(transacaoId) {
     const query = `
-        SELECT * FROM pagamentos 
+        SELECT * FROM pagamentos
         WHERE dados_retorno->>'transacao_id' = $1
         OR dados_retorno->>'txid' = $1
         LIMIT 1
     `;
-    
+
     try {
         const { rows } = await pool.query(query, [transacaoId]);
         return rows.length > 0 ? rows[0] : null;
@@ -380,21 +380,21 @@ async function buscarPorTransacaoId(transacaoId) {
  */
 async function atualizarStatusComMotivo(id, status, motivo = '', dadosExtras = {}) {
     const client = await pool.connect();
-    
+
     try {
         await client.query('BEGIN');
-        
+
         // Primeiro, busca os dados atuais para registrar no histórico
         const { rows } = await client.query('SELECT * FROM pagamentos WHERE id = $1 FOR UPDATE', [id]);
-        
+
         if (rows.length === 0) {
             throw new Error('Pagamento não encontrado');
         }
-        
+
         const pagamentoAtual = rows[0];
-        const historico = Array.isArray(pagamentoAtual.historico) ? 
+        const historico = Array.isArray(pagamentoAtual.historico) ?
             [...pagamentoAtual.historico] : [];
-        
+
         // Adiciona o novo registro ao histórico
         historico.push({
             status_anterior: pagamentoAtual.status,
@@ -403,22 +403,22 @@ async function atualizarStatusComMotivo(id, status, motivo = '', dadosExtras = {
             motivo,
             dados_extras: dadosExtras
         });
-        
+
         // Atualiza o pagamento
         const updateQuery = `
-            UPDATE pagamentos 
-            SET status = $1, 
+            UPDATE pagamentos
+            SET status = $1,
                 historico = $2,
                 data_atualizacao = NOW()
             WHERE id = $3
             RETURNING id
         `;
-        
+
         const updateResult = await client.query(updateQuery, [status, JSON.stringify(historico), id]);
-        
+
         await client.query('COMMIT');
         return updateResult.rowCount > 0;
-        
+
     } catch (error) {
         await client.query('ROLLBACK');
         logger.error('Erro ao atualizar status do pagamento com motivo:', error);
