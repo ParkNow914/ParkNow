@@ -31,8 +31,29 @@ class NotificationService {
 
             // Salva a notificação no banco de dados se necessário
             if (salvar) {
-                const [result] = await db('notificacoes').insert(notificacao).returning('*');
-                notificacao.id = result.id;
+                try {
+                    const query = `
+                        INSERT INTO notificacoes (usuario_id, tipo, titulo, mensagem, dados, lida, data_criacao)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7)
+                        RETURNING id
+                    `;
+                    const result = await db.query(query, [
+                        notificacao.usuario_id,
+                        notificacao.tipo,
+                        notificacao.titulo,
+                        notificacao.mensagem,
+                        notificacao.dados,
+                        notificacao.lida,
+                        notificacao.data_criacao
+                    ]);
+
+                    if (result.rows && result.rows.length > 0) {
+                        notificacao.id = result.rows[0].id;
+                    }
+                } catch (dbError) {
+                    // Se a tabela não existir, apenas loga o erro e continua
+                    logger.warn('Não foi possível salvar notificação no banco de dados:', dbError.message);
+                }
             }
 
             // Envia a notificação em tempo real via Socket.IO
@@ -40,7 +61,7 @@ class NotificationService {
             if (io) {
                 io.to(`usuario_${userId}`).emit('nova_notificacao', {
                     ...notificacao,
-                    dados: typeof notificacao.dados === 'string' ? 
+                    dados: typeof notificacao.dados === 'string' ?
                         JSON.parse(notificacao.dados) : notificacao.dados
                 });
             }
@@ -49,7 +70,8 @@ class NotificationService {
             return notificacao;
         } catch (error) {
             logger.error('Erro ao enviar notificação:', error);
-            throw error;
+            // Não lança o erro para não interromper o fluxo principal
+            return null;
         }
     }
 
@@ -61,12 +83,15 @@ class NotificationService {
      */
     async marcarComoLida(notificacaoId, userId) {
         try {
-            const [updated] = await db('notificacoes')
-                .where({ id: notificacaoId, usuario_id: userId })
-                .update({ lida: true, data_leitura: new Date() })
-                .returning('*');
+            const query = `
+                UPDATE notificacoes
+                SET lida = true, data_leitura = NOW()
+                WHERE id = $1 AND usuario_id = $2
+                RETURNING *
+            `;
+            const result = await db.query(query, [notificacaoId, userId]);
 
-            return !!updated;
+            return result.rows && result.rows.length > 0;
         } catch (error) {
             logger.error('Erro ao marcar notificação como lida:', error);
             throw error;
@@ -83,20 +108,22 @@ class NotificationService {
      */
     async obterNotificacoesNaoLidas(userId, { limit = 20, offset = 0 } = {}) {
         try {
-            const notificacoes = await db('notificacoes')
-                .where({ usuario_id: userId, lida: false })
-                .orderBy('data_criacao', 'desc')
-                .limit(limit)
-                .offset(offset);
+            const query = `
+                SELECT * FROM notificacoes
+                WHERE usuario_id = $1 AND lida = false
+                ORDER BY data_criacao DESC
+                LIMIT $2 OFFSET $3
+            `;
+            const result = await db.query(query, [userId, limit, offset]);
 
             // Converte os dados de string JSON para objeto
-            return notificacoes.map(notif => ({
+            return result.rows.map(notif => ({
                 ...notif,
                 dados: notif.dados ? JSON.parse(notif.dados) : {}
             }));
         } catch (error) {
             logger.error('Erro ao obter notificações não lidas:', error);
-            throw error;
+            return [];
         }
     }
 
@@ -109,7 +136,7 @@ class NotificationService {
     async enviarNotificacaoEmMassa(userIds, notificacao) {
         try {
             const results = await Promise.all(
-                userIds.map(userId => 
+                userIds.map(userId =>
                     this.enviarNotificacao(userId, notificacao)
                         .catch(error => ({
                             userId,

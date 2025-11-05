@@ -63,14 +63,14 @@ async function query(text, params = []) {
 // Test the database connection
 async function testConnection(retries = 5, delay = 2000) {
     let lastError;
-    
+
     for (let i = 0; i < retries; i++) {
         let client;
         try {
             logger.info(`Attempting to connect to database (attempt ${i + 1}/${retries})...`);
             client = await pool.connect();
             const result = await client.query('SELECT NOW() as current_time');
-            logger.info('Database connection successful', { 
+            logger.info('Database connection successful', {
                 current_time: result.rows[0].current_time,
                 server_version: client.connectionParameters.server_version
             });
@@ -78,7 +78,7 @@ async function testConnection(retries = 5, delay = 2000) {
         } catch (error) {
             lastError = error;
             const waitTime = delay * (i + 1);
-            logger.error(`Connection attempt ${i + 1} failed: ${error.message}`, { 
+            logger.error(`Connection attempt ${i + 1} failed: ${error.message}`, {
                 error: {
                     code: error.code,
                     detail: error.detail,
@@ -87,7 +87,7 @@ async function testConnection(retries = 5, delay = 2000) {
                 },
                 retryIn: `${waitTime}ms`
             });
-            
+
             if (i < retries - 1) {
                 await new Promise(resolve => setTimeout(resolve, waitTime));
             }
@@ -101,7 +101,7 @@ async function testConnection(retries = 5, delay = 2000) {
             }
         }
     }
-    
+
     const errorMessage = `Failed to connect to database after ${retries} attempts: ${lastError.message}`;
     logger.error(errorMessage, { error: lastError });
     throw new Error(errorMessage);
@@ -141,21 +141,21 @@ const executeQuery = async (text, params) => {
         // Use the original query method to avoid recursion
         const result = await originalQuery(text, params);
         const duration = Date.now() - start;
-        
+
         // Log successful queries (only in development or if debug is enabled)
         if (process.env.NODE_ENV !== 'production' || process.env.DEBUG === 'true') {
-            logger.debug(`Query executed in ${duration}ms`, { 
+            logger.debug(`Query executed in ${duration}ms`, {
                 query: text,
                 params: params || [],
                 duration: `${duration}ms`,
                 rowCount: result.rowCount
             });
         }
-        
+
         return result;
     } catch (error) {
         const duration = Date.now() - start;
-        logger.error('Query execution failed', { 
+        logger.error('Query execution failed', {
             query: text,
             params: params || [],
             duration: `${duration}ms`,
@@ -178,7 +178,7 @@ pool.query = async (text, params, callback) => {
         callback = params;
         params = [];
     }
-    
+
     try {
         const result = await executeQuery(text, params);
         if (callback) {

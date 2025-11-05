@@ -105,7 +105,7 @@ function initCronJobs() {
                         timeout: 15000
                     }
                 );
-                
+
                 if (response.data.success) {
                     if (response.data.reservasProcessadas > 0) {
                         logger.info(`[Cron] ${response.data.reservasProcessadas} reservas PIX expiradas foram processadas.`);
@@ -127,6 +127,48 @@ function initCronJobs() {
         });
     } else {
         logger.error(`[Cron] Schedule inválido para 'verificarReservasPixExpiradas'. Tarefa não agendada.`);
+    }
+
+    // --- Tarefa 4: Expirar Reservas Pendentes que Já Passaram do Horário ---
+    const expirePendingSchedule = '*/5 * * * *'; // A cada 5 minutos
+    if (cron.validate(expirePendingSchedule)) {
+        logger.info(`[Cron] Agendando 'expirarReservasPendentes' para rodar a cada 5 minutos`);
+        cron.schedule(expirePendingSchedule, async () => {
+            logger.info('[Cron] Executando expiração de reservas pendentes...');
+            try {
+                const apiBaseUrl = process.env.CRON_API_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+                const response = await axios.post(
+                    `${apiBaseUrl}/api/cron/expirar-reservas-pendentes`,
+                    {},
+                    {
+                        headers: {
+                            'x-api-key': process.env.CRON_API_KEY || 'default-secure-key'
+                        },
+                        timeout: 15000
+                    }
+                );
+
+                if (response.data.success) {
+                    if (response.data.reservasProcessadas > 0) {
+                        logger.info(`[Cron] ${response.data.reservasProcessadas} reserva(s) pendente(s) expirada(s).`);
+                    } else {
+                        logger.debug('[Cron] Nenhuma reserva pendente expirada encontrada.');
+                    }
+                } else {
+                    logger.error('[Cron] Erro ao expirar reservas pendentes:', response.data.message);
+                }
+            } catch (error) {
+                const status = error.response && error.response.status;
+                const dataMsg = error.response && error.response.data && (error.response.data.message || JSON.stringify(error.response.data));
+                const errorMessage = dataMsg || (error && error.message) || 'erro-desconhecido';
+                logger.error('[Cron] Erro ao expirar reservas pendentes:', { status, message: errorMessage });
+            }
+        }, {
+            scheduled: true,
+            timezone: "America/Sao_Paulo"
+        });
+    } else {
+        logger.error(`[Cron] Schedule inválido para 'expirarReservasPendentes'. Tarefa não agendada.`);
     }
 
     logger.info('[Cron] Configuração de tarefas agendadas concluída.');

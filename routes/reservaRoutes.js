@@ -42,4 +42,7 @@ router.put('/:reservaId/estender', [
     body('duracao_adicional_minutos', 'Duração adicional inválida (mínimo 15 minutos)').isInt({ min: 15, max: 720 }).toInt()
 ], handleValidationErrors, reservaController.estenderReserva);
 
+// DELETE /api/reservas/historico/limpar - Limpar histórico de reservas
+router.delete('/historico/limpar', reservaController.limparHistorico);
+
 module.exports = router;

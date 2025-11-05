@@ -72,14 +72,14 @@ const findById = async (id) => {
  */
 const findByIdAdmin = async (id) => {
     const sql = `
-        SELECT 
-            id, nome, latitude, longitude, endereco, telefone, email, 
-            capacidade_total, vagas_disponiveis, valor_hora, valor_diaria, 
-            valor_mensal, horario_abertura, horario_fechamento, status, 
+        SELECT
+            id, nome, latitude, longitude, endereco, telefone, email,
+            capacidade_total, vagas_disponiveis, valor_hora, valor_diaria,
+            valor_mensal, horario_abertura, horario_fechamento, status,
             data_cadastro, vagas, preco_hora, preco_dia, descricao, foto, admin_id,
             chave_pix, tipo_chave_pix, nome_titular_pix
-        FROM estacionamentos 
-        WHERE id = ? 
+        FROM estacionamentos
+        WHERE id = ?
         LIMIT 1`;
     try {
         const rows = await sequelize.query(sql, {
@@ -99,20 +99,20 @@ const findByIdAdmin = async (id) => {
  * @returns {Promise<number>} ID do estacionamento criado.
  */
 const createEstacionamento = async (estData) => {
-    const { 
-        nome, latitude, longitude, endereco, foto, vagas, 
+    const {
+        nome, latitude, longitude, endereco, foto, vagas,
         preco_hora, preco_dia, descricao, admin_id,
-        chave_pix, tipo_chave_pix, nome_titular_pix 
+        chave_pix, tipo_chave_pix, nome_titular_pix
     } = estData;
-    
+
     const sql = `
         INSERT INTO estacionamentos (
-            nome, latitude, longitude, endereco, foto, vagas, 
-            preco_hora, preco_dia, descricao, admin_id, 
+            nome, latitude, longitude, endereco, foto, vagas,
+            preco_hora, preco_dia, descricao, admin_id,
             chave_pix, tipo_chave_pix, nome_titular_pix, data_cadastro
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `;
-    
+
     try {
         const lat = (latitude && !isNaN(parseFloat(latitude))) ? parseFloat(latitude) : null;
         const lon = (longitude && !isNaN(parseFloat(longitude))) ? parseFloat(longitude) : null;
@@ -138,7 +138,7 @@ const createEstacionamento = async (estData) => {
             ],
             type: QueryTypes.INSERT
         });
-        
+
         logger.info(`Estacionamento criado ID: ${result[0]} por Admin ID: ${admin_id}`);
         cache.del(CACHE_KEY_LIST); // Invalida cache da lista
         return result[0];
@@ -156,11 +156,11 @@ const createEstacionamento = async (estData) => {
  */
 const updateEstacionamentoAdmin = async (id, estData) => {
     let sql = 'UPDATE estacionamentos SET ';
-    const params = []; 
+    const params = [];
     const fieldsToUpdate = [];
     const allowedFields = [
-        'nome', 'latitude', 'longitude', 'endereco', 'foto', 'vagas', 
-        'preco_hora', 'preco_dia', 'descricao', 'admin_id', 
+        'nome', 'latitude', 'longitude', 'endereco', 'foto', 'vagas',
+        'preco_hora', 'preco_dia', 'descricao', 'admin_id',
         'chave_pix', 'tipo_chave_pix', 'nome_titular_pix'
     ];
 
@@ -177,30 +177,30 @@ const updateEstacionamentoAdmin = async (id, estData) => {
             }
         }
     });
-    
-    if (fieldsToUpdate.length === 0) { 
-        logger.warn(`[Estacionamento Update] Nenhum campo válido para ID ${id}.`); 
-        return false; 
+
+    if (fieldsToUpdate.length === 0) {
+        logger.warn(`[Estacionamento Update] Nenhum campo válido para ID ${id}.`);
+        return false;
     }
-    
-    sql += fieldsToUpdate.join(', '); 
-    sql += ' WHERE id = ?'; 
+
+    sql += fieldsToUpdate.join(', ');
+    sql += ' WHERE id = ?';
     params.push(id);
-    
+
     try {
         const result = await sequelize.query(sql, {
             replacements: params,
             type: QueryTypes.UPDATE
         });
-        
+
         if(result[1] > 0) {
             logger.info(`Estacionamento ID ${id} atualizado. Campos: ${fieldsToUpdate.map(f=>f.split('=')[0].trim()).join(',')}`);
             cache.del(CACHE_KEY_LIST); // Invalida cache da lista
         }
         return result[1] > 0;
-    } catch (error) { 
-        logger.error(`Erro em updateEstacionamentoAdmin (ID: ${id}):`, { error: error.message }); 
-        throw error; 
+    } catch (error) {
+        logger.error(`Erro em updateEstacionamentoAdmin (ID: ${id}):`, { error: error.message });
+        throw error;
     }
 };
 
@@ -215,7 +215,7 @@ const deleteEstacionamentoAdmin = async (id, connection) => {
     const deleteReservasSql = 'DELETE FROM reservas WHERE estacionamento_id = ?';
     const deleteVagasSql = 'DELETE FROM vagas WHERE estacionamento_id = ?';
     const deleteEstSql = 'DELETE FROM estacionamentos WHERE id = ?';
-    
+
     try {
         // Ordem de exclusão para respeitar FKs (ou usar ON DELETE CASCADE)
         // Usando a transação passada para todas as operações
@@ -242,9 +242,9 @@ const deleteEstacionamentoAdmin = async (id, connection) => {
         logger.warn(`[Estacionamento Delete] Estacionamento ID ${id} e vagas relacionadas excluídas.`);
         cache.del(CACHE_KEY_LIST); // Invalida cache
         return estResult.affectedRows > 0;
-    } catch (error) { 
-        logger.error(`Erro em deleteEstacionamentoAdmin (ID: ${id}):`, { error: error.message }); 
-        throw error; 
+    } catch (error) {
+        logger.error(`Erro em deleteEstacionamentoAdmin (ID: ${id}):`, { error: error.message });
+        throw error;
     } // Propaga erro para rollback
 };
 
@@ -256,24 +256,27 @@ const deleteEstacionamentoAdmin = async (id, connection) => {
  */
 const buscarConfiguracaoPagamento = async (estacionamentoId, transaction = null) => {
     try {
-        const estacionamento = await Estacionamento.findByPk(estacionamentoId, {
+        // Não passa transaction se for um client do pg (não Sequelize)
+        const options = {
             attributes: [
-                'chave_pix', 'tipo_chave_pix', 'nome_titular_pix',
-                'aceita_cartao_credito', 'aceita_cartao_debito', 'dados_pagamento'
+                'chave_pix', 'tipo_chave_pix', 'nome_titular_pix'
             ],
-            transaction,
             raw: true
-        });
-        
+        };
+
+        // Apenas adiciona transaction se for uma transação do Sequelize
+        if (transaction && transaction.constructor.name === 'Transaction') {
+            options.transaction = transaction;
+        }
+
+        const estacionamento = await Estacionamento.findByPk(estacionamentoId, options);
+
         if (!estacionamento) return null;
-        
+
         return {
             chave_pix: estacionamento.chave_pix,
             tipo_chave_pix: estacionamento.tipo_chave_pix,
-            nome_titular: estacionamento.nome_titular_pix,
-            aceita_cartao_credito: estacionamento.aceita_cartao_credito,
-            aceita_cartao_debito: estacionamento.aceita_cartao_debito,
-            ...(estacionamento.dados_pagamento || {})
+            nome_titular: estacionamento.nome_titular_pix
         };
     } catch (error) {
         logger.error(`Erro ao buscar configuração de pagamento do estacionamento ${estacionamentoId}:`, error);
@@ -298,7 +301,7 @@ const buscarConfiguracaoPagamento = async (estacionamentoId, transaction = null)
 const atualizarConfiguracaoPagamento = async (estacionamentoId, config, transaction = null) => {
     const t = transaction || await Estacionamento.sequelize.transaction();
     const shouldCommit = !transaction;
-    
+
     try {
         const {
             tipo_chave_pix,
@@ -311,26 +314,26 @@ const atualizarConfiguracaoPagamento = async (estacionamentoId, config, transact
             aceita_cartao_credito,
             aceita_cartao_debito
         } = config;
-        
+
         // Validações
         if (!tipo_chave_pix) {
             throw new Error('Tipo da chave PIX é obrigatório');
         }
-        
+
         if (!chave_pix) {
             throw new Error('Chave PIX é obrigatória');
         }
-        
+
         if (!nome_titular) {
             throw new Error('Nome do titular é obrigatório');
         }
-        
+
         // Verifica se o estacionamento existe
         const estacionamento = await Estacionamento.findByPk(estacionamentoId, { transaction: t });
         if (!estacionamento) {
             throw new Error('Estacionamento não encontrado');
         }
-        
+
         // Prepara os dados para atualização
         const dadosAtualizacao = {
             tipo_chave_pix,
@@ -347,39 +350,39 @@ const atualizarConfiguracaoPagamento = async (estacionamentoId, config, transact
                 ...(estacionamento.dados_pagamento || {})
             }
         };
-        
+
         // Atualiza o estacionamento
         const [updated] = await Estacionamento.update(dadosAtualizacao, {
             where: { id: estacionamentoId },
             transaction: t
         });
-        
+
         if (updated === 0) {
             throw new Error('Falha ao atualizar configuração de pagamento');
         }
-        
+
         if (shouldCommit) {
             await t.commit();
         }
-        
+
         // Retorna os dados atualizados
         return {
             ...dadosAtualizacao,
             nome_titular: dadosAtualizacao.nome_titular_pix,
             ...dadosAtualizacao.dados_pagamento
         };
-        
+
     } catch (error) {
         if (shouldCommit && t) {
             await t.rollback();
         }
-        
-        logger.error('Erro ao atualizar configuração de pagamento:', { 
-            estacionamentoId, 
+
+        logger.error('Erro ao atualizar configuração de pagamento:', {
+            estacionamentoId,
             error: error.message,
             stack: error.stack
         });
-        
+
         throw error;
     }
 };
@@ -393,28 +396,28 @@ const atualizarConfiguracaoPagamento = async (estacionamentoId, config, transact
 const validarConfiguracaoPagamento = async (estacionamentoId, transaction = null) => {
     try {
         const config = await buscarConfiguracaoPagamento(estacionamentoId, transaction);
-        
+
         if (!config) {
-            return { 
-                valido: false, 
-                motivo: 'Estacionamento não encontrado' 
+            return {
+                valido: false,
+                motivo: 'Estacionamento não encontrado'
             };
         }
-        
+
         // Verifica se tem chave PIX configurada
         if (!config.chave_pix || !config.tipo_chave_pix || !config.nome_titular) {
-            return { 
-                valido: false, 
+            return {
+                valido: false,
                 motivo: 'Configuração de PIX incompleta',
                 config: {
                     precisaConfigurarPix: true
                 }
             };
         }
-        
+
         // Verifica se tem dados bancários para estorno (opcional)
         const precisaConfigurarDadosBancarios = !config.banco || !config.agencia || !config.conta;
-        
+
         return {
             valido: true,
             config: {
@@ -422,16 +425,16 @@ const validarConfiguracaoPagamento = async (estacionamentoId, transaction = null
                 ...config
             }
         };
-        
+
     } catch (error) {
-        logger.error('Erro ao validar configuração de pagamento:', { 
-            estacionamentoId, 
+        logger.error('Erro ao validar configuração de pagamento:', {
+            estacionamentoId,
             error: error.message,
             stack: error.stack
         });
-        return { 
-            valido: false, 
-            motivo: 'Erro ao validar configuração de pagamento' 
+        return {
+            valido: false,
+            motivo: 'Erro ao validar configuração de pagamento'
         };
     }
 };
@@ -448,9 +451,9 @@ const buscarPorMetodoPagamento = async (metodoPagamento) => {
         if (metodoPagamento === 'cartao_credito' || metodoPagamento === 'cartao_debito') {
             return [];
         }
-        
+
         const where = { status: 'ATIVO' };
-        
+
         // Filtra apenas por PIX, que é o único método suportado agora
         if (metodoPagamento === 'pix') {
             where.chave_pix = { [Op.ne]: null };
@@ -460,17 +463,17 @@ const buscarPorMetodoPagamento = async (metodoPagamento) => {
             // Se não for PIX, retorna vazio
             return [];
         }
-        
+
         const estacionamentos = await Estacionamento.findAll({
             where,
             attributes: [
-                'id', 'nome', 'latitude', 'longitude', 'endereco', 
+                'id', 'nome', 'latitude', 'longitude', 'endereco',
                 'vagas', 'preco_hora', 'preco_dia', 'foto',
                 'chave_pix', 'tipo_chave_pix', 'nome_titular_pix'
             ],
             raw: true
         });
-        
+
         // Formata o resultado para manter compatibilidade
         return estacionamentos.map(est => ({
             ...est,
@@ -479,23 +482,23 @@ const buscarPorMetodoPagamento = async (metodoPagamento) => {
             aceita_cartao_credito: false, // Definido como false já que não aceita mais
             aceita_cartao_debito: false   // Definido como false já que não aceita mais
         }));
-        
+
     } catch (error) {
-        logger.error('Erro ao buscar estacionamentos por método de pagamento:', { 
+        logger.error('Erro ao buscar estacionamentos por método de pagamento:', {
             error: error.message,
             stack: error.stack,
-            metodoPagamento 
+            metodoPagamento
         });
         throw error;
     }
 };
 
-module.exports = { 
-    findAll, 
-    findById, 
-    findByIdAdmin, 
-    createEstacionamento, 
-    updateEstacionamentoAdmin, 
+module.exports = {
+    findAll,
+    findById,
+    findByIdAdmin,
+    createEstacionamento,
+    updateEstacionamentoAdmin,
     deleteEstacionamentoAdmin,
     buscarConfiguracaoPagamento,
     atualizarConfiguracaoPagamento,

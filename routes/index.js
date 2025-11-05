@@ -72,12 +72,13 @@ router.use('/estacionamento-payments', estacionamentoPaymentRoutes);
 // Rotas de configuração de pagamento
 router.use('/estacionamento-payment-config', estacionamentoPaymentConfigRoutes);
 
-// Rotas de confirmação de PIX (para estacionamentos confirmarem recebimento)
-// IMPORTANTE: Precisa vir antes das rotas de reserva para não haver conflito
-router.use('/api', pixConfirmationRoutes);
-
 // Rotas de reserva com pagamento
-router.use('/reservas', reservaPagamentoRoutes);
+// Monta duas vezes para suportar diferentes prefixos
+router.use('/reservas', reservaPagamentoRoutes);  // Para /api/reservas/com-pagamento
+router.use('/', reservaPagamentoRoutes);           // Para /api/pagamentos/:id/status e /api/webhooks/mercado-pago
+
+// Rotas de confirmação de PIX (para estacionamentos confirmarem recebimento)
+router.use('/', pixConfirmationRoutes);
 
 // Rotas de validação de CNPJ
 router.use('/cnpj', cnpjRoutes);
