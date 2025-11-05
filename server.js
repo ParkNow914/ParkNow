@@ -53,37 +53,37 @@ app.use(
             directives: {
                 defaultSrc: ["'self'"],
                 scriptSrc: [
-                    "'self'", 
-                    "'unsafe-inline'", 
-                    "'unsafe-eval'", 
-                    "cdn.socket.io", 
-                    "https://cdn.socket.io", 
-                    "code.jquery.com", 
-                    "cdn.jsdelivr.net", 
-                    "cdnjs.cloudflare.com", 
+                    "'self'",
+                    "'unsafe-inline'",
+                    "'unsafe-eval'",
+                    "cdn.socket.io",
+                    "https://cdn.socket.io",
+                    "code.jquery.com",
+                    "cdn.jsdelivr.net",
+                    "cdnjs.cloudflare.com",
                     "unpkg.com"
                 ],
                 scriptSrcElem: [
-                    "'self'", 
-                    "'unsafe-inline'", 
-                    "cdn.socket.io", 
-                    "https://cdn.socket.io", 
-                    "code.jquery.com", 
-                    "cdn.jsdelivr.net", 
-                    "cdnjs.cloudflare.com", 
+                    "'self'",
+                    "'unsafe-inline'",
+                    "cdn.socket.io",
+                    "https://cdn.socket.io",
+                    "code.jquery.com",
+                    "cdn.jsdelivr.net",
+                    "cdnjs.cloudflare.com",
                     "unpkg.com"
                 ],
                 scriptSrcAttr: ["'self'", "'unsafe-inline'"],
                 imgSrc: [
-                    "'self'", 
-                    "data:", 
-                    "https://*.tile.openstreetmap.org", 
+                    "'self'",
+                    "data:",
+                    "https://*.tile.openstreetmap.org",
                     "http://*.tile.openstreetmap.org",
                     "https://*.openstreetmap.org",
                     "http://*.openstreetmap.org"
                 ],
                 mediaSrc: [
-                    "'self'", 
+                    "'self'",
                     "data:",
                     "https://cdn.jsdelivr.net",
                     "https://*.jsdelivr.net"
@@ -153,7 +153,7 @@ app.use('/api/public', approvalRoutes); // Rotas de aprovação de parcerias
 // Todas as rotas da API (com prefixo /api)
 app.use('/api', apiRoutes);
 app.use('/api/approvals', approvalRoutes);
-app.use('/api/time', timeRoutes); 
+app.use('/api/time', timeRoutes);
 app.use('/api/pix', manualPixRoutes); // Manual PIX payment routes
 app.use('/api/pix-confirmations', pixConfirmationRoutes); // PIX confirmation routes
 
@@ -221,11 +221,11 @@ const signals = ['SIGINT', 'SIGTERM', 'SIGQUIT'];
 signals.forEach(signal => {
     process.on(signal, async () => {
         logger.warn(`[Server] Sinal ${signal} recebido. Iniciando desligamento gracioso...`);
-        
+
         // 1. Fechar o servidor HTTP
         server.close(async () => {
             logger.info('[Server] Servidor HTTP fechado.');
-            
+
             // 2. Fechar a pool de conexões do banco de dados
             try {
                 logger.info('[DB] Fechando pool de conexões...');
@@ -234,18 +234,18 @@ signals.forEach(signal => {
             } catch (error) {
                 logger.error('[DB] Erro ao fechar pool de conexões:', error);
             }
-            
+
             // 3. Encerrar o processo
             logger.info('[Server] Processo encerrado com sucesso.');
             process.exit(0);
         });
-        
+
         // Forçar encerramento se o desligamento gracioso demorar muito
         const forceShutdown = setTimeout(() => {
             logger.error('[Server] Desligamento forçado após timeout.');
             process.exit(1);
         }, 10000);
-        
+
         // Limpar o timeout se o desligamento for concluído a tempo
         process.once('exit', () => clearTimeout(forceShutdown));
     });

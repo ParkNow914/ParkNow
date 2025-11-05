@@ -16,7 +16,7 @@ console.log('[Payment Routes] Router constructor:', router.constructor.name);
 const checkPaymentModule = (req, res, next) => {
     console.log('[checkPaymentModule] Verificando status do módulo de pagamento');
     console.log(`[checkPaymentModule] ENABLE_PAYMENT_MODULE: ${process.env.ENABLE_PAYMENT_MODULE}`);
-    
+
     if (process.env.ENABLE_PAYMENT_MODULE !== 'true') {
         console.log('[checkPaymentModule] Módulo de pagamento desativado, retornando 503');
         return res.status(503).json({
@@ -24,7 +24,7 @@ const checkPaymentModule = (req, res, next) => {
             message: 'Módulo de pagamento está temporariamente desativado.'
         });
     }
-    
+
     console.log('[checkPaymentModule] Módulo de pagamento ativado, continuando...');
     return next();
 };
@@ -125,17 +125,17 @@ console.log(`[Payment Routes] Rotas de pagamento carregadas (módulo ${process.e
 // Define the route handler function as a separate function
 function processarPagamentoHandler(req, res, next) {
     console.log('[processarPagamentoHandler] Iniciando processamento de pagamento');
-    
+
     // Ensure the controller method exists
     if (typeof paymentController.processarPagamento !== 'function') {
         const error = new Error('Método processarPagamento não encontrado no controlador');
         console.error(error);
         return next(error);
     }
-    
+
     // Log the request details for debugging
     console.log(`[processarPagamentoHandler] Processando pagamento para reserva: ${req.params.reservaId}`);
-    
+
     // Call the controller method with proper error handling
     Promise.resolve()
         .then(() => paymentController.processarPagamento(req, res, next))
@@ -155,17 +155,17 @@ const validatePaymentRequest = [
             .withMessage('ID da reserva inválido')
             .toInt()
             .run(req);
-        
+
         // Check for validation errors
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             console.error('[Payment Routes] Validation errors:', errors.array());
-            return res.status(400).json({ 
-                success: false, 
-                errors: errors.array() 
+            return res.status(400).json({
+                success: false,
+                errors: errors.array()
             });
         }
-        
+
         next();
     },
     // Validate request body
@@ -175,19 +175,19 @@ const validatePaymentRequest = [
             .isIn(['pix', 'cartao', 'boleto'])
             .withMessage('Método de pagamento inválido')
             .run(req);
-            
+
         // Add more validations as needed
-        
+
         // Check for validation errors
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             console.error('[Payment Routes] Request body validation errors:', errors.array());
-            return res.status(400).json({ 
-                success: false, 
-                errors: errors.array() 
+            return res.status(400).json({
+                success: false,
+                errors: errors.array()
             });
         }
-        
+
         next();
     }
 ];
@@ -196,8 +196,8 @@ const validatePaymentRequest = [
 console.log('Registering test route...');
 router.get('/test-express', function(req, res) {
     console.log('Test route hit!');
-    res.json({ 
-        success: true, 
+    res.json({
+        success: true,
         message: 'Express router is working!',
         timestamp: new Date().toISOString()
     });
@@ -217,8 +217,8 @@ router.post(
     // Main handler
     function(req, res) {
         console.log('Processing payment for reservaId:', req.params.reservaId);
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             message: 'Payment processed successfully',
             reservaId: req.params.reservaId,
             timestamp: new Date().toISOString()
