@@ -1,5 +1,5 @@
 -- Migração para adicionar campos do Stripe Connect
--- Data: 2024-11-07
+-- Data: 2025-11-07
 -- Descrição: Adiciona campos necessários para integração com Stripe Connect (marketplace/split)
 
 -- ============================================
