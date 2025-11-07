@@ -24,6 +24,7 @@ const pixConfirmationRoutes = require('./pixConfirmationRoutes'); // Rotas de co
 const cnpjRoutes = require('./cnpjRoutes'); // Rotas de validação de CNPJ
 const emailValidationRoutes = require('./emailValidationRoutes'); // Rotas de validação de e-mail
 const horarioFuncionamentoRoutes = require('./horarioFuncionamentoRoutes'); // Rotas de horários de funcionamento
+const stripeRoutes = require('./stripeRoutes'); // Rotas de pagamento Stripe Connect
 
 // Importa as rotas da API v2
 const apiV2Routes = require('./v2'); // Rotas da API v2
@@ -65,6 +66,9 @@ router.use('/timezone', timezoneRoutes);
 
 // Rotas de pagamento (públicas e protegidas)
 router.use('/payments', paymentRoutes);
+
+// Rotas de pagamento Stripe Connect (split/marketplace)
+router.use('/stripe', stripeRoutes);
 
 // Rotas de pagamento de estacionamento (protegidas para donos de estacionamento)
 router.use('/estacionamento-payments', estacionamentoPaymentRoutes);
