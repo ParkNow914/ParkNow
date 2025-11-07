@@ -247,12 +247,30 @@ Consulte o arquivo `.env.example` para ver a lista completa de variáveis necess
 *   **Upload:** Multer (`multer`)
 *   **Outros:** `dotenv`, `crypto`, `uuid`
 
+## Documentação do Sistema de Pagamentos
+
+Para uma análise completa do sistema de pagamentos de reservas, consulte:
+
+*   **[📄 Guia Rápido de Pagamentos](docs/GUIA_RAPIDO_PAGAMENTOS.md)** - Referência rápida para desenvolvedores
+*   **[📊 Análise Completa do Sistema](docs/PAYMENT_SYSTEM_ANALYSIS.md)** - Documentação detalhada da arquitetura
+*   **[🔄 Diagramas de Fluxo](docs/PAYMENT_FLOW_DIAGRAM.md)** - Fluxos completos de pagamento PIX, cartão e dinheiro
+
+### Características do Sistema de Pagamento:
+
+✅ **PIX**: QR Code real com biblioteca oficial (pix-payload)  
+✅ **Confirmação Manual**: Sistema de emails com tokens seguros  
+✅ **Expiração Automática**: Cancelamento após 30 minutos  
+✅ **Notificações em Tempo Real**: Socket.IO + Email  
+✅ **Segurança**: Ocultação de dados sensíveis, transações ACID, logs de auditoria  
+✅ **Suporte a Múltiplos Métodos**: PIX, Cartão (preparado), Dinheiro  
+
 ## TODO / Próximos Passos (Pós-Implementação)
 
 *   **Configuração de Ambiente:** Definir corretamente TODAS as variáveis no `.env` (DB, JWT, Email, Redis).
 *   **Testes Automatizados:** Implementar testes unitários, de integração e E2E.
 *   **Refinamento da UI/UX:** Melhorar a interface do admin e o feedback visual geral.
-*   **Pagamento:** Integrar gateway de pagamento, se necessário.
+*   **Webhook Automático PIX:** Implementar confirmação automática sem necessidade de ação manual.
+*   **Gateway de Pagamento:** Integrar Stripe/Pagar.me para pagamentos com cartão.
 *   **HTTPS:** Configurar proxy reverso (Nginx) e SSL (Let's Encrypt) para produção.
 *   **Monitoramento:** Configurar monitoramento de performance e erros em produção.
 *   **Documentação da API:** Gerar documentação formal (Swagger/OpenAPI).
