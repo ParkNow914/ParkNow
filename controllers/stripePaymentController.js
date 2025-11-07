@@ -115,6 +115,7 @@ class StripePaymentController {
             // 5. Registrar pagamento no banco
             const metodoPagamento = metodo_pagamento === 'pix' ? PAYMENT_METHODS.PIX : 
                                    metodo_pagamento === 'card' ? PAYMENT_METHODS.CARTAO_CREDITO :
+                                   metodo_pagamento === 'boleto' ? PAYMENT_METHODS.BOLETO :
                                    PAYMENT_METHODS.DINHEIRO;
 
             const pagamentoId = await pagamentoModel.criarPagamento({
@@ -370,6 +371,11 @@ class StripePaymentController {
 
             // Verificar permissão
             const reserva = await reservaModel.findReservaById(pagamento.reserva_id);
+            
+            if (!reserva) {
+                throw new NotFoundError('Reserva não encontrada');
+            }
+            
             if (reserva.usuario_id !== userId) {
                 throw new ForbiddenError('Sem permissão');
             }
@@ -418,7 +424,16 @@ class StripePaymentController {
 
             // Verificar permissão (deve ser admin do estacionamento)
             const reserva = await reservaModel.findReservaById(pagamento.reserva_id);
+            
+            if (!reserva) {
+                throw new NotFoundError('Reserva não encontrada');
+            }
+            
             const estacionamento = await estacionamentoModel.findById(reserva.estacionamento_id);
+            
+            if (!estacionamento) {
+                throw new NotFoundError('Estacionamento não encontrado');
+            }
             
             if (estacionamento.usuario_id !== userId) {
                 throw new ForbiddenError('Sem permissão para reembolsar este pagamento');
