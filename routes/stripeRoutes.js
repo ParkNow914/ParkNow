@@ -1,9 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const stripePaymentController = require('../controllers/stripePaymentController');
-const { authenticate } = require('../middleware/auth');
-const { body } = require('express-validator');
-const { validate } = require('../middleware/validator');
+const { protectUser } = require('../middleware/authMiddleware');
+const { body, validationResult } = require('express-validator');
+
+// Middleware to handle validation results
+const handleValidation = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            success: false,
+            errors: errors.array()
+        });
+    }
+    next();
+};
 
 /**
  * @route POST /api/stripe/reservas
@@ -12,7 +23,7 @@ const { validate } = require('../middleware/validator');
  */
 router.post(
     '/reservas',
-    authenticate,
+    protectUser,
     [
         body('estacionamento_id').isInt().withMessage('ID do estacionamento é obrigatório'),
         body('data_entrada').isISO8601().withMessage('Data de entrada inválida'),
@@ -24,7 +35,7 @@ router.post(
         body('vaga_id').optional().isInt(),
         body('observacoes').optional().isString()
     ],
-    validate,
+    handleValidation,
     stripePaymentController.criarReservaComStripe
 );
 
@@ -35,7 +46,7 @@ router.post(
  */
 router.post(
     '/estacionamentos/:estacionamento_id/conectar',
-    authenticate,
+    protectUser,
     stripePaymentController.conectarEstacionamento
 );
 
@@ -46,7 +57,7 @@ router.post(
  */
 router.get(
     '/estacionamentos/:estacionamento_id/status',
-    authenticate,
+    protectUser,
     stripePaymentController.verificarStatusConexao
 );
 
@@ -69,7 +80,7 @@ router.post(
  */
 router.post(
     '/pagamentos/:pagamento_id/cancelar',
-    authenticate,
+    protectUser,
     stripePaymentController.cancelarPagamento
 );
 
@@ -80,11 +91,11 @@ router.post(
  */
 router.post(
     '/pagamentos/:pagamento_id/reembolsar',
-    authenticate,
+    protectUser,
     [
         body('amount').optional().isFloat({ min: 0.01 }).withMessage('Valor inválido')
     ],
-    validate,
+    handleValidation,
     stripePaymentController.reembolsarPagamento
 );
 
