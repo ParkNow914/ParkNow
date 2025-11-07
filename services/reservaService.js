@@ -410,6 +410,95 @@ class ReservaService {
       client.release();
     }
   }
+
+  /**
+   * Cria uma reserva simples sem processar pagamento
+   * (Para uso com gateways externos como Stripe)
+   * @param {Object} reservaData - Dados da reserva
+   * @returns {Promise<Object>} Reserva criada
+   */
+  async criarReserva(reservaData) {
+    const client = await db.getClient();
+
+    try {
+      await client.query('BEGIN');
+
+      logger.info('Criando reserva simples (sem processamento de pagamento interno):', reservaData);
+
+      // Buscar veículo padrão se placa não fornecida
+      let placa_veiculo = reservaData.placa_veiculo;
+      if (!placa_veiculo && reservaData.usuario_id) {
+        const veiculoPadrao = await findDefaultVehicleByUserId(reservaData.usuario_id, client);
+        if (veiculoPadrao) {
+          placa_veiculo = veiculoPadrao.placa;
+        }
+      }
+
+      // Criar reserva
+      const insertQuery = `
+        INSERT INTO reservas (
+          usuario_id,
+          estacionamento_id,
+          vaga_id,
+          data_entrada_prevista,
+          data_saida_prevista,
+          valor_total,
+          placa_veiculo,
+          observacoes,
+          status,
+          status_pagamento,
+          created_at,
+          updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+        RETURNING *
+      `;
+
+      const values = [
+        reservaData.usuario_id,
+        reservaData.estacionamento_id,
+        reservaData.vaga_id || null,
+        reservaData.data_entrada_prevista || reservaData.data_entrada,
+        reservaData.data_saida_prevista || reservaData.data_saida,
+        reservaData.valor_total || reservaData.valor,
+        placa_veiculo,
+        reservaData.observacoes || null,
+        reservaData.status || 'pendente',
+        reservaData.status_pagamento || 'pendente',
+      ];
+
+      const result = await client.query(insertQuery, values);
+      const reserva = result.rows[0];
+
+      // Atualizar vaga se fornecida
+      if (reservaData.vaga_id) {
+        await client.query(
+          `UPDATE vagas SET status = 'reservada', updated_at = NOW() WHERE id = $1`,
+          [reservaData.vaga_id]
+        );
+      }
+
+      await client.query('COMMIT');
+
+      logger.info('Reserva criada com sucesso:', { id: reserva.id });
+
+      return reserva;
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Erro ao criar reserva:', error);
+
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      throw new AppError(
+        `Falha ao criar reserva: ${error.message || 'Erro desconhecido'}`,
+        500
+      );
+    } finally {
+      client.release();
+    }
+  }
 }
 
 module.exports = new ReservaService();
