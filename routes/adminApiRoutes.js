@@ -3,6 +3,7 @@
 
 const express = require('express');
 const adminApiController = require('../controllers/adminApiController');
+const adminSplitsController = require('../controllers/adminSplitsController');
 const { protectAdmin } = require('../middleware/adminAuthMiddleware'); // Middleware de autenticação admin
 const { param, body, query } = require('express-validator'); // Funções de validação
 const { handleValidationErrors } = require('../middleware/validationMiddleware'); // Handler de erros de validação
@@ -118,6 +119,23 @@ router.patch('/users/:userId/status', [
     userIdParamValidation,
     body('status', "Status deve ser 'ativo' ou 'inativo'").isIn(['ativo', 'inativo'])
 ], handleValidationErrors, adminApiController.setUserStatus);
+
+// --- Rotas de Splits e Relatórios ---
+// GET /api/admin/splits/estatisticas - Estatísticas gerais de splits
+router.get('/splits/estatisticas', adminSplitsController.obterEstatisticas);
+
+// GET /api/admin/splits/transacoes - Lista transações com splits
+router.get('/splits/transacoes', adminSplitsController.listarTransacoes);
+
+// GET /api/admin/splits/transacoes/:id - Detalhes de uma transação
+router.get('/splits/transacoes/:id', [
+    idParamValidation('id', 'ID da transação inválido')
+], handleValidationErrors, adminSplitsController.obterDetalheTransacao);
+
+// GET /api/admin/splits/exportar - Exportar relatório CSV
+router.get('/splits/exportar', adminSplitsController.exportarRelatorio);
+
+module.exports = router;
 
 // Exporta o roteador configurado
 module.exports = router;

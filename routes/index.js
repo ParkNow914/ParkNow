@@ -20,11 +20,10 @@ const estacionamentoPaymentRoutes = require('./estacionamentoPaymentRoutes'); //
 const estacionamentoPaymentConfigRoutes = require('./estacionamentoPaymentConfigRoutes'); // Rotas de configuração de pagamento
 const reservaPagamentoRoutes = require('./reservaPagamentoRoutes'); // Rotas de reserva com pagamento
 const pagamentoRoutes = require('./pagamentoRoutes'); // Rotas de pagamento PIX
-const pixConfirmationRoutes = require('./pixConfirmationRoutes'); // Rotas de confirmação de PIX
+// Rotas de confirmação manual de PIX removidas - usar apenas ASAAS
 const cnpjRoutes = require('./cnpjRoutes'); // Rotas de validação de CNPJ
 const emailValidationRoutes = require('./emailValidationRoutes'); // Rotas de validação de e-mail
 const horarioFuncionamentoRoutes = require('./horarioFuncionamentoRoutes'); // Rotas de horários de funcionamento
-const stripeRoutes = require('./stripeRoutes'); // Rotas de pagamento Stripe Connect
 
 // Importa as rotas da API v2
 const apiV2Routes = require('./v2'); // Rotas da API v2
@@ -67,9 +66,6 @@ router.use('/timezone', timezoneRoutes);
 // Rotas de pagamento (públicas e protegidas)
 router.use('/payments', paymentRoutes);
 
-// Rotas de pagamento Stripe Connect (split/marketplace)
-router.use('/stripe', stripeRoutes);
-
 // Rotas de pagamento de estacionamento (protegidas para donos de estacionamento)
 router.use('/estacionamento-payments', estacionamentoPaymentRoutes);
 
@@ -77,12 +73,10 @@ router.use('/estacionamento-payments', estacionamentoPaymentRoutes);
 router.use('/estacionamento-payment-config', estacionamentoPaymentConfigRoutes);
 
 // Rotas de reserva com pagamento
-// Monta duas vezes para suportar diferentes prefixos
 router.use('/reservas', reservaPagamentoRoutes);  // Para /api/reservas/com-pagamento
-router.use('/', reservaPagamentoRoutes);           // Para /api/pagamentos/:id/status e /api/webhooks/mercado-pago
+router.use('/', reservaPagamentoRoutes);           // Para /api/pagamentos/:id/status e /api/webhooks/asaas
 
-// Rotas de confirmação de PIX (para estacionamentos confirmarem recebimento)
-router.use('/', pixConfirmationRoutes);
+// Rotas de confirmação manual de PIX removidas - usar apenas ASAAS
 
 // Rotas de validação de CNPJ
 router.use('/cnpj', cnpjRoutes);

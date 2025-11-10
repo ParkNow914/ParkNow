@@ -413,7 +413,7 @@ class ReservaService {
 
   /**
    * Cria uma reserva simples sem processar pagamento
-   * (Para uso com gateways externos como Stripe)
+   * (Para uso com gateways externos como ASAAS)
    * @param {Object} reservaData - Dados da reserva
    * @returns {Promise<Object>} Reserva criada
    */
@@ -440,11 +440,11 @@ class ReservaService {
           usuario_id,
           estacionamento_id,
           vaga_id,
+          data_reserva,
           data_entrada_prevista,
           data_saida_prevista,
           valor_total,
           placa_veiculo,
-          observacoes,
           status,
           status_pagamento,
           created_at,
@@ -457,11 +457,11 @@ class ReservaService {
         reservaData.usuario_id,
         reservaData.estacionamento_id,
         reservaData.vaga_id || null,
+        new Date(), // data_reserva = agora
         reservaData.data_entrada_prevista || reservaData.data_entrada,
         reservaData.data_saida_prevista || reservaData.data_saida,
         reservaData.valor_total || reservaData.valor,
         placa_veiculo,
-        reservaData.observacoes || null,
         reservaData.status || 'pendente',
         reservaData.status_pagamento || 'pendente',
       ];
@@ -472,7 +472,7 @@ class ReservaService {
       // Atualizar vaga se fornecida
       if (reservaData.vaga_id) {
         await client.query(
-          `UPDATE vagas SET status = 'reservada', updated_at = NOW() WHERE id = $1`,
+          `UPDATE vagas SET status = 'reservada' WHERE id = $1`,
           [reservaData.vaga_id]
         );
       }

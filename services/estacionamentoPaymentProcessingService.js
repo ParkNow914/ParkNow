@@ -7,7 +7,7 @@ const reservaModel = require('../models/reservaModel');
 const pagamentoModel = require('../models/pagamentoModel');
 const notificationService = require('./notificationService');
 const { formatCurrency } = require('../utils/formatters');
-const { payload: generatePixPayload } = require('pix-payload');
+// PIX manual removido - usar apenas ASAAS
 const QRCode = require('qrcode');
 
 class EstacionamentoPaymentProcessingService {
@@ -221,7 +221,7 @@ class EstacionamentoPaymentProcessingService {
         this.validarDadosCartao(dadosPagamento);
 
         try {
-            // Aqui você integraria com um gateway de pagamento real (ex: Stripe, Pagar.me, etc)
+            // Aqui você integraria com um gateway de pagamento real (ex: ASAAS, Pagar.me, etc)
             // Este é um exemplo simplificado
             const transacaoId = `CARD_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
@@ -359,74 +359,16 @@ class EstacionamentoPaymentProcessingService {
     }
 
     /**
-     * Gera dados de QR Code PIX real usando a biblioteca pix-payload
+     * Gera dados de QR Code PIX via ASAAS (não mais manual)
      * @private
+     * @deprecated Usar ASAAS para gerar PIX automaticamente
      */
     async gerarQrCodePix({ chavePix, nomeTitular, valor, descricao, cidade, txid }) {
-        try {
-            // Normaliza o nome do titular (remove acentos, converte para maiúsculas, limita a 25 caracteres)
-            const nomeTitularNormalizado = nomeTitular
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-                .toUpperCase()
-                .substring(0, 25); // Limite do padrão BR Code
+        // Função deprecada - usar ASAAS para pagamentos
+        throw new AppError('PIX manual não é mais suportado. Use ASAAS para pagamentos automáticos.', 400);
+    }
 
-            // Normaliza a cidade (remove acentos, converte para maiúsculas, limita a 15 caracteres)
-            const cidadeNormalizada = (cidade || 'SAO PAULO')
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .toUpperCase()
-                .substring(0, 15);
-
-            // Cria o payload PIX real seguindo o padrão BR Code (BR.GOV.BCB.PIX)
-            const pixPayloadString = generatePixPayload({
-                key: chavePix,                    // Chave PIX (CNPJ, CPF, email, telefone ou chave aleatória)
-                name: nomeTitularNormalizado,     // Nome do beneficiário (máximo 25 caracteres)
-                city: cidadeNormalizada,          // Cidade do beneficiário (máximo 15 caracteres)
-                amount: valor,                    // Valor da transação
-                transactionId: txid               // Identificador único da transação
-            });
-
-            // Gera o QR Code em formato base64 (data URI)
-            const qrCodeBase64 = await QRCode.toDataURL(pixPayloadString, {
-                errorCorrectionLevel: 'M',
-                type: 'image/png',
-                width: 300,
-                margin: 1,
-                color: {
-                    dark: '#000000',
-                    light: '#FFFFFF'
-                }
-            });
-
-            logger.info('QR Code PIX gerado com sucesso', {
-                chavePix: chavePix.substring(0, 4) + '***', // Log parcial por segurança
-                nomeTitular: nomeTitularNormalizado,
-                valor,
-                txid,
-                payloadLength: pixPayloadString.length
-            });
-
-            return {
-                qr_code: qrCodeBase64,           // QR Code em base64 (data:image/png;base64,...)
-                qr_code_text: pixPayloadString,  // Código PIX copia e cola (payload EMV)
-                chave_pix: chavePix,
-                nome_titular: nomeTitularNormalizado,
-                valor: valor,
-                descricao: descricao,
-                txid: txid,
-                expira_em: new Date(Date.now() + (30 * 60 * 1000)).toISOString()
-            };
-        } catch (error) {
-            logger.error('Erro ao gerar QR Code PIX:', {
-                error: error.message,
-                stack: error.stack,
-                chavePix: chavePix ? chavePix.substring(0, 4) + '***' : 'não fornecida'
-            });
-
-            throw new AppError('Erro ao gerar QR Code PIX: ' + error.message, 500);
-        }
-    }    /**
+    /**
      * Valida os dados do cartão de crédito
      * @private
      */

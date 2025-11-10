@@ -153,7 +153,7 @@ class PaymentService {
                 dataPagamento: pix.horario ? new Date(pix.horario) : new Date()
             };
         } else if (paymentData.data && paymentData.data.id) {
-            // Formato Mercado Pago
+            // Formato ASAAS ou outro gateway
             return {
                 txid: paymentData.data.id,
                 status: paymentData.data.status.toUpperCase(),
@@ -274,8 +274,7 @@ class PaymentService {
                 }
             }, client);
             
-            // Aqui você implementaria a chamada para a API do PIX (ex: Gerencianet, Mercado Pago, etc.)
-            // Por enquanto, retornamos um objeto simulado
+            // Implementar chamada para API do ASAAS ou outro gateway PIX
             const qrCodeData = this.gerarQrCodeSimulado(txid, valor, descricao);
             
             // Atualiza o pagamento com os dados do QR Code

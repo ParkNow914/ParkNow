@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "tunnel": "node start-tunnel.js",
     "test": "mocha tests/**/*.test.js --timeout 10000 --exit",
     "test:watch": "mocha tests/**/*.test.js --watch --timeout 10000 --exit",
     "test:coverage": "nyc --reporter=text mocha tests/**/*.test.js --timeout 10000 --exit"
@@ -39,7 +40,6 @@
     "nodemailer": "^7.0.3",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
-    "pix-payload": "^1.0.4",
     "pug": "^3.0.3",
     "qrcode": "^1.5.4",
     "rate-limiter-flexible": "^7.1.1",
@@ -47,7 +47,6 @@
     "sequelize-cli": "^6.6.3",
     "sharp": "^0.34.2",
     "socket.io": "^4.8.1",
-    "stripe": "^19.3.0",
     "tldjs": "^2.3.1",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
@@ -58,6 +57,7 @@
     "chai": "^5.2.0",
     "chai-http": "^5.1.2",
     "jest": "^30.0.2",
+    "localtunnel": "^2.0.2",
     "mocha": "^11.7.0",
     "nock": "^14.0.5",
     "nodemon": "^3.1.10",
