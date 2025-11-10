@@ -4476,6 +4476,33 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
+        // Verificar se voltou do checkout Asaas
+        const urlParams = new URLSearchParams(window.location.search);
+        const reservaId = urlParams.get('reserva');
+        const status = urlParams.get('status');
+
+        if (reservaId && status) {
+            // Limpar os parâmetros da URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            if (status === 'sucesso') {
+                showAlertModal(null, 
+                    '✅ Pagamento realizado com sucesso! Sua reserva foi confirmada.', 
+                    'success'
+                );
+                
+                // Ir para seção de reservas
+                setTimeout(() => {
+                    document.getElementById('reservasLink')?.click();
+                }, 2000);
+            } else if (status === 'cancelado') {
+                showAlertModal(null, 
+                    '⚠️ Pagamento cancelado. Você pode tentar novamente.', 
+                    'warning'
+                );
+            }
+        }
+
         // Botão de localização no mapa
         const localizarMeBtn = document.getElementById('localizarMeBtn');
         if (localizarMeBtn) {
@@ -5547,6 +5574,39 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
 
     // Função para exibir o modal de pagamento PIX
     function showPixPaymentModal(pixData) {
+        // Criar breakdown do split se disponível
+        let splitInfo = '';
+        if (pixData.split && pixData.split.valor_total) {
+            const valorTotal = parseFloat(pixData.split.valor_total);
+            const comissao = parseFloat(pixData.split.comissao_plataforma || 0);
+            const valorEstacionamento = parseFloat(pixData.split.valor_estacionamento || 0);
+            const percentual = parseFloat(pixData.split.percentual || 15);
+
+            splitInfo = `
+                <!-- Informações de Split -->
+                <div class="card border-info mb-3" style="font-size: 0.9rem;">
+                    <div class="card-header bg-info text-white py-2">
+                        <i class="fas fa-info-circle me-1"></i> Detalhamento do Pagamento
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span><strong>Valor Total:</strong></span>
+                            <span class="text-success"><strong>R$ ${valorTotal.toFixed(2)}</strong></span>
+                        </div>
+                        <hr class="my-1">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted small">Taxa ParkNow (${percentual}%):</span>
+                            <span class="text-muted small">R$ ${comissao.toFixed(2)}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted small">Estacionamento:</span>
+                            <span class="text-muted small">R$ ${valorEstacionamento.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         // Criar o conteúdo do modal de pagamento com design responsivo
         const modalContent = `
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 500px;">
@@ -5570,6 +5630,8 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
                                      class="img-fluid"
                                      style="max-width: min(250px, 80vw); height: auto; border: 2px solid #004080; border-radius: 8px; padding: 10px; background: white;">
                             </div>
+
+                            ${splitInfo}
 
                             <!-- Código PIX -->
                             <div class="mb-3">
@@ -5757,7 +5819,7 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
 
             console.log('Enviando dados para a API:', reservaData);
 
-            // Usar a rota de reserva com pagamento
+            // Enviar requisição para criar reserva com pagamento
             const result = await fetchWithAuth('/api/reservas/com-pagamento', {
                 method: 'POST',
                 headers: {
@@ -5769,56 +5831,40 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
             // Fechar o modal de agendamento
             $('#agendamentoModal').modal('hide');
 
-            // Extrair ID da reserva e garantir que são números inteiros válidos
-            const reservaId = parseInt(result.data?.reserva?.id || result.data?.id) || 0;
-            const pagamentoId = parseInt(result.data?.pagamento?.id || result.data?.id_pagamento) || 0;
+            // Extrair dados da resposta
+            const reservaId = parseInt(result.reserva?.id || result.data?.reserva?.id) || 0;
+            const pagamentoId = parseInt(result.pagamento?.id || result.data?.pagamento?.id) || 0;
+            const qrCode = result.qr_code || result.data?.qr_code;
+            const pixCode = result.qr_code_text || result.data?.qr_code_text;
+            const checkoutUrl = result.pagamento?.checkout_url || result.checkout_url;
 
-            // Sempre mostrar o modal de pagamento PIX
-            // Gerar um QR code placeholder simples se não houver um da API
-            // Usar criação segura de SVG sem interpolação de strings
-            const svgNamespace = "http://www.w3.org/2000/svg";
-            const svg = document.createElementNS(svgNamespace, "svg");
-            svg.setAttribute("width", "250");
-            svg.setAttribute("height", "250");
-            svg.setAttribute("viewBox", "0 0 250 250");
+            // Se houver checkout_url, redirecionar para interface do Asaas
+            if (checkoutUrl) {
+                console.log('🔗 Redirecionando para Checkout Asaas:', checkoutUrl);
+                
+                showAlertModal('agendamentoModal', 
+                    '✅ Reserva criada com sucesso! Redirecionando para pagamento...', 
+                    'success'
+                );
+                
+                // Aguarda 1.5 segundo e redireciona
+                setTimeout(() => {
+                    window.location.href = checkoutUrl;
+                }, 1500);
+                
+                return;
+            }
 
-            const rect = document.createElementNS(svgNamespace, "rect");
-            rect.setAttribute("width", "250");
-            rect.setAttribute("height", "250");
-            rect.setAttribute("fill", "#f0f0f0");
-            svg.appendChild(rect);
-
-            const text1 = document.createElementNS(svgNamespace, "text");
-            text1.setAttribute("x", "125");
-            text1.setAttribute("y", "125");
-            text1.setAttribute("font-size", "16");
-            text1.setAttribute("text-anchor", "middle");
-            text1.setAttribute("fill", "#333");
-            text1.textContent = "QR Code PIX";
-            svg.appendChild(text1);
-
-            const text2 = document.createElementNS(svgNamespace, "text");
-            text2.setAttribute("x", "125");
-            text2.setAttribute("y", "145");
-            text2.setAttribute("font-size", "12");
-            text2.setAttribute("text-anchor", "middle");
-            text2.setAttribute("fill", "#666");
-            // reservaId is already validated as an integer on line 5700
-            text2.textContent = "Reserva #" + String(reservaId);
-            svg.appendChild(text2);
-
-            const serializer = new XMLSerializer();
-            const svgString = serializer.serializeToString(svg);
-            const qrCodePlaceholder = 'data:image/svg+xml;base64,' + btoa(svgString);
-
-            // reservaId is already validated as an integer, safe to use in string concatenation
-            const pixCodeText = 'PIX_RESERVA_' + String(reservaId) + '_' + String(Date.now());
+            // Caso contrário, usar o modal antigo (fallback para QR Code direto)
+            // Extrair informações de split (se disponíveis)
+            const split = result.split || result.data?.split || null;
 
             const pixData = {
-                qr_code: result.data?.pix_qr_code || qrCodePlaceholder,
-                qr_code_text: result.data?.pix_qr_code_text || pixCodeText,
+                qr_code: qrCode,
+                qr_code_text: pixCode,
                 payment_id: pagamentoId,
-                reserva_id: reservaId
+                reserva_id: reservaId,
+                split: split
             };
 
             showPixPaymentModal(pixData);

@@ -298,8 +298,29 @@ const resetPassword = async (req, res, next) => {
 
 // --- Admin ---
 const registerAdmin = async (req, res, next) => {
-    // Validação feita na rota
-    const { nome, email, senha, nomeEstacionamento, enderecoEstacionamento, latitude, longitude, numeroVagas, precoHora, precoDia, descricao } = req.body;
+    // Validação feita na rota - CAPTURA TODOS OS CAMPOS
+    const { 
+        nome, 
+        email, 
+        senha, 
+        cnpj,
+        telefone,
+        nomeEstacionamento, 
+        enderecoEstacionamento, 
+        cepEstacionamento,
+        logradouroEstacionamento,
+        numeroEstacionamento,
+        complementoEstacionamento,
+        bairroEstacionamento,
+        cidadeEstacionamento,
+        ufEstacionamento,
+        latitude, 
+        longitude, 
+        numeroVagas, 
+        precoHora, 
+        precoDia, 
+        descricao 
+    } = req.body;
     const fotoFile = req.file; // Do Multer (pode ser undefined)
     const ipAddress = req.ip || req.connection?.remoteAddress; // Pega IP
 
@@ -324,11 +345,38 @@ const registerAdmin = async (req, res, next) => {
         // Cria hash da senha
         const senhaHash = await passwordUtils.hashPassword(senha);
 
-        // Cria o admin (usando a pool normal, fora da transação principal ainda)
-        const adminId = await adminModel.createAdmin({ nome, email, senhaHash });
+        // Cria o admin COM telefone e CNPJ
+        const adminId = await adminModel.createAdmin({ 
+            nome, 
+            email, 
+            senhaHash,
+            telefone: telefone || null,
+            cnpj: cnpj || null
+        });
 
-        // Cria o estacionamento associado (usando a pool normal)
-        const estData = { nome: nomeEstacionamento, latitude, longitude, endereco: enderecoEstacionamento, foto: fotoFile ? fotoFile.filename : null, vagas: parseInt(numeroVagas), preco_hora: precoHora, preco_dia: precoDia, descricao, admin_id: adminId };
+        // Cria o estacionamento associado COM TODOS OS CAMPOS DE ENDEREÇO
+        const estData = { 
+            nome: nomeEstacionamento, 
+            cnpj: cnpj || null,
+            telefone: telefone || null,
+            email: email,
+            latitude, 
+            longitude, 
+            endereco: enderecoEstacionamento,
+            cep: cepEstacionamento || null,
+            logradouro: logradouroEstacionamento || null,
+            numero: numeroEstacionamento || null,
+            complemento: complementoEstacionamento || null,
+            bairro: bairroEstacionamento || null,
+            cidade: cidadeEstacionamento || null,
+            uf: ufEstacionamento || null,
+            foto: fotoFile ? fotoFile.filename : null, 
+            vagas: parseInt(numeroVagas), 
+            preco_hora: precoHora, 
+            preco_dia: precoDia, 
+            descricao, 
+            admin_id: adminId 
+        };
         const estId = await estacionamentoModel.createEstacionamento(estData);
 
         // Cria as vagas iniciais DENTRO da transação, passando a conexão

@@ -257,17 +257,6 @@ module.exports = (sequelize) => {
           onUpdate: 'CASCADE'
         });
       }
-    
-      // Verificar se o modelo MercadoPagoPayment está disponível
-      if (models.MercadoPagoPayment) {
-        // Um estacionamento tem muitos pagamentos
-        Estacionamento.hasMany(models.MercadoPagoPayment, {
-          foreignKey: 'estacionamento_id',
-          as: 'pagamentos',
-          onDelete: 'SET NULL',
-          onUpdate: 'CASCADE'
-        });
-      }
       
       // Verificar se o modelo HorarioFuncionamento está disponível
       if (models.HorarioFuncionamento) {

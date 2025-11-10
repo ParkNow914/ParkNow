@@ -30,8 +30,7 @@ O ParkNow visa oferecer uma experiência fluida tanto para motoristas que procur
     *   Usuários (Listar, Ativar/Desativar).
 *   **Tarefas Agendadas:** Expiração automática de reservas não utilizadas e atualização periódica de tempo estacionado no banco (`node-cron`).
 *   **Sistema de Pagamento Integrado:** 
-    * **PIX Manual:** QR Code gerado com biblioteca oficial (pix-payload) e confirmação manual por email
-    * **Stripe Connect (Marketplace):** Sistema completo de split de pagamento com PIX, cartão e boleto via Stripe
+    * **ASAAS:** Gateway de pagamento 100% automatizado com PIX, cartão e boleto com split automático entre plataforma e estacionamento
 *   **Segurança:** Implementa `helmet`, rate limiting (`express-rate-limit`), validação de entrada (`express-validator`), e proteção CSRF implícita via `sameSite` cookies.
 *   **Logging:** Logs estruturados e persistentes com `Winston`.
 *   **Validação de Chave PIX:** Verificação automática de CNPJ para chaves PIX de estacionamentos.
@@ -59,48 +58,47 @@ SMTP_PORT=587
 SMTP_USER=seu_email@provedor.com
 SMTP_PASS=sua_senha_email
 
-# Configurações do Stripe Connect (Marketplace/Split)
-STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxx
-STRIPE_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxx
-STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
-STRIPE_PLATFORM_FEE_PERCENT=15
+# Configurações do ASAAS (Gateway de Pagamento)
+ASAAS_SANDBOX=true
+ASAAS_SANDBOX_API_KEY=sua_chave_sandbox_asaas
+ASAAS_API_KEY=sua_chave_producao_asaas
+ASAAS_PLATFORM_FEE_PERCENT=15.0
+ASAAS_WEBHOOK_URL=https://seu-dominio.com/api/webhooks/asaas
+ASAAS_PIX_EXPIRATION_MINUTES=30
 ```
 
-### Configuração do Stripe Connect
+### Configuração do ASAAS
 
-Para habilitar pagamentos com split (marketplace), você precisa configurar o Stripe Connect:
+Para habilitar pagamentos com split (marketplace), você precisa configurar o ASAAS:
 
-1. **Criar conta Stripe** (gratuito):
-   - Acesse https://dashboard.stripe.com/register
-   - Use seu email pessoal
-   - Selecione "Brasil" como país
-   - Ative modo "Test" para desenvolvimento
+1. **Criar conta ASAAS** (gratuito para começar):
+   - Acesse https://www.asaas.com/
+   - Cadastre-se e ative sua conta
+   - Ative modo "Sandbox" para desenvolvimento
 
 2. **Obter chaves de API**:
-   - No dashboard: https://dashboard.stripe.com/test/apikeys
-   - Copie a `Secret key` e `Publishable key`
-   - Cole no arquivo `.env`
+   - No painel: https://www.asaas.com/config/api
+   - Copie a chave de API do ambiente Sandbox
+   - Cole no arquivo `.env` como `ASAAS_SANDBOX_API_KEY`
 
 3. **Configurar webhook**:
-   - No dashboard: https://dashboard.stripe.com/test/webhooks
-   - Clique em "Add endpoint"
-   - URL: `https://seu-dominio.com/api/stripe/webhook`
-   - Eventos: Selecione todos de `payment_intent`, `transfer` e `account`
-   - Copie o `Signing secret` e cole em `STRIPE_WEBHOOK_SECRET`
+   - No painel: Configurações > Webhooks
+   - Adicione a URL: `https://seu-dominio.com/api/webhooks/asaas`
+   - Selecione os eventos de pagamento
 
-4. **Executar migração do Stripe**:
+4. **Executar migrações do banco**:
    ```bash
-   psql -U seu_usuario -d parknow_db -f migrations/20251107_183402_add_stripe_connect_fields.sql
+   psql -U seu_usuario -d parknow_db -f migrations/create_tables.sql
    ```
 
-Execute o script de migração para criar as tabelas necessárias:
+Execute os scripts de migração para criar as tabelas necessárias:
 
 ```bash
 # Acesse o container do banco de dados (se estiver usando Docker)
-docker-compose exec db psql -U postgres -d parknow_db -f /docker-entrypoint-initdb.d/migrations/20240620_add_payment_columns_to_reservas.sql
+docker-compose exec db psql -U postgres -d parknow_db -f /docker-entrypoint-initdb.d/migrations/create_tables.sql
 
 # Ou execute diretamente no seu banco de dados local
-psql -U seu_usuario -d parknow_db -f migrations/20240620_add_payment_columns_to_reservas.sql
+psql -U seu_usuario -d parknow_db -f migrations/create_tables.sql
 ```
 
 ### Dados de Teste
@@ -108,13 +106,13 @@ psql -U seu_usuario -d parknow_db -f migrations/20240620_add_payment_columns_to_
 Para popular o banco de dados com dados de teste, execute:
 
 ```bash
-node scripts/seed-payment-data.js
+node scripts/seed-data.js
 ```
 
 Isso criará:
-- Um usuário de teste (email: teste@parknow.com.br, senha: senha123)
-- Um estacionamento de teste com configuração de pagamento PIX
-- 10 vagas de teste
+* Um usuário de teste (email: teste@parknow.com.br, senha: senha123)
+* Um estacionamento de teste com configuração de pagamento PIX
+* 10 vagas de teste
 
 ## Pré-requisitos
 
@@ -202,7 +200,7 @@ Authorization: Bearer SEU_JWT_TOKEN
 
 Configure o webhook para apontar para:
 ```
-https://seu-dominio.com/api/webhooks/mercado-pago
+https://seu-dominio.com/api/webhooks/asaas
 ```
 
 ## Estrutura do Projeto
@@ -259,13 +257,12 @@ Consulte o arquivo `.env.example` para ver a lista completa de variáveis necess
     *   `POST /`: Cria uma nova reserva.
     *   `GET /minhas`: Lista reservas do usuário logado.
     *   `DELETE /:reservaId/cancelar`: Cancela uma reserva ativa.
-*   **Stripe Connect (`/api/stripe`)**: _(Pagamentos com Split/Marketplace)_
-    *   `POST /reservas`: Cria reserva com pagamento via Stripe (PIX, Cartão, Boleto)
-    *   `POST /estacionamentos/:id/conectar`: Conecta estacionamento ao Stripe
-    *   `GET /estacionamentos/:id/status`: Verifica status da conexão Stripe
+*   **Pagamentos ASAAS (`/api/pagamentos`)**: _(Pagamentos com Split/Marketplace)_
+    *   `POST /reservas/com-pagamento`: Cria reserva com pagamento via ASAAS (PIX, Cartão, Boleto)
+    *   `GET /pagamentos/:id/status`: Verifica status de um pagamento
     *   `POST /pagamentos/:id/cancelar`: Cancela um pagamento
     *   `POST /pagamentos/:id/reembolsar`: Processa reembolso
-    *   `POST /webhook`: Recebe notificações do Stripe (público com validação)
+    *   `POST /webhooks/asaas`: Recebe notificações do ASAAS (público com validação)
 *   **Admin API (`/api/admin`)**: _(Requer Auth Admin)_
     *   `GET /vagas`, `GET /vagas/ocupadas`, `GET /vagas/:id/tempo-db`: Visualização de vagas.
     *   `POST /vagas/:numero/entrada`, `POST /vagas/:id/saida`: Gerenciamento manual de vagas.
@@ -278,7 +275,7 @@ Consulte o arquivo `.env.example` para ver a lista completa de variáveis necess
 
 *   **Backend:** Node.js, Express.js
 *   **Banco de Dados:** PostgreSQL (`pg`)
-*   **Pagamentos:** Stripe Connect (marketplace/split), pix-payload (QR Code PIX manual)
+*   **Pagamentos:** ASAAS (100% automatizado com split de pagamento)
 *   **Autenticação:** JWT (`jsonwebtoken`), Cookies (`cookie-parser`), Argon2 (`argon2`), Bcrypt (`bcrypt` para hash de refresh token)
 *   **Validação:** `express-validator`
 *   **Segurança:** `helmet`, `express-rate-limit`, `cors`
@@ -297,24 +294,27 @@ Para uma análise completa do sistema de pagamentos de reservas, consulte:
 
 *   **[📄 Guia Rápido de Pagamentos](docs/GUIA_RAPIDO_PAGAMENTOS.md)** - Referência rápida para desenvolvedores
 *   **[📊 Análise Completa do Sistema](docs/PAYMENT_SYSTEM_ANALYSIS.md)** - Documentação detalhada da arquitetura
-*   **[🔄 Diagramas de Fluxo](docs/PAYMENT_FLOW_DIAGRAM.md)** - Fluxos completos de pagamento PIX, cartão e dinheiro
+*   **[🔄 Diagramas de Fluxo](docs/PAYMENT_FLOW_DIAGRAM.md)** - Fluxos completos de pagamento
 
-### Características do Sistema de Pagamento:
+### Características do Sistema de Pagamento ASAAS:
 
-✅ **PIX**: QR Code real com biblioteca oficial (pix-payload)  
-✅ **Confirmação Manual**: Sistema de emails com tokens seguros  
-✅ **Expiração Automática**: Cancelamento após 30 minutos  
-✅ **Notificações em Tempo Real**: Socket.IO + Email  
-✅ **Segurança**: Ocultação de dados sensíveis, transações ACID, logs de auditoria  
-✅ **Suporte a Múltiplos Métodos**: PIX, Cartão (preparado), Dinheiro  
+✅ **100% Automatizado**: Todas as transações processadas pelo gateway ASAAS  
+✅ **PIX Instantâneo**: Pagamentos PIX confirmados automaticamente  
+✅ **Cartão de Crédito/Débito**: Processamento seguro via ASAAS  
+✅ **Split Automático**: Divisão de valores entre plataforma (15%) e estacionamento (85%)  
+✅ **Webhooks**: Notificações em tempo real de mudanças de status  
+✅ **Segurança**: Transações ACID, criptografia, logs de auditoria  
+
+### Tipos de Usuário:
+
+✅ **Donos de Estacionamento**: Cadastram-se como **ADMINS** e gerenciam seus estacionamentos  
+✅ **Motoristas**: Cadastram-se como **USUÁRIOS** e fazem reservas com pagamento automático  
 
 ## TODO / Próximos Passos (Pós-Implementação)
 
-*   **Configuração de Ambiente:** Definir corretamente TODAS as variáveis no `.env` (DB, JWT, Email, Redis).
+*   **Configuração de Ambiente:** Definir corretamente TODAS as variáveis no `.env` (DB, JWT, Email, ASAAS).
 *   **Testes Automatizados:** Implementar testes unitários, de integração e E2E.
 *   **Refinamento da UI/UX:** Melhorar a interface do admin e o feedback visual geral.
-*   **Webhook Automático PIX:** Implementar confirmação automática sem necessidade de ação manual.
-*   **Gateway de Pagamento:** Integrar Stripe/Pagar.me para pagamentos com cartão.
 *   **HTTPS:** Configurar proxy reverso (Nginx) e SSL (Let's Encrypt) para produção.
 *   **Monitoramento:** Configurar monitoramento de performance e erros em produção.
 *   **Documentação da API:** Gerar documentação formal (Swagger/OpenAPI).

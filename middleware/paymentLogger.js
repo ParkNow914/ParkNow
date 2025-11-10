@@ -78,7 +78,7 @@ const paymentLogger = (req, res, next) => {
 };
 
 /**
- * Middleware para registrar webhooks do Mercado Pago
+ * Middleware para registrar webhooks de pagamento
  * @param {Object} req - Requisição HTTP
  * @param {Object} res - Resposta HTTP
  * @param {Function} next - Próximo middleware

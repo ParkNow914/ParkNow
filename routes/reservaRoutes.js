@@ -45,4 +45,9 @@ router.put('/:reservaId/estender', [
 // DELETE /api/reservas/historico/limpar - Limpar histórico de reservas
 router.delete('/historico/limpar', reservaController.limparHistorico);
 
+// POST /api/reservas/:reservaId/notificar-pagamento - Notificar visualização do QR Code PIX
+router.post('/:reservaId/notificar-pagamento', [
+    param('reservaId', 'ID da reserva inválido').isInt({ min: 1 }).toInt()
+], handleValidationErrors, reservaController.notificarVisualizacaoPagamento);
+
 module.exports = router;

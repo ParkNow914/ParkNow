@@ -99,17 +99,6 @@ Object.keys(db).forEach(modelName => {
   }
 });
 
-// Associações para pagamentos
-if (db.MercadoPagoPayment && db.Reserva) {
-  // A associação com Reserva está definida no próprio modelo MercadoPagoPayment
-  // Uma reserva pode ter vários pagamentos do Mercado Pago
-  db.Reserva.hasMany(db.MercadoPagoPayment, {
-    foreignKey: 'external_reference',
-    sourceKey: 'id',
-    as: 'pagamentos_mercado_pago'
-  });
-}
-
 // Associações para Logs
 if (db.LogAdmin && db.Admin) {
   // Log de administração pertence a um admin
@@ -294,7 +283,6 @@ if (db.Reserva && db.Estacionamento) {
     });
   }
 
-  // Associação com Pagamentos (MercadoPago) já está definida no modelo Reserva.js
 }
 
 db.sequelize = sequelize;

@@ -17,8 +17,6 @@ const { testConnection, closePool } = require('./utils/dbUtils'); // Utilitário
 const apiRoutes = require('./routes');                 // Main API router (/api/*)
 const approvalRoutes = require('./routes/approvalRoutes'); // Partner approval routes
 const timeRoutes = require('./routes/timeRoutes');     // Time service routes
-const manualPixRoutes = require('./routes/manualPixRoutes'); // Manual PIX payment routes
-const pixConfirmationRoutes = require('./routes/pixConfirmationRoutes'); // PIX confirmation routes
 const errorHandler = require('./middleware/errorMiddleware'); // Global error handler
 
 // Importa tarefas agendadas após a conexão com o banco ser estabelecida
@@ -148,16 +146,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Rotas públicas (não requerem autenticação)
 app.use('/api/public', approvalRoutes); // Rotas de aprovação de parcerias
 
-// Webhook Routes removidos - Integração com gateway de pagamento foi desativada
-
 // Todas as rotas da API (com prefixo /api)
 app.use('/api', apiRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/time', timeRoutes);
-app.use('/api/pix', manualPixRoutes); // Manual PIX payment routes
-app.use('/api/pix-confirmations', pixConfirmationRoutes); // PIX confirmation routes
 
-// Rotas de webhooks (se necessário no futuro)
+// Rotas de webhooks do ASAAS (configuradas no apiRoutes)
 // app.use('/api/webhooks', webhookRoutes);
 
 // Rotas de páginas

@@ -88,9 +88,9 @@ router.post(
 
 /**
  * @swagger
- * /api/webhooks/mercado-pago:
+ * /api/webhooks/asaas:
  *   post:
- *     summary: Webhook para notificações do Mercado Pago
+ *     summary: Webhook para notificações do ASAAS
  *     tags: [Reservas com Pagamento]
  *     description: Endpoint para receber notificações de atualização de pagamento
  *     responses:
@@ -98,7 +98,7 @@ router.post(
  *         description: Webhook processado com sucesso
  */
 router.post(
-  '/webhooks/mercado-pago',
+  '/webhooks/asaas',
   reservaPagamentoController.webhookPagamento
 );
 
