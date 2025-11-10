@@ -50,7 +50,8 @@ const findById = async (id) => {
     const sql = `
         SELECT id, nome, latitude, longitude, endereco, vagas as vagas_total,
                preco_hora, preco_dia, descricao, foto, admin_id,
-               chave_pix, tipo_chave_pix, nome_titular_pix
+               chave_pix, tipo_chave_pix, nome_titular_pix,
+               asaas_wallet_id, asaas_connected_at
         FROM estacionamentos WHERE id = ? LIMIT 1
     `;
     try {
@@ -102,15 +103,21 @@ const createEstacionamento = async (estData) => {
     const {
         nome, latitude, longitude, endereco, foto, vagas,
         preco_hora, preco_dia, descricao, admin_id,
-        chave_pix, tipo_chave_pix, nome_titular_pix
+        chave_pix, tipo_chave_pix, nome_titular_pix,
+        // NOVOS CAMPOS DE ENDEREÇO COMPLETO
+        cnpj, telefone, email,
+        cep, logradouro, numero, complemento, bairro, cidade, uf
     } = estData;
 
     const sql = `
         INSERT INTO estacionamentos (
             nome, latitude, longitude, endereco, foto, vagas,
             preco_hora, preco_dia, descricao, admin_id,
-            chave_pix, tipo_chave_pix, nome_titular_pix, data_cadastro
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            chave_pix, tipo_chave_pix, nome_titular_pix,
+            cnpj, telefone, email,
+            cep, logradouro, numero, complemento, bairro, cidade, uf,
+            data_cadastro
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `;
 
     try {
@@ -134,12 +141,23 @@ const createEstacionamento = async (estData) => {
                 admin_id,
                 chave_pix || null,
                 tipo_chave_pix || null,
-                nome_titular_pix || null
+                nome_titular_pix || null,
+                // NOVOS CAMPOS
+                cnpj || null,
+                telefone || null,
+                email || null,
+                cep || null,
+                logradouro || null,
+                numero || null,
+                complemento || null,
+                bairro || null,
+                cidade || null,
+                uf || null
             ],
             type: QueryTypes.INSERT
         });
 
-        logger.info(`Estacionamento criado ID: ${result[0]} por Admin ID: ${admin_id}`);
+        logger.info(`Estacionamento criado ID: ${result[0]} por Admin ID: ${admin_id} - ${nome} (${cnpj})`);
         cache.del(CACHE_KEY_LIST); // Invalida cache da lista
         return result[0];
     } catch (error) {

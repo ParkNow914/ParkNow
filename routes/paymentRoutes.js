@@ -287,7 +287,7 @@ router.get(
  *         required: true
  *         schema:
  *           type: string
- *           enum: [pix, stripe, pagarme, pagseguro]
+ *           enum: [pix, asaas]
  *         description: Provedor de pagamento
  *     requestBody:
  *       required: true

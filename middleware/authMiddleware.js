@@ -10,7 +10,25 @@ const protectUser = async (req, res, next) => {
         try {
             token = authHeader.split(' ')[1]; const decoded = jwtUtils.verifyAccessToken(token);
             if (!decoded || !decoded.userId || decoded.type !== 'user') { logger.warn(`[Auth User] Acesso negado: Token inválido/tipo incorreto. IP: ${clientIp}`); return next(new AuthenticationError('Token inválido ou não autorizado.')); }
-            req.user = { id: decoded.userId }; logger.debug(`[Auth User] Acesso permitido User ID: ${decoded.userId}. Rota: ${req.originalUrl}`); next();
+            
+            // Buscar dados do usuário do banco para incluir email, CPF e telefone
+            const db = require('../config/database');
+            const userResult = await db.query('SELECT id, nome, email, cpf, telefone FROM usuarios WHERE id = $1', [decoded.userId]);
+            
+            if (!userResult.rows || userResult.rows.length === 0) {
+                logger.warn(`[Auth User] Usuário não encontrado: ${decoded.userId}`);
+                return next(new AuthenticationError('Usuário não encontrado.'));
+            }
+            
+            req.user = {
+                id: userResult.rows[0].id,
+                nome: userResult.rows[0].nome,
+                email: userResult.rows[0].email,
+                cpf: userResult.rows[0].cpf,
+                telefone: userResult.rows[0].telefone
+            };
+            
+            logger.debug(`[Auth User] Acesso permitido User ID: ${decoded.userId}. Rota: ${req.originalUrl}`); next();
         } catch (error) { logger.error('[Auth User] Erro inesperado auth:', error); return next(new AuthenticationError('Erro na autenticação.')); }
     } else { logger.warn(`[Auth User] Acesso negado: Token não fornecido. IP: ${clientIp}`); return next(new AuthenticationError('Token não fornecido.')); }
 };

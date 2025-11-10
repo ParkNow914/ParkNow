@@ -72,25 +72,26 @@ const findAdminById = async (id) => {
  * @returns {Promise<number>} O ID do administrador recém-criado.
  */
 const createAdmin = async (adminData) => {
-    const { nome, email, senha } = adminData;
+    const { nome, email, senhaHash, telefone, cnpj } = adminData;
     
     // Verifica se a senha foi fornecida
-    if (!senha) {
-        throw new Error('Senha não fornecida para criar admin');
+    if (!senhaHash) {
+        throw new Error('Senha hash não fornecida para criar admin');
     }
     
-    // Gera o hash da senha usando bcrypt
-    const senhaHash = await hashPassword(senha);
-    
-    // Insere com status 'ativo' e data_cadastro atual
-    const sql = `INSERT INTO admins (nome, email, senha, status, data_cadastro) VALUES ($1, $2, $3, 'ativo', NOW()) RETURNING id`;
+    // Insere com status 'ativo', telefone e CNPJ
+    const sql = `
+        INSERT INTO admins (nome, email, senha, telefone, cnpj, status, created_at, updated_at) 
+        VALUES ($1, $2, $3, $4, $5, 'ativo', NOW(), NOW()) 
+        RETURNING id
+    `;
     try {
-        const result = await pool.query(sql, [nome, email, senhaHash]);
-        logger.info(`[Auth] Admin criado com ID: ${result.rows[0].id}`);
+        const result = await pool.query(sql, [nome, email, senhaHash, telefone || null, cnpj || null]);
+        logger.info(`[Auth] Admin criado com ID: ${result.rows[0].id}, Telefone: ${telefone}, CNPJ: ${cnpj}`);
         return result.rows[0].id;
     } catch (error) {
         logger.error('[Auth] Erro em createAdmin:', { email, error: error.message, code: error.code });
-        throw error; // Deixa o controller tratar erro de duplicação (ER_DUP_ENTRY)
+        throw error; // Deixa o controller tratar erro de duplicação
     }
 };
 

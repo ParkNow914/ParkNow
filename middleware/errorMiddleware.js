@@ -55,10 +55,10 @@ const errorHandler = (err, req, res, next) => {
         }
     }
 
-    // Tratamento para erros do Mercado Pago
-    if (err.name === 'MercadoPagoError') {
-        // Mapeia códigos de erro comuns do Mercado Pago para mensagens mais amigáveis
-        const mercadoPagoErrors = {
+    // Tratamento para erros de gateway de pagamento
+    if (err.name === 'PaymentGatewayError') {
+        // Mapeia códigos de erro comuns do gateway para mensagens mais amigáveis
+        const gatewayErrors = {
             'invalid_parameter': 'Parâmetro inválido na requisição para o gateway de pagamento.',
             'not_found': 'Recurso não encontrado no gateway de pagamento.',
             'unauthorized': 'Não autorizado a acessar o gateway de pagamento.',
@@ -68,11 +68,11 @@ const errorHandler = (err, req, res, next) => {
             'internal_server_error': 'Erro interno no gateway de pagamento.'
         };
         
-        message = mercadoPagoErrors[err.code] || message;
-        errorCode = `MP_${err.code || 'UNKNOWN_ERROR'}`;
-        errorDetails.mp_error = err.message;
-        errorDetails.mp_status = err.status;
-        errorDetails.mp_cause = err.cause;
+        message = gatewayErrors[err.code] || message;
+        errorCode = `GATEWAY_${err.code || 'UNKNOWN_ERROR'}`;
+        errorDetails.gateway_error = err.message;
+        errorDetails.gateway_status = err.status;
+        errorDetails.gateway_cause = err.cause;
     }
 
     // Log detalhado do erro usando Winston

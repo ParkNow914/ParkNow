@@ -491,16 +491,6 @@ module.exports = (sequelize) => {
           onUpdate: 'CASCADE'
         });
       }
-
-      // Associação com Pagamentos Mercado Pago
-      if (models.MercadoPagoPayment) {
-        Reserva.hasMany(models.MercadoPagoPayment, {
-          foreignKey: 'reserva_id',
-          as: 'pagamentos',
-          onDelete: 'SET NULL',
-          onUpdate: 'CASCADE'
-        });
-      }
     } catch (error) {
       console.error('Erro ao configurar associações do modelo Reserva:', error);
       throw error;
@@ -660,7 +650,7 @@ module.exports = (sequelize) => {
       allowNull: true
     },
     gateway_pagamento: {
-      type: DataTypes.ENUM(['mercadopago', 'stripe', 'pix', 'outro']),
+      type: DataTypes.ENUM(['asaas', 'pix', 'outro']),
       allowNull: true
     },
     metodo_pagamento: {

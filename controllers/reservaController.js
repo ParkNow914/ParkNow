@@ -3,6 +3,7 @@ const reservaModel = require('../models/reservaModel');
 const vagaModel = require('../models/vagaModel');
 const userModel = require('../models/userModel');
 const pagamentoModel = require('../models/pagamentoModel');
+const asaasMarketplace = require('../services/asaasMarketplaceService');
 const logger = require('../utils/logger');
 const pool = require('../models/db');
 const { AppError, NotFoundError, BadRequestError, AuthorizationError } = require('../utils/AppError');
@@ -394,22 +395,75 @@ const cancelarMinhaReserva = async (req, res, next) => {
         // Atualiza status da reserva para cancelada e libera a vaga na mesma transação
         await reservaModel.atualizarStatus(reservaId, 'cancelada', client);
 
-        // Se a reserva tinha pagamento PIX pendente, cancela o pagamento também
-        if (reserva.status === 'pendente_pagamento') {
+        // Se a reserva tinha pagamento PIX pendente ou pago, cancela/estorna no Asaas
+        if (['pendente_pagamento', 'confirmada', 'ativa'].includes(reserva.status)) {
             try {
-                const sqlCancelaPagamento = `
-                    UPDATE pagamentos
-                    SET status = 'cancelado',
-                        updated_at = NOW()
-                    WHERE reserva_id = $1 AND status = 'pendente'
-                    RETURNING id
+                // Buscar dados do pagamento (payment_id está em dados_retorno)
+                const sqlBuscaPagamento = `
+                    SELECT p.*, p.dados_retorno->>'payment_id' as payment_id
+                    FROM pagamentos p
+                    WHERE p.reserva_id = $1 
+                    AND p.status IN ('pendente', 'aprovado', 'pago')
+                    LIMIT 1
                 `;
-                const resultPagamento = await client.query(sqlCancelaPagamento, [reservaId]);
+                const resultPagamento = await client.query(sqlBuscaPagamento, [reservaId]);
+                
                 if (resultPagamento.rows.length > 0) {
-                    logger.info(`Pagamento ${resultPagamento.rows[0].id} cancelado junto com a reserva ${reservaId}`);
+                    const pagamento = resultPagamento.rows[0];
+                    
+                    logger.info('Processando cancelamento de pagamento:', {
+                        pagamento_id: pagamento.id,
+                        payment_id: pagamento.payment_id,
+                        status: pagamento.status,
+                        valor: pagamento.valor
+                    });
+
+                    // Se tem payment_id do Asaas, tentar cancelar/estornar
+                    if (pagamento.payment_id) {
+                        try {
+                            // Cancelar ou estornar no Asaas
+                            const statusPagamentoAsaas = await asaasMarketplace.consultarPagamento(pagamento.payment_id);
+                            
+                            logger.info('Status do pagamento no Asaas:', {
+                                payment_id: pagamento.payment_id,
+                                status: statusPagamentoAsaas.status
+                            });
+
+                            // Se foi confirmado (CONFIRMED/RECEIVED), fazer estorno
+                            if (['CONFIRMED', 'RECEIVED'].includes(statusPagamentoAsaas.status)) {
+                                await asaasMarketplace.estornarPagamento(pagamento.payment_id);
+                                logger.info(`✅ Estorno solicitado no Asaas para payment ${pagamento.payment_id}`);
+                            } 
+                            // Se ainda está pendente, apenas cancelar
+                            else if (statusPagamentoAsaas.status === 'PENDING') {
+                                await asaasMarketplace.cancelarPagamento(pagamento.payment_id);
+                                logger.info(`✅ Pagamento cancelado no Asaas: ${pagamento.payment_id}`);
+                            }
+                        } catch (asaasError) {
+                            logger.error('Erro ao cancelar/estornar no Asaas:', {
+                                error: asaasError.message,
+                                payment_id: pagamento.payment_id
+                            });
+                            // Não interrompe o cancelamento da reserva
+                        }
+                    }
+
+                    // Atualizar status do pagamento no banco
+                    const sqlCancelaPagamento = `
+                        UPDATE pagamentos
+                        SET status = 'cancelado',
+                            updated_at = NOW()
+                        WHERE id = $1
+                        RETURNING id
+                    `;
+                    await client.query(sqlCancelaPagamento, [pagamento.id]);
+                    logger.info(`Pagamento ${pagamento.id} cancelado no banco de dados`);
                 }
             } catch (pagamentoError) {
-                logger.warn(`Erro ao cancelar pagamento da reserva ${reservaId}:`, pagamentoError.message);
+                logger.warn(`Erro ao cancelar pagamento da reserva ${reservaId}:`, {
+                    error: pagamentoError.message,
+                    stack: pagamentoError.stack
+                });
                 // Não interrompe o fluxo de cancelamento da reserva
             }
         }
@@ -552,11 +606,52 @@ const limparHistorico = async (req, res, next) => {
     try {
         await client.query('BEGIN');
 
-        // Deleta apenas reservas com status finalizados (não ativas/pendentes)
+        // Buscar reservas que podem ser deletadas
+        const sqlBuscaReservas = `
+            SELECT r.id, r.status, p.status as pagamento_status, p.id as pagamento_id
+            FROM reservas r
+            LEFT JOIN pagamentos p ON p.reserva_id = r.id
+            WHERE r.usuario_id = $1
+            AND r.status IN ('cancelada', 'concluida', 'expirada', 'nao_compareceu')
+        `;
+        
+        const resultReservas = await client.query(sqlBuscaReservas, [usuario_id]);
+        
+        if (resultReservas.rows.length === 0) {
+            await client.query('COMMIT');
+            return res.json({
+                status: 'success',
+                message: 'Não há histórico para limpar.',
+                deletedCount: 0
+            });
+        }
+
+        // Verificar pagamentos pendentes no Asaas
+        for (const reserva of resultReservas.rows) {
+            if (reserva.payment_id && reserva.pagamento_status === 'pendente') {
+                try {
+                    const statusAsaas = await asaasMarketplace.consultarPagamento(reserva.payment_id);
+                    if (statusAsaas.status === 'PENDING') {
+                        logger.warn('Reserva com pagamento pendente - não será deletada:', {
+                            reserva_id: reserva.id
+                        });
+                    }
+                } catch (error) {
+                    logger.error('Erro ao verificar pagamento:', error.message);
+                }
+            }
+        }
+
+        // Deleta apenas reservas finalizadas sem pagamentos pendentes
         const sql = `
             DELETE FROM reservas
             WHERE usuario_id = $1
             AND status IN ('cancelada', 'concluida', 'expirada', 'nao_compareceu')
+            AND NOT EXISTS (
+                SELECT 1 FROM pagamentos p
+                WHERE p.reserva_id = reservas.id
+                AND p.status = 'pendente'
+            )
             RETURNING id
         `;
 
@@ -565,7 +660,7 @@ const limparHistorico = async (req, res, next) => {
 
         await client.query('COMMIT');
 
-        logger.info(`Histórico de reservas limpo para usuário ${usuario_id}`, {
+        logger.info(`Histórico limpo para usuário ${usuario_id}`, {
             userId: usuario_id,
             reservasDeletadas: deletedCount
         });
@@ -588,11 +683,61 @@ const limparHistorico = async (req, res, next) => {
     }
 };
 
+/**
+ * Notifica que o usuário visualizou o QR Code PIX
+ */
+const notificarVisualizacaoPagamento = async (req, res, next) => {
+    try {
+        const reservaId = req.params.reservaId;
+        const usuarioId = req.user.id;
+
+        logger.info('Notificação de visualização do PIX', {
+            reserva_id: reservaId,
+            usuario_id: usuarioId
+        });
+
+        // Buscar a reserva
+        const reserva = await reservaModel.findReservaById(reservaId);
+
+        if (!reserva) {
+            throw new NotFoundError('Reserva não encontrada');
+        }
+
+        // Verificar se a reserva pertence ao usuário
+        if (reserva.usuario_id !== usuarioId) {
+            throw new AuthorizationError('Você não tem permissão para acessar esta reserva');
+        }
+
+        // Aqui você pode adicionar lógica adicional, como:
+        // - Registrar log de visualização
+        // - Enviar evento para analytics
+        // - Atualizar timestamp de última visualização
+
+        res.json({
+            success: true,
+            message: 'Visualização registrada com sucesso',
+            data: {
+                reserva_id: reservaId,
+                status: reserva.status,
+                status_pagamento: reserva.status_pagamento
+            }
+        });
+
+    } catch (error) {
+        logger.error('Erro ao notificar visualização do pagamento:', {
+            error: error.message,
+            reservaId: req.params.reservaId
+        });
+        next(error);
+    }
+};
+
 module.exports = {
     criarReserva,
     listarMinhasReservas,
     cancelarMinhaReserva,
     obterReservaPorId,
     estenderReserva,
-    limparHistorico
+    limparHistorico,
+    notificarVisualizacaoPagamento
 };

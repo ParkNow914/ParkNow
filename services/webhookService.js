@@ -219,7 +219,7 @@ class WebhookService {
             }
         });
 
-        // Adicione outros provedores conforme necessário (Stripe, Pagar.me, etc.)
+        // Adicione outros provedores conforme necessário (ASAAS, Pagar.me, etc.)
     }
 }
 
