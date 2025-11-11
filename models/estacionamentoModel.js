@@ -121,11 +121,18 @@ const createEstacionamento = async (estData) => {
     `;
 
     try {
-        const lat = (latitude && !isNaN(parseFloat(latitude))) ? parseFloat(latitude) : null;
-        const lon = (longitude && !isNaN(parseFloat(longitude))) ? parseFloat(longitude) : null;
+        // Trata latitude e longitude vazias ou inválidas como NULL
+        // Aceita string vazia "", null, undefined como NULL
+        const lat = (latitude !== null && latitude !== undefined && latitude !== '' && !isNaN(parseFloat(latitude))) ? parseFloat(latitude) : null;
+        const lon = (longitude !== null && longitude !== undefined && longitude !== '' && !isNaN(parseFloat(longitude))) ? parseFloat(longitude) : null;
         const numVagas = (!isNaN(parseInt(vagas))) ? parseInt(vagas) : 0;
         const prHora = (!isNaN(parseFloat(preco_hora))) ? parseFloat(preco_hora) : 0.00;
         const prDia = (!isNaN(parseFloat(preco_dia))) ? parseFloat(preco_dia) : 0.00;
+        
+        // Log para debug
+        if (!lat || !lon) {
+            logger.warn(`Estacionamento sendo criado sem coordenadas. Nome: ${nome}, Endereço: ${endereco}, Lat: ${latitude}, Lon: ${longitude}`);
+        }
 
         const result = await sequelize.query(sql, {
             replacements: [
