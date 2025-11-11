@@ -47,8 +47,8 @@ const createAdminLog = async (adminId, acao, ipAddress) => {
 const createVeiculoLogEntrada = async (estacionamentoId, vagaId, placa, tipoVeiculo, entrada, connection = null) => {
     const sql = `
         INSERT INTO logs_veiculos 
-        (estacionamento_id, vaga_id, placa, tipo_veiculo, entrada) 
-        VALUES ($1, $2, $3, $4, $5) 
+        (estacionamento_id, vaga_id, placa_veiculo, tipo_operacao, entrada, data_hora) 
+        VALUES ($1, $2, $3, $4, $5, $5) 
         RETURNING id
     `;
     
@@ -61,7 +61,7 @@ const createVeiculoLogEntrada = async (estacionamentoId, vagaId, placa, tipoVeic
             estacionamentoId, 
             vagaId, 
             placa?.toUpperCase() || 'N/A', 
-            tipoVeiculo || 'N/A', 
+            'entrada', // tipo_operacao deve ser 'entrada'
             entryTs
         ]);
         
