@@ -721,22 +721,15 @@ exports.approvePartner = async (req, res) => {
         // Não falhar a operação principal se o email falhar
       }
       
-      // 11. Retornar sucesso
-      return res.status(200).json({
-        success: true,
-        message: 'Parceria aprovada com sucesso!',
-        data: {
-          estacionamento: {
-            id: estacionamento.id,
-            nome: estacionamento.nome,
-            cnpj: solicitacaoData.cnpj
-          },
-          admin: {
-            id: adminId,
-            email: solicitacaoData.email
-          }
-        }
-      });
+      // 11. Redirecionar para página de sucesso com dados na query string
+      const successUrl = `/approval-success.html?` +
+        `nome=${encodeURIComponent(estacionamento.nome)}` +
+        `&cnpj=${encodeURIComponent(solicitacaoData.cnpj)}` +
+        `&estId=${estacionamento.id}` +
+        `&email=${encodeURIComponent(solicitacaoData.email)}` +
+        `&adminId=${adminId}`;
+      
+      return res.redirect(successUrl);
       
     } catch (error) {
       // Rollback em caso de erro

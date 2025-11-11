@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parceria Aprovada - ParkNow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .success-container {
+            max-width: 600px;
+            width: 90%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: scaleIn 0.5s ease-out 0.3s both;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .success-icon i {
+            font-size: 50px;
+            color: #11998e;
+            animation: checkmark 0.8s ease-out 0.6s both;
+        }
+
+        @keyframes checkmark {
+            0% {
+                transform: scale(0) rotate(-45deg);
+            }
+            50% {
+                transform: scale(1.2) rotate(-10deg);
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        .success-header h1 {
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .success-body {
+            padding: 40px;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #11998e;
+            animation: fadeIn 0.5s ease-out 0.8s both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .info-card h3 {
+            color: #11998e;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .info-item i {
+            color: #11998e;
+            width: 20px;
+        }
+
+        .info-item strong {
+            color: #212529;
+        }
+
+        .next-steps {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            color: white;
+            animation: fadeIn 0.5s ease-out 1s both;
+        }
+
+        .next-steps h3 {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step {
+            display: flex;
+            align-items: start;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+
+        .step-number {
+            background: white;
+            color: #667eea;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            animation: fadeIn 0.5s ease-out 1.2s both;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .btn-secondary-custom {
+            background: white;
+            border: 2px solid #667eea;
+            padding: 15px 30px;
+            border-radius: 10px;
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary-custom:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #f0f;
+            position: absolute;
+            animation: confetti-fall 3s linear infinite;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-header">
+            <div class="success-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <h1>🎉 Parceria Aprovada!</h1>
+        </div>
+
+        <div class="success-body">
+            <div class="info-card">
+                <h3>
+                    <i class="fas fa-building"></i>
+                    Informações do Estacionamento
+                </h3>
+                <div class="info-item">
+                    <i class="fas fa-tag"></i>
+                    <span><strong>Nome:</strong> <span id="estacionamentoNome">-</span></span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-file-invoice"></i>
+                    <span><strong>CNPJ:</strong> <span id="estacionamentoCnpj">-</span></span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-hashtag"></i>
+                    <span><strong>ID:</strong> <span id="estacionamentoId">-</span></span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>
+                    <i class="fas fa-user-shield"></i>
+                    Conta de Administrador
+                </h3>
+                <div class="info-item">
+                    <i class="fas fa-envelope"></i>
+                    <span><strong>Email:</strong> <span id="adminEmail">-</span></span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-hashtag"></i>
+                    <span><strong>ID:</strong> <span id="adminId">-</span></span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-check-circle text-success"></i>
+                    <span><strong>Status:</strong> <span class="badge bg-success">Ativo</span></span>
+                </div>
+            </div>
+
+            <div class="next-steps">
+                <h3>
+                    <i class="fas fa-rocket"></i>
+                    Próximos Passos
+                </h3>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div>
+                        <strong>Acesse sua conta</strong><br>
+                        Use o email cadastrado para fazer login no painel administrativo
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div>
+                        <strong>Configure seu estacionamento</strong><br>
+                        Complete as informações, adicione fotos e ajuste valores
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div>
+                        <strong>Comece a receber reservas</strong><br>
+                        Seu estacionamento já está visível para os usuários!
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <a href="/admin_home/admin-home.html" class="btn-primary-custom">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Acessar Painel Admin
+                </a>
+                <a href="/" class="btn-secondary-custom">
+                    <i class="fas fa-home"></i>
+                    Voltar ao Início
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pegar dados da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Se vier como query params
+        if (urlParams.has('nome')) {
+            document.getElementById('estacionamentoNome').textContent = urlParams.get('nome') || '-';
+            document.getElementById('estacionamentoCnpj').textContent = urlParams.get('cnpj') || '-';
+            document.getElementById('estacionamentoId').textContent = urlParams.get('estId') || '-';
+            document.getElementById('adminEmail').textContent = urlParams.get('email') || '-';
+            document.getElementById('adminId').textContent = urlParams.get('adminId') || '-';
+        }
+
+        // Criar confetti
+        function createConfetti() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 3 + 's';
+                    confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), 5000);
+                }, i * 30);
+            }
+        }
+
+        // Iniciar confetti após carregar
+        window.addEventListener('load', () => {
+            setTimeout(createConfetti, 500);
+        });
+    </script>
+</body>
+</html>

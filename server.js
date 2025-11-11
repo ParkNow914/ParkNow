@@ -120,9 +120,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Body Parsers: Habilita leitura de JSON e dados de formulário
-// Importante: Configuramos com limites para prevenir ataques de DoS
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+// Aumentado para 10MB para suportar upload de imagens em base64
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logger HTTP (Morgan)
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', { stream: logger.stream }));
