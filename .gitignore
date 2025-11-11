@@ -95,3 +95,6 @@ web-report/
 *.njsproj
 *.sln
 *.sw?
+
+# Arquivo de variáveis de ambiente (local)
+.env
