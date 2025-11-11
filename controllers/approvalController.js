@@ -616,10 +616,19 @@ exports.approvePartner = async (req, res) => {
         telefone: telefone || 'não informado'
       });
       
-      // Criar objeto com apenas os campos que existem na tabela
+      // Criar objeto com TODOS os campos da tabela
       const dadosEstacionamento = {
         nome: solicitacaoData.nomeEstacionamento,
         endereco: endereco,
+        // Campos de endereço detalhado
+        cep: solicitacaoData.cepEstacionamento || null,
+        logradouro: solicitacaoData.logradouroEstacionamento || null,
+        numero: solicitacaoData.numeroEstacionamento || null,
+        complemento: solicitacaoData.complementoEstacionamento || null,
+        bairro: solicitacaoData.bairroEstacionamento || null,
+        cidade: solicitacaoData.cidadeEstacionamento || null,
+        uf: solicitacaoData.ufEstacionamento || null,
+        // Campos de capacidade e valores
         capacidade_total: numeroVagas,
         vagas_disponiveis: numeroVagas,
         vagas: numeroVagas,
@@ -628,8 +637,10 @@ exports.approvePartner = async (req, res) => {
         valor_diaria: valorDiaria,
         preco_dia: valorDiaria,
         valor_mensal: valorMensal,
+        // Coordenadas
         latitude: solicitacaoData.latitude ? parseFloat(solicitacaoData.latitude) : null,
         longitude: solicitacaoData.longitude ? parseFloat(solicitacaoData.longitude) : null,
+        // Outros campos
         descricao: solicitacaoData.descricao || 'Estacionamento parceiro ParkNow',
         admin_id: adminId,
         cnpj: cnpjSemFormatacao,
@@ -638,7 +649,7 @@ exports.approvePartner = async (req, res) => {
         status: 'ativo',
         horario_abertura: horarioAbertura,
         horario_fechamento: horarioFechamento,
-        // Campos opcionais com valores padrão
+        // Campos opcionais
         foto: fotoPath,
         chave_pix: chavePix,
         tipo_chave_pix: tipoChavePix,
@@ -652,15 +663,19 @@ exports.approvePartner = async (req, res) => {
       // Usar query raw para evitar problemas com o modelo
       const [estacionamentoId] = await db.sequelize.query(
         `INSERT INTO estacionamentos (
-          nome, endereco, capacidade_total, vagas_disponiveis, vagas,
+          nome, endereco, cep, logradouro, numero, complemento, bairro, cidade, uf,
+          capacidade_total, vagas_disponiveis, vagas,
           valor_hora, preco_hora, valor_diaria, preco_dia, valor_mensal,
           latitude, longitude, descricao, admin_id, cnpj, email, telefone,
-          status, horario_abertura, horario_fechamento, foto, chave_pix, tipo_chave_pix, nome_titular_pix, chave_pix_cnpj
+          status, horario_abertura, horario_fechamento, foto, 
+          chave_pix, tipo_chave_pix, nome_titular_pix, chave_pix_cnpj
         ) VALUES (
-          :nome, :endereco, :capacidade_total, :vagas_disponiveis, :vagas,
+          :nome, :endereco, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf,
+          :capacidade_total, :vagas_disponiveis, :vagas,
           :valor_hora, :preco_hora, :valor_diaria, :preco_dia, :valor_mensal,
           :latitude, :longitude, :descricao, :admin_id, :cnpj, :email, :telefone,
-          :status, :horario_abertura, :horario_fechamento, :foto, :chave_pix, :tipo_chave_pix, :nome_titular_pix, :chave_pix_cnpj
+          :status, :horario_abertura, :horario_fechamento, :foto,
+          :chave_pix, :tipo_chave_pix, :nome_titular_pix, :chave_pix_cnpj
         ) RETURNING id`,
         {
           replacements: dadosEstacionamento,
