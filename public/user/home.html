@@ -5548,9 +5548,14 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
                     const destLng = selectedEst.longitude;
 
                     console.log('Navegação:', { origem: { latitude, longitude }, destino: { lat: destLat, lng: destLng } });
-                    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${destLat},${destLng}&travelmode=driving`;
-                    console.log('Google Maps URL:', googleMapsUrl);
-                    window.open(googleMapsUrl, '_blank');
+                    
+                    // Usar OpenStreetMap com roteamento OSRM
+                    // Formato: https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=lat1,lon1;lat2,lon2
+                    const osmUrl = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${latitude},${longitude};${destLat},${destLng}#map=15/${destLat}/${destLng}`;
+                    console.log('OpenStreetMap Navigation URL:', osmUrl);
+                    
+                    // Abrir em nova aba
+                    window.open(osmUrl, '_blank');
                 },
                 (error) => {
                     console.error('Erro ao obter localização para navegação:', error);

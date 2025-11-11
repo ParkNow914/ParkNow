@@ -113,8 +113,8 @@ class ReservaPagamentoController {
           estacionamento_id,
           estacionamento_asaas_account_id: estacionamento.asaas_wallet_id,
           reserva_id: reserva.id,
-          success_url: `${baseUrl}/user/home.html?reserva=${reserva.id}&status=sucesso`,
-          cancel_url: `${baseUrl}/user/home.html?reserva=${reserva.id}&status=cancelado`
+          success_url: `${baseUrl}/pagamento-sucesso.html?reserva=${reserva.id}`,
+          cancel_url: `${baseUrl}/pagamento-cancelado.html?reserva=${reserva.id}`
         });
 
         // Salva dados do pagamento no banco

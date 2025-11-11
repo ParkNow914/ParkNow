@@ -102,41 +102,45 @@ class AsaasMarketplaceService {
                 if (searchResponse.data.data && searchResponse.data.data.length > 0) {
                     const cliente = searchResponse.data.data[0];
                     
-                    // SEMPRE atualizar telefone se não existir (obrigatório para checkout)
-                    if (!cliente.phone || !cliente.mobilePhone) {
-                        const telefoneParaUsar = telefone || '1140041234'; // Telefone válido (11) 4004-1234
+                    // SEMPRE atualizar se faltar telefone OU endereço (obrigatórios para checkout)
+                    const precisaAtualizar = !cliente.phone || !cliente.mobilePhone || !cliente.address;
+                    
+                    if (precisaAtualizar) {
+                        const telefoneParaUsar = telefone || cliente.phone || '1140041234';
                         
-                        logger.info('⚠️ Cliente sem telefone. Atualizando:', {
+                        logger.info('⚠️ Cliente precisa de atualização:', {
                             id: cliente.id,
-                            telefone: telefoneParaUsar
+                            tem_telefone: !!cliente.phone,
+                            tem_endereco: !!cliente.address
                         });
                         
                         try {
                             await this.client.put(`/customers/${cliente.id}`, {
                                 phone: telefoneParaUsar,
-                                mobilePhone: telefoneParaUsar,
-                                // Adicionar endereço padrão
-                                address: 'Av. Paulista',
-                                addressNumber: '1000',
-                                province: 'Bela Vista',
-                                postalCode: '01310100'
+                                mobilePhone: cliente.mobilePhone || telefoneParaUsar,
+                                // Garantir endereço completo
+                                address: cliente.address || 'Av. Paulista',
+                                addressNumber: cliente.addressNumber || '1000',
+                                province: cliente.province || 'Bela Vista',
+                                postalCode: cliente.postalCode || '01310100'
                             });
                             
-                            logger.info('✅ Telefone e endereço atualizados com sucesso');
+                            logger.info('✅ Cliente atualizado com sucesso');
                         } catch (updateError) {
-                            logger.error('❌ Erro ao atualizar telefone:', {
+                            logger.error('❌ Erro ao atualizar cliente:', {
                                 error: updateError.message,
                                 response: updateError.response?.data
                             });
-                            // Não continuar se não conseguir atualizar
-                            throw new Error('Não foi possível atualizar o telefone do cliente');
+                            // Não falhar, apenas logar
+                            logger.warn('⚠️ Continuando com cliente sem atualização');
                         }
                     }
                     
-                    logger.info('Cliente Asaas encontrado:', {
+                    logger.info('Cliente Asaas encontrado/atualizado:', {
                         id: cliente.id,
                         email: cliente.email,
-                        phone: cliente.phone
+                        phone: cliente.phone,
+                        address: cliente.address
                     });
                     return cliente.id;
                 }
@@ -611,10 +615,37 @@ class AsaasMarketplaceService {
 
     /**
      * Criar subconta para estacionamento
+     * Se o email já existe, retorna a subconta existente
      */
     async criarSubconta(dadosEstacionamento) {
         try {
             const { nome, email, cpfCnpj, telefone } = dadosEstacionamento;
+
+            // Primeiro, tentar buscar subconta existente pelo email
+            try {
+                logger.info('Buscando subconta ASAAS existente por email:', email);
+                
+                const searchResponse = await this.client.get('/accounts', {
+                    params: { email }
+                });
+
+                if (searchResponse.data.data && searchResponse.data.data.length > 0) {
+                    const subconta = searchResponse.data.data[0];
+                    
+                    logger.info('✅ Subconta ASAAS já existe:', {
+                        walletId: subconta.walletId,
+                        email: subconta.email,
+                        name: subconta.name
+                    });
+                    
+                    return subconta;
+                }
+            } catch (searchError) {
+                logger.warn('Erro ao buscar subconta (prosseguindo para criar):', searchError.message);
+            }
+
+            // Se não encontrou, criar nova subconta
+            logger.info('Criando nova subconta ASAAS:', { nome, email, cpfCnpj });
 
             const response = await this.client.post('/accounts', {
                 name: nome,
@@ -625,7 +656,7 @@ class AsaasMarketplaceService {
                 site: 'https://parknow.com.br'
             });
 
-            logger.info('Subconta Asaas criada:', {
+            logger.info('✅ Subconta Asaas criada:', {
                 walletId: response.data.walletId,
                 email
             });
@@ -636,6 +667,33 @@ class AsaasMarketplaceService {
                 error: error.message,
                 response: error.response?.data
             });
+            
+            // Se o erro for que o email já existe, tentar buscar novamente
+            if (error.response?.status === 400 && 
+                error.response?.data?.errors?.[0]?.description?.includes('já está em uso')) {
+                
+                logger.warn('Email já em uso. Tentando buscar subconta existente...');
+                
+                try {
+                    const searchResponse = await this.client.get('/accounts', {
+                        params: { email: dadosEstacionamento.email }
+                    });
+
+                    if (searchResponse.data.data && searchResponse.data.data.length > 0) {
+                        const subconta = searchResponse.data.data[0];
+                        
+                        logger.info('✅ Subconta encontrada após erro de duplicação:', {
+                            walletId: subconta.walletId,
+                            email: subconta.email
+                        });
+                        
+                        return subconta;
+                    }
+                } catch (searchError) {
+                    logger.error('Erro ao buscar subconta após duplicação:', searchError.message);
+                }
+            }
+            
             throw error;
         }
     }
