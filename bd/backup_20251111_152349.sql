@@ -2,10 +2,12 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 17.5
--- Dumped by pg_dump version 17.5
+\restrict gnydz5qIcvLaEb5h3ywbcUFOfdEKb8mlHjauF0tZwdAf1AoelmpoMXvApiYnDPN
 
--- Started on 2025-11-04 21:52:29
+-- Dumped from database version 17.6
+-- Dumped by pg_dump version 17.6
+
+-- Started on 2025-11-11 15:23:50
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -20,7 +22,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 888 (class 1247 OID 17659)
+-- TOC entry 882 (class 1247 OID 52107)
 -- Name: enum_usuarios_status; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -34,7 +36,7 @@ CREATE TYPE public.enum_usuarios_status AS ENUM (
 ALTER TYPE public.enum_usuarios_status OWNER TO postgres;
 
 --
--- TOC entry 891 (class 1247 OID 17666)
+-- TOC entry 885 (class 1247 OID 52114)
 -- Name: enum_usuarios_tipo_usuario; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -48,7 +50,7 @@ CREATE TYPE public.enum_usuarios_tipo_usuario AS ENUM (
 ALTER TYPE public.enum_usuarios_tipo_usuario OWNER TO postgres;
 
 --
--- TOC entry 894 (class 1247 OID 17674)
+-- TOC entry 888 (class 1247 OID 52122)
 -- Name: pagamento_status; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -72,7 +74,7 @@ CREATE TYPE public.pagamento_status AS ENUM (
 ALTER TYPE public.pagamento_status OWNER TO postgres;
 
 --
--- TOC entry 897 (class 1247 OID 17702)
+-- TOC entry 891 (class 1247 OID 52150)
 -- Name: status_pagamento_pix; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -92,7 +94,7 @@ CREATE TYPE public.status_pagamento_pix AS ENUM (
 ALTER TYPE public.status_pagamento_pix OWNER TO postgres;
 
 --
--- TOC entry 249 (class 1255 OID 17721)
+-- TOC entry 249 (class 1255 OID 52169)
 -- Name: atualizar_data_atualizacao(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -109,7 +111,7 @@ $$;
 ALTER FUNCTION public.atualizar_data_atualizacao() OWNER TO postgres;
 
 --
--- TOC entry 253 (class 1255 OID 34417)
+-- TOC entry 250 (class 1255 OID 52170)
 -- Name: check_email_across_tables(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -137,7 +139,7 @@ $$;
 ALTER FUNCTION public.check_email_across_tables() OWNER TO postgres;
 
 --
--- TOC entry 250 (class 1255 OID 17722)
+-- TOC entry 251 (class 1255 OID 52171)
 -- Name: limpar_chave_pix(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -159,7 +161,7 @@ $$;
 ALTER FUNCTION public.limpar_chave_pix() OWNER TO postgres;
 
 --
--- TOC entry 251 (class 1255 OID 17723)
+-- TOC entry 252 (class 1255 OID 52172)
 -- Name: sincronizar_chave_pix(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -181,7 +183,7 @@ $$;
 ALTER FUNCTION public.sincronizar_chave_pix() OWNER TO postgres;
 
 --
--- TOC entry 252 (class 1255 OID 17724)
+-- TOC entry 253 (class 1255 OID 52173)
 -- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -202,7 +204,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- TOC entry 219 (class 1259 OID 17725)
+-- TOC entry 217 (class 1259 OID 52174)
 -- Name: SequelizeMeta; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -214,7 +216,7 @@ CREATE TABLE public."SequelizeMeta" (
 ALTER TABLE public."SequelizeMeta" OWNER TO postgres;
 
 --
--- TOC entry 220 (class 1259 OID 17728)
+-- TOC entry 218 (class 1259 OID 52177)
 -- Name: admins; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -230,14 +232,34 @@ CREATE TABLE public.admins (
     reset_token_expires timestamp with time zone,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    refresh_token_hash character varying(255)
+    refresh_token_hash character varying(255),
+    telefone character varying(15),
+    cnpj character varying(18)
 );
 
 
 ALTER TABLE public.admins OWNER TO postgres;
 
 --
--- TOC entry 221 (class 1259 OID 17737)
+-- TOC entry 5102 (class 0 OID 0)
+-- Dependencies: 218
+-- Name: COLUMN admins.telefone; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.admins.telefone IS 'Telefone de contato do administrador';
+
+
+--
+-- TOC entry 5103 (class 0 OID 0)
+-- Dependencies: 218
+-- Name: COLUMN admins.cnpj; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.admins.cnpj IS 'CNPJ do estacionamento (cadastrado pelo admin)';
+
+
+--
+-- TOC entry 219 (class 1259 OID 52186)
 -- Name: admins_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -253,8 +275,8 @@ CREATE SEQUENCE public.admins_id_seq
 ALTER SEQUENCE public.admins_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5197 (class 0 OID 0)
--- Dependencies: 221
+-- TOC entry 5104 (class 0 OID 0)
+-- Dependencies: 219
 -- Name: admins_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -262,7 +284,7 @@ ALTER SEQUENCE public.admins_id_seq OWNED BY public.admins.id;
 
 
 --
--- TOC entry 224 (class 1259 OID 17749)
+-- TOC entry 220 (class 1259 OID 52187)
 -- Name: estacionamentos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -294,15 +316,25 @@ CREATE TABLE public.estacionamentos (
     id_solicitacao integer,
     chave_pix character varying(140),
     tipo_chave_pix character varying(20),
-    nome_titular_pix character varying(100)
+    nome_titular_pix character varying(100),
+    asaas_wallet_id character varying(100),
+    asaas_connected_at timestamp with time zone,
+    cep character varying(9),
+    logradouro character varying(255),
+    numero character varying(20),
+    complemento character varying(100),
+    bairro character varying(100),
+    cidade character varying(100),
+    uf character(2),
+    asaas_customer_id character varying(255)
 );
 
 
 ALTER TABLE public.estacionamentos OWNER TO postgres;
 
 --
--- TOC entry 5198 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 5105 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: COLUMN estacionamentos.latitude; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -310,8 +342,8 @@ COMMENT ON COLUMN public.estacionamentos.latitude IS 'Latitude geográfica do es
 
 
 --
--- TOC entry 5199 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 5106 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: COLUMN estacionamentos.longitude; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -319,8 +351,8 @@ COMMENT ON COLUMN public.estacionamentos.longitude IS 'Longitude geográfica do 
 
 
 --
--- TOC entry 5200 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 5107 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: COLUMN estacionamentos.vagas; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -328,8 +360,8 @@ COMMENT ON COLUMN public.estacionamentos.vagas IS 'Número total de vagas do est
 
 
 --
--- TOC entry 5201 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 5108 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: COLUMN estacionamentos.preco_hora; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -337,8 +369,8 @@ COMMENT ON COLUMN public.estacionamentos.preco_hora IS 'Preço por hora do estac
 
 
 --
--- TOC entry 5202 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 5109 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: COLUMN estacionamentos.preco_dia; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -346,8 +378,8 @@ COMMENT ON COLUMN public.estacionamentos.preco_dia IS 'Preço por dia do estacio
 
 
 --
--- TOC entry 5203 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 5110 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: COLUMN estacionamentos.descricao; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -355,8 +387,8 @@ COMMENT ON COLUMN public.estacionamentos.descricao IS 'Descrição do estacionam
 
 
 --
--- TOC entry 5204 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 5111 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: COLUMN estacionamentos.foto; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -364,8 +396,8 @@ COMMENT ON COLUMN public.estacionamentos.foto IS 'URL da foto do estacionamento'
 
 
 --
--- TOC entry 5205 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 5112 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: COLUMN estacionamentos.chave_pix; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -373,8 +405,8 @@ COMMENT ON COLUMN public.estacionamentos.chave_pix IS 'Chave PIX do estacionamen
 
 
 --
--- TOC entry 5206 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 5113 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: COLUMN estacionamentos.tipo_chave_pix; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -382,8 +414,8 @@ COMMENT ON COLUMN public.estacionamentos.tipo_chave_pix IS 'Tipo da chave PIX (C
 
 
 --
--- TOC entry 5207 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 5114 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: COLUMN estacionamentos.nome_titular_pix; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -391,7 +423,97 @@ COMMENT ON COLUMN public.estacionamentos.nome_titular_pix IS 'Nome do titular da
 
 
 --
--- TOC entry 244 (class 1259 OID 18010)
+-- TOC entry 5115 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: COLUMN estacionamentos.asaas_wallet_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.estacionamentos.asaas_wallet_id IS 'ID da subconta (wallet) no Asaas para receber splits';
+
+
+--
+-- TOC entry 5116 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: COLUMN estacionamentos.asaas_connected_at; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.estacionamentos.asaas_connected_at IS 'Data de conexÃ£o com o Asaas';
+
+
+--
+-- TOC entry 5117 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: COLUMN estacionamentos.cep; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.estacionamentos.cep IS 'CEP do estacionamento (formato: 00000-000)';
+
+
+--
+-- TOC entry 5118 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: COLUMN estacionamentos.logradouro; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.estacionamentos.logradouro IS 'Logradouro (Rua, Avenida, etc)';
+
+
+--
+-- TOC entry 5119 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: COLUMN estacionamentos.numero; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.estacionamentos.numero IS 'NÃºmero do endereÃ§o';
+
+
+--
+-- TOC entry 5120 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: COLUMN estacionamentos.complemento; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.estacionamentos.complemento IS 'Complemento do endereÃ§o (opcional)';
+
+
+--
+-- TOC entry 5121 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: COLUMN estacionamentos.bairro; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.estacionamentos.bairro IS 'Bairro';
+
+
+--
+-- TOC entry 5122 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: COLUMN estacionamentos.cidade; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.estacionamentos.cidade IS 'Cidade';
+
+
+--
+-- TOC entry 5123 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: COLUMN estacionamentos.uf; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.estacionamentos.uf IS 'Unidade Federativa (Estado)';
+
+
+--
+-- TOC entry 5124 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: COLUMN estacionamentos.asaas_customer_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.estacionamentos.asaas_customer_id IS 'ID do customer do estacionamento no Asaas';
+
+
+--
+-- TOC entry 221 (class 1259 OID 52197)
 -- Name: configuracao_pagamento_estacionamento; Type: VIEW; Schema: public; Owner: postgres
 --
 
@@ -407,7 +529,7 @@ CREATE VIEW public.configuracao_pagamento_estacionamento AS
 ALTER VIEW public.configuracao_pagamento_estacionamento OWNER TO postgres;
 
 --
--- TOC entry 222 (class 1259 OID 17738)
+-- TOC entry 222 (class 1259 OID 52201)
 -- Name: estacionamento_pagamentos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -432,7 +554,7 @@ CREATE TABLE public.estacionamento_pagamentos (
 ALTER TABLE public.estacionamento_pagamentos OWNER TO postgres;
 
 --
--- TOC entry 5208 (class 0 OID 0)
+-- TOC entry 5125 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: TABLE estacionamento_pagamentos; Type: COMMENT; Schema: public; Owner: postgres
 --
@@ -441,7 +563,7 @@ COMMENT ON TABLE public.estacionamento_pagamentos IS 'Armazena as configuraÃ§�
 
 
 --
--- TOC entry 5209 (class 0 OID 0)
+-- TOC entry 5126 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: COLUMN estacionamento_pagamentos.estacionamento_id; Type: COMMENT; Schema: public; Owner: postgres
 --
@@ -450,7 +572,7 @@ COMMENT ON COLUMN public.estacionamento_pagamentos.estacionamento_id IS 'ReferÃ
 
 
 --
--- TOC entry 5210 (class 0 OID 0)
+-- TOC entry 5127 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: COLUMN estacionamento_pagamentos.tipo_chave_pix; Type: COMMENT; Schema: public; Owner: postgres
 --
@@ -459,7 +581,7 @@ COMMENT ON COLUMN public.estacionamento_pagamentos.tipo_chave_pix IS 'Tipo da ch
 
 
 --
--- TOC entry 5211 (class 0 OID 0)
+-- TOC entry 5128 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: COLUMN estacionamento_pagamentos.chave_pix; Type: COMMENT; Schema: public; Owner: postgres
 --
@@ -468,7 +590,7 @@ COMMENT ON COLUMN public.estacionamento_pagamentos.chave_pix IS 'Valor da chave 
 
 
 --
--- TOC entry 5212 (class 0 OID 0)
+-- TOC entry 5129 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: COLUMN estacionamento_pagamentos.nome_titular; Type: COMMENT; Schema: public; Owner: postgres
 --
@@ -477,7 +599,7 @@ COMMENT ON COLUMN public.estacionamento_pagamentos.nome_titular IS 'Nome do titu
 
 
 --
--- TOC entry 5213 (class 0 OID 0)
+-- TOC entry 5130 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: COLUMN estacionamento_pagamentos.banco; Type: COMMENT; Schema: public; Owner: postgres
 --
@@ -486,7 +608,7 @@ COMMENT ON COLUMN public.estacionamento_pagamentos.banco IS 'Nome do banco (opci
 
 
 --
--- TOC entry 5214 (class 0 OID 0)
+-- TOC entry 5131 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: COLUMN estacionamento_pagamentos.tipo_conta; Type: COMMENT; Schema: public; Owner: postgres
 --
@@ -495,7 +617,7 @@ COMMENT ON COLUMN public.estacionamento_pagamentos.tipo_conta IS 'Tipo de conta 
 
 
 --
--- TOC entry 5215 (class 0 OID 0)
+-- TOC entry 5132 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: COLUMN estacionamento_pagamentos.agencia; Type: COMMENT; Schema: public; Owner: postgres
 --
@@ -504,7 +626,7 @@ COMMENT ON COLUMN public.estacionamento_pagamentos.agencia IS 'NÃºmero da agÃ
 
 
 --
--- TOC entry 5216 (class 0 OID 0)
+-- TOC entry 5133 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: COLUMN estacionamento_pagamentos.conta; Type: COMMENT; Schema: public; Owner: postgres
 --
@@ -513,7 +635,7 @@ COMMENT ON COLUMN public.estacionamento_pagamentos.conta IS 'NÃºmero da conta 
 
 
 --
--- TOC entry 223 (class 1259 OID 17748)
+-- TOC entry 223 (class 1259 OID 52211)
 -- Name: estacionamento_pagamentos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -529,7 +651,7 @@ CREATE SEQUENCE public.estacionamento_pagamentos_id_seq
 ALTER SEQUENCE public.estacionamento_pagamentos_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5217 (class 0 OID 0)
+-- TOC entry 5134 (class 0 OID 0)
 -- Dependencies: 223
 -- Name: estacionamento_pagamentos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -538,7 +660,7 @@ ALTER SEQUENCE public.estacionamento_pagamentos_id_seq OWNED BY public.estaciona
 
 
 --
--- TOC entry 225 (class 1259 OID 17759)
+-- TOC entry 224 (class 1259 OID 52212)
 -- Name: estacionamentos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -554,8 +676,8 @@ CREATE SEQUENCE public.estacionamentos_id_seq
 ALTER SEQUENCE public.estacionamentos_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5218 (class 0 OID 0)
--- Dependencies: 225
+-- TOC entry 5135 (class 0 OID 0)
+-- Dependencies: 224
 -- Name: estacionamentos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -563,7 +685,7 @@ ALTER SEQUENCE public.estacionamentos_id_seq OWNED BY public.estacionamentos.id;
 
 
 --
--- TOC entry 226 (class 1259 OID 17760)
+-- TOC entry 225 (class 1259 OID 52213)
 -- Name: horarios_funcionamento; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -583,8 +705,8 @@ CREATE TABLE public.horarios_funcionamento (
 ALTER TABLE public.horarios_funcionamento OWNER TO postgres;
 
 --
--- TOC entry 5219 (class 0 OID 0)
--- Dependencies: 226
+-- TOC entry 5136 (class 0 OID 0)
+-- Dependencies: 225
 -- Name: TABLE horarios_funcionamento; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -592,8 +714,8 @@ COMMENT ON TABLE public.horarios_funcionamento IS 'Tabela de horários de funcio
 
 
 --
--- TOC entry 5220 (class 0 OID 0)
--- Dependencies: 226
+-- TOC entry 5137 (class 0 OID 0)
+-- Dependencies: 225
 -- Name: COLUMN horarios_funcionamento.id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -601,8 +723,8 @@ COMMENT ON COLUMN public.horarios_funcionamento.id IS 'ID único do horário de 
 
 
 --
--- TOC entry 5221 (class 0 OID 0)
--- Dependencies: 226
+-- TOC entry 5138 (class 0 OID 0)
+-- Dependencies: 225
 -- Name: COLUMN horarios_funcionamento.estacionamento_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -610,8 +732,8 @@ COMMENT ON COLUMN public.horarios_funcionamento.estacionamento_id IS 'ID do esta
 
 
 --
--- TOC entry 5222 (class 0 OID 0)
--- Dependencies: 226
+-- TOC entry 5139 (class 0 OID 0)
+-- Dependencies: 225
 -- Name: COLUMN horarios_funcionamento.dia_semana; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -619,8 +741,8 @@ COMMENT ON COLUMN public.horarios_funcionamento.dia_semana IS 'Dia da semana (0=
 
 
 --
--- TOC entry 5223 (class 0 OID 0)
--- Dependencies: 226
+-- TOC entry 5140 (class 0 OID 0)
+-- Dependencies: 225
 -- Name: COLUMN horarios_funcionamento.aberto; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -628,8 +750,8 @@ COMMENT ON COLUMN public.horarios_funcionamento.aberto IS 'Se o estacionamento e
 
 
 --
--- TOC entry 5224 (class 0 OID 0)
--- Dependencies: 226
+-- TOC entry 5141 (class 0 OID 0)
+-- Dependencies: 225
 -- Name: COLUMN horarios_funcionamento.horario_abertura; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -637,8 +759,8 @@ COMMENT ON COLUMN public.horarios_funcionamento.horario_abertura IS 'Horário de
 
 
 --
--- TOC entry 5225 (class 0 OID 0)
--- Dependencies: 226
+-- TOC entry 5142 (class 0 OID 0)
+-- Dependencies: 225
 -- Name: COLUMN horarios_funcionamento.horario_fechamento; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -646,8 +768,8 @@ COMMENT ON COLUMN public.horarios_funcionamento.horario_fechamento IS 'Horário 
 
 
 --
--- TOC entry 5226 (class 0 OID 0)
--- Dependencies: 226
+-- TOC entry 5143 (class 0 OID 0)
+-- Dependencies: 225
 -- Name: COLUMN horarios_funcionamento.created_at; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -655,8 +777,8 @@ COMMENT ON COLUMN public.horarios_funcionamento.created_at IS 'Data de criação
 
 
 --
--- TOC entry 5227 (class 0 OID 0)
--- Dependencies: 226
+-- TOC entry 5144 (class 0 OID 0)
+-- Dependencies: 225
 -- Name: COLUMN horarios_funcionamento.updated_at; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -664,7 +786,7 @@ COMMENT ON COLUMN public.horarios_funcionamento.updated_at IS 'Data da última a
 
 
 --
--- TOC entry 227 (class 1259 OID 17767)
+-- TOC entry 226 (class 1259 OID 52220)
 -- Name: horarios_funcionamento_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -680,8 +802,8 @@ CREATE SEQUENCE public.horarios_funcionamento_id_seq
 ALTER SEQUENCE public.horarios_funcionamento_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5228 (class 0 OID 0)
--- Dependencies: 227
+-- TOC entry 5145 (class 0 OID 0)
+-- Dependencies: 226
 -- Name: horarios_funcionamento_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -689,7 +811,7 @@ ALTER SEQUENCE public.horarios_funcionamento_id_seq OWNED BY public.horarios_fun
 
 
 --
--- TOC entry 228 (class 1259 OID 17768)
+-- TOC entry 227 (class 1259 OID 52221)
 -- Name: logs_admins; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -710,7 +832,7 @@ CREATE TABLE public.logs_admins (
 ALTER TABLE public.logs_admins OWNER TO postgres;
 
 --
--- TOC entry 229 (class 1259 OID 17774)
+-- TOC entry 228 (class 1259 OID 52227)
 -- Name: logs_admins_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -726,8 +848,8 @@ CREATE SEQUENCE public.logs_admins_id_seq
 ALTER SEQUENCE public.logs_admins_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5229 (class 0 OID 0)
--- Dependencies: 229
+-- TOC entry 5146 (class 0 OID 0)
+-- Dependencies: 228
 -- Name: logs_admins_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -735,7 +857,7 @@ ALTER SEQUENCE public.logs_admins_id_seq OWNED BY public.logs_admins.id;
 
 
 --
--- TOC entry 230 (class 1259 OID 17775)
+-- TOC entry 229 (class 1259 OID 52228)
 -- Name: logs_veiculos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -748,6 +870,10 @@ CREATE TABLE public.logs_veiculos (
     placa_veiculo character varying(10),
     data_hora timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     detalhes text,
+    saida timestamp with time zone,
+    tempo_estacionado integer DEFAULT 0,
+    valor_pago numeric(10,2),
+    entrada timestamp with time zone,
     CONSTRAINT logs_veiculos_tipo_operacao_check CHECK (((tipo_operacao)::text = ANY (ARRAY[('entrada'::character varying)::text, ('saida'::character varying)::text, ('reserva'::character varying)::text, ('cancelamento'::character varying)::text])))
 );
 
@@ -755,7 +881,43 @@ CREATE TABLE public.logs_veiculos (
 ALTER TABLE public.logs_veiculos OWNER TO postgres;
 
 --
--- TOC entry 231 (class 1259 OID 17782)
+-- TOC entry 5147 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: COLUMN logs_veiculos.saida; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.logs_veiculos.saida IS 'Data/hora de saÃ­da do veÃ­culo';
+
+
+--
+-- TOC entry 5148 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: COLUMN logs_veiculos.tempo_estacionado; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.logs_veiculos.tempo_estacionado IS 'Tempo estacionado em segundos';
+
+
+--
+-- TOC entry 5149 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: COLUMN logs_veiculos.valor_pago; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.logs_veiculos.valor_pago IS 'Valor pago pelo estacionamento';
+
+
+--
+-- TOC entry 5150 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: COLUMN logs_veiculos.entrada; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.logs_veiculos.entrada IS 'Data/hora de entrada do veÃ­culo';
+
+
+--
+-- TOC entry 230 (class 1259 OID 52235)
 -- Name: logs_veiculos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -771,8 +933,8 @@ CREATE SEQUENCE public.logs_veiculos_id_seq
 ALTER SEQUENCE public.logs_veiculos_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5230 (class 0 OID 0)
--- Dependencies: 231
+-- TOC entry 5151 (class 0 OID 0)
+-- Dependencies: 230
 -- Name: logs_veiculos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -780,7 +942,7 @@ ALTER SEQUENCE public.logs_veiculos_id_seq OWNED BY public.logs_veiculos.id;
 
 
 --
--- TOC entry 248 (class 1259 OID 34430)
+-- TOC entry 231 (class 1259 OID 52236)
 -- Name: notificacoes; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -802,8 +964,8 @@ CREATE TABLE public.notificacoes (
 ALTER TABLE public.notificacoes OWNER TO postgres;
 
 --
--- TOC entry 5231 (class 0 OID 0)
--- Dependencies: 248
+-- TOC entry 5152 (class 0 OID 0)
+-- Dependencies: 231
 -- Name: TABLE notificacoes; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -811,8 +973,8 @@ COMMENT ON TABLE public.notificacoes IS 'Tabela para armazenar notificaÃ§Ãµe
 
 
 --
--- TOC entry 5232 (class 0 OID 0)
--- Dependencies: 248
+-- TOC entry 5153 (class 0 OID 0)
+-- Dependencies: 231
 -- Name: COLUMN notificacoes.usuario_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -820,8 +982,8 @@ COMMENT ON COLUMN public.notificacoes.usuario_id IS 'ID do usuÃ¡rio que recebe
 
 
 --
--- TOC entry 5233 (class 0 OID 0)
--- Dependencies: 248
+-- TOC entry 5154 (class 0 OID 0)
+-- Dependencies: 231
 -- Name: COLUMN notificacoes.tipo; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -829,8 +991,8 @@ COMMENT ON COLUMN public.notificacoes.tipo IS 'Tipo da notificaÃ§Ã£o (pix_co
 
 
 --
--- TOC entry 5234 (class 0 OID 0)
--- Dependencies: 248
+-- TOC entry 5155 (class 0 OID 0)
+-- Dependencies: 231
 -- Name: COLUMN notificacoes.titulo; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -838,8 +1000,8 @@ COMMENT ON COLUMN public.notificacoes.titulo IS 'TÃ­tulo da notificaÃ§Ã£o'
 
 
 --
--- TOC entry 5235 (class 0 OID 0)
--- Dependencies: 248
+-- TOC entry 5156 (class 0 OID 0)
+-- Dependencies: 231
 -- Name: COLUMN notificacoes.mensagem; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -847,8 +1009,8 @@ COMMENT ON COLUMN public.notificacoes.mensagem IS 'Mensagem/corpo da notificaÃ�
 
 
 --
--- TOC entry 5236 (class 0 OID 0)
--- Dependencies: 248
+-- TOC entry 5157 (class 0 OID 0)
+-- Dependencies: 231
 -- Name: COLUMN notificacoes.dados; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -856,8 +1018,8 @@ COMMENT ON COLUMN public.notificacoes.dados IS 'Dados adicionais em formato JSON
 
 
 --
--- TOC entry 5237 (class 0 OID 0)
--- Dependencies: 248
+-- TOC entry 5158 (class 0 OID 0)
+-- Dependencies: 231
 -- Name: COLUMN notificacoes.lida; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -865,8 +1027,8 @@ COMMENT ON COLUMN public.notificacoes.lida IS 'Se a notificaÃ§Ã£o foi lida o
 
 
 --
--- TOC entry 5238 (class 0 OID 0)
--- Dependencies: 248
+-- TOC entry 5159 (class 0 OID 0)
+-- Dependencies: 231
 -- Name: COLUMN notificacoes.data_criacao; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -874,8 +1036,8 @@ COMMENT ON COLUMN public.notificacoes.data_criacao IS 'Data e hora de criaÃ§Ã
 
 
 --
--- TOC entry 5239 (class 0 OID 0)
--- Dependencies: 248
+-- TOC entry 5160 (class 0 OID 0)
+-- Dependencies: 231
 -- Name: COLUMN notificacoes.data_leitura; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -883,7 +1045,7 @@ COMMENT ON COLUMN public.notificacoes.data_leitura IS 'Data e hora em que a noti
 
 
 --
--- TOC entry 247 (class 1259 OID 34429)
+-- TOC entry 232 (class 1259 OID 52245)
 -- Name: notificacoes_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -899,8 +1061,8 @@ CREATE SEQUENCE public.notificacoes_id_seq
 ALTER SEQUENCE public.notificacoes_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5240 (class 0 OID 0)
--- Dependencies: 247
+-- TOC entry 5161 (class 0 OID 0)
+-- Dependencies: 232
 -- Name: notificacoes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -908,7 +1070,7 @@ ALTER SEQUENCE public.notificacoes_id_seq OWNED BY public.notificacoes.id;
 
 
 --
--- TOC entry 232 (class 1259 OID 17783)
+-- TOC entry 233 (class 1259 OID 52246)
 -- Name: pagamentos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -925,7 +1087,7 @@ CREATE TABLE public.pagamentos (
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at timestamp without time zone,
-    gateway character varying(50) DEFAULT 'pagarme'::character varying NOT NULL,
+    gateway character varying(50) DEFAULT 'asaas'::character varying NOT NULL,
     parcelas integer DEFAULT 1,
     status public.pagamento_status NOT NULL
 );
@@ -934,8 +1096,8 @@ CREATE TABLE public.pagamentos (
 ALTER TABLE public.pagamentos OWNER TO postgres;
 
 --
--- TOC entry 5241 (class 0 OID 0)
--- Dependencies: 232
+-- TOC entry 5162 (class 0 OID 0)
+-- Dependencies: 233
 -- Name: COLUMN pagamentos.metodo_pagamento; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -943,8 +1105,8 @@ COMMENT ON COLUMN public.pagamentos.metodo_pagamento IS 'MÃ©todo de pagamento 
 
 
 --
--- TOC entry 5242 (class 0 OID 0)
--- Dependencies: 232
+-- TOC entry 5163 (class 0 OID 0)
+-- Dependencies: 233
 -- Name: COLUMN pagamentos.codigo_transacao; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -952,8 +1114,8 @@ COMMENT ON COLUMN public.pagamentos.codigo_transacao IS 'CÃ³digo da transaÃ§
 
 
 --
--- TOC entry 5243 (class 0 OID 0)
--- Dependencies: 232
+-- TOC entry 5164 (class 0 OID 0)
+-- Dependencies: 233
 -- Name: COLUMN pagamentos.dados_retorno; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -961,8 +1123,8 @@ COMMENT ON COLUMN public.pagamentos.dados_retorno IS 'Dados adicionais retornado
 
 
 --
--- TOC entry 5244 (class 0 OID 0)
--- Dependencies: 232
+-- TOC entry 5165 (class 0 OID 0)
+-- Dependencies: 233
 -- Name: COLUMN pagamentos.data_pagamento; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -970,8 +1132,8 @@ COMMENT ON COLUMN public.pagamentos.data_pagamento IS 'Data em que o pagamento f
 
 
 --
--- TOC entry 5245 (class 0 OID 0)
--- Dependencies: 232
+-- TOC entry 5166 (class 0 OID 0)
+-- Dependencies: 233
 -- Name: COLUMN pagamentos.gateway; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -979,8 +1141,8 @@ COMMENT ON COLUMN public.pagamentos.gateway IS 'Nome do gateway de pagamento usa
 
 
 --
--- TOC entry 5246 (class 0 OID 0)
--- Dependencies: 232
+-- TOC entry 5167 (class 0 OID 0)
+-- Dependencies: 233
 -- Name: COLUMN pagamentos.parcelas; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -988,7 +1150,7 @@ COMMENT ON COLUMN public.pagamentos.parcelas IS 'NÃºmero de parcelas do pagame
 
 
 --
--- TOC entry 233 (class 1259 OID 17792)
+-- TOC entry 234 (class 1259 OID 52255)
 -- Name: pagamentos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1004,8 +1166,8 @@ CREATE SEQUENCE public.pagamentos_id_seq
 ALTER SEQUENCE public.pagamentos_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5247 (class 0 OID 0)
--- Dependencies: 233
+-- TOC entry 5168 (class 0 OID 0)
+-- Dependencies: 234
 -- Name: pagamentos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -1013,7 +1175,7 @@ ALTER SEQUENCE public.pagamentos_id_seq OWNED BY public.pagamentos.id;
 
 
 --
--- TOC entry 234 (class 1259 OID 17793)
+-- TOC entry 235 (class 1259 OID 52256)
 -- Name: pagamentos_pix; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1040,7 +1202,7 @@ CREATE TABLE public.pagamentos_pix (
 ALTER TABLE public.pagamentos_pix OWNER TO postgres;
 
 --
--- TOC entry 235 (class 1259 OID 17801)
+-- TOC entry 236 (class 1259 OID 52264)
 -- Name: pagamentos_pix_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1056,8 +1218,8 @@ CREATE SEQUENCE public.pagamentos_pix_id_seq
 ALTER SEQUENCE public.pagamentos_pix_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5248 (class 0 OID 0)
--- Dependencies: 235
+-- TOC entry 5169 (class 0 OID 0)
+-- Dependencies: 236
 -- Name: pagamentos_pix_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -1065,7 +1227,7 @@ ALTER SEQUENCE public.pagamentos_pix_id_seq OWNED BY public.pagamentos_pix.id;
 
 
 --
--- TOC entry 236 (class 1259 OID 17802)
+-- TOC entry 237 (class 1259 OID 52265)
 -- Name: reservas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1089,14 +1251,14 @@ CREATE TABLE public.reservas (
     placa_veiculo character varying(10) NOT NULL,
     data_criacao timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     id_pagamento character varying(100),
-    CONSTRAINT reservas_status_check CHECK (((status)::text = ANY ((ARRAY['pendente'::character varying, 'pendente_pagamento'::character varying, 'confirmada'::character varying, 'ativa'::character varying, 'em_andamento'::character varying, 'concluida'::character varying, 'finalizada'::character varying, 'cancelada'::character varying, 'expirada'::character varying, 'nao_compareceu'::character varying, 'pagamento_aprovado'::character varying, 'pagamento_recusado'::character varying])::text[])))
+    CONSTRAINT reservas_status_check CHECK (((status)::text = ANY (ARRAY[('pendente'::character varying)::text, ('pendente_pagamento'::character varying)::text, ('confirmada'::character varying)::text, ('ativa'::character varying)::text, ('em_andamento'::character varying)::text, ('concluida'::character varying)::text, ('finalizada'::character varying)::text, ('cancelada'::character varying)::text, ('expirada'::character varying)::text, ('nao_compareceu'::character varying)::text, ('pagamento_aprovado'::character varying)::text, ('pagamento_recusado'::character varying)::text])))
 );
 
 
 ALTER TABLE public.reservas OWNER TO postgres;
 
 --
--- TOC entry 237 (class 1259 OID 17813)
+-- TOC entry 238 (class 1259 OID 52274)
 -- Name: reservas_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1112,8 +1274,8 @@ CREATE SEQUENCE public.reservas_id_seq
 ALTER SEQUENCE public.reservas_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5249 (class 0 OID 0)
--- Dependencies: 237
+-- TOC entry 5170 (class 0 OID 0)
+-- Dependencies: 238
 -- Name: reservas_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -1121,7 +1283,7 @@ ALTER SEQUENCE public.reservas_id_seq OWNED BY public.reservas.id;
 
 
 --
--- TOC entry 238 (class 1259 OID 17814)
+-- TOC entry 239 (class 1259 OID 52275)
 -- Name: solicitacoes_estacionamento; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1149,7 +1311,7 @@ CREATE TABLE public.solicitacoes_estacionamento (
 ALTER TABLE public.solicitacoes_estacionamento OWNER TO postgres;
 
 --
--- TOC entry 239 (class 1259 OID 17823)
+-- TOC entry 240 (class 1259 OID 52284)
 -- Name: solicitacoes_estacionamento_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1165,8 +1327,8 @@ CREATE SEQUENCE public.solicitacoes_estacionamento_id_seq
 ALTER SEQUENCE public.solicitacoes_estacionamento_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5250 (class 0 OID 0)
--- Dependencies: 239
+-- TOC entry 5171 (class 0 OID 0)
+-- Dependencies: 240
 -- Name: solicitacoes_estacionamento_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -1174,7 +1336,7 @@ ALTER SEQUENCE public.solicitacoes_estacionamento_id_seq OWNED BY public.solicit
 
 
 --
--- TOC entry 240 (class 1259 OID 17824)
+-- TOC entry 241 (class 1259 OID 52285)
 -- Name: tipos_veiculos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1189,7 +1351,7 @@ CREATE TABLE public.tipos_veiculos (
 ALTER TABLE public.tipos_veiculos OWNER TO postgres;
 
 --
--- TOC entry 241 (class 1259 OID 17830)
+-- TOC entry 242 (class 1259 OID 52291)
 -- Name: tipos_veiculos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1205,8 +1367,8 @@ CREATE SEQUENCE public.tipos_veiculos_id_seq
 ALTER SEQUENCE public.tipos_veiculos_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5251 (class 0 OID 0)
--- Dependencies: 241
+-- TOC entry 5172 (class 0 OID 0)
+-- Dependencies: 242
 -- Name: tipos_veiculos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -1214,7 +1376,7 @@ ALTER SEQUENCE public.tipos_veiculos_id_seq OWNED BY public.tipos_veiculos.id;
 
 
 --
--- TOC entry 217 (class 1259 OID 17543)
+-- TOC entry 243 (class 1259 OID 52292)
 -- Name: usuarios; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1242,8 +1404,8 @@ CREATE TABLE public.usuarios (
 ALTER TABLE public.usuarios OWNER TO postgres;
 
 --
--- TOC entry 5252 (class 0 OID 0)
--- Dependencies: 217
+-- TOC entry 5173 (class 0 OID 0)
+-- Dependencies: 243
 -- Name: COLUMN usuarios.tipo_veiculo; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -1251,8 +1413,8 @@ COMMENT ON COLUMN public.usuarios.tipo_veiculo IS 'Tipo de veículo do usuário 
 
 
 --
--- TOC entry 5253 (class 0 OID 0)
--- Dependencies: 217
+-- TOC entry 5174 (class 0 OID 0)
+-- Dependencies: 243
 -- Name: COLUMN usuarios.placa_veiculo; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -1260,8 +1422,8 @@ COMMENT ON COLUMN public.usuarios.placa_veiculo IS 'Placa do veículo do usuári
 
 
 --
--- TOC entry 5254 (class 0 OID 0)
--- Dependencies: 217
+-- TOC entry 5175 (class 0 OID 0)
+-- Dependencies: 243
 -- Name: COLUMN usuarios.refresh_token_hash; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -1269,8 +1431,8 @@ COMMENT ON COLUMN public.usuarios.refresh_token_hash IS 'Hash do refresh token J
 
 
 --
--- TOC entry 5255 (class 0 OID 0)
--- Dependencies: 217
+-- TOC entry 5176 (class 0 OID 0)
+-- Dependencies: 243
 -- Name: COLUMN usuarios.foto_perfil; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -1278,7 +1440,7 @@ COMMENT ON COLUMN public.usuarios.foto_perfil IS 'URL da foto de perfil do usuá
 
 
 --
--- TOC entry 242 (class 1259 OID 17831)
+-- TOC entry 244 (class 1259 OID 52300)
 -- Name: usuarios_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1294,8 +1456,8 @@ CREATE SEQUENCE public.usuarios_id_seq
 ALTER SEQUENCE public.usuarios_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5256 (class 0 OID 0)
--- Dependencies: 242
+-- TOC entry 5177 (class 0 OID 0)
+-- Dependencies: 244
 -- Name: usuarios_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -1303,7 +1465,7 @@ ALTER SEQUENCE public.usuarios_id_seq OWNED BY public.usuarios.id;
 
 
 --
--- TOC entry 218 (class 1259 OID 17552)
+-- TOC entry 245 (class 1259 OID 52301)
 -- Name: vagas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1327,7 +1489,7 @@ CREATE TABLE public.vagas (
 ALTER TABLE public.vagas OWNER TO postgres;
 
 --
--- TOC entry 243 (class 1259 OID 17832)
+-- TOC entry 246 (class 1259 OID 52309)
 -- Name: vagas_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1343,8 +1505,8 @@ CREATE SEQUENCE public.vagas_id_seq
 ALTER SEQUENCE public.vagas_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5257 (class 0 OID 0)
--- Dependencies: 243
+-- TOC entry 5178 (class 0 OID 0)
+-- Dependencies: 246
 -- Name: vagas_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -1352,7 +1514,7 @@ ALTER SEQUENCE public.vagas_id_seq OWNED BY public.vagas.id;
 
 
 --
--- TOC entry 246 (class 1259 OID 18015)
+-- TOC entry 247 (class 1259 OID 52310)
 -- Name: veiculos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1370,7 +1532,7 @@ CREATE TABLE public.veiculos (
 ALTER TABLE public.veiculos OWNER TO postgres;
 
 --
--- TOC entry 245 (class 1259 OID 18014)
+-- TOC entry 248 (class 1259 OID 52316)
 -- Name: veiculos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1386,8 +1548,8 @@ CREATE SEQUENCE public.veiculos_id_seq
 ALTER SEQUENCE public.veiculos_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5258 (class 0 OID 0)
--- Dependencies: 245
+-- TOC entry 5179 (class 0 OID 0)
+-- Dependencies: 248
 -- Name: veiculos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -1395,7 +1557,7 @@ ALTER SEQUENCE public.veiculos_id_seq OWNED BY public.veiculos.id;
 
 
 --
--- TOC entry 4846 (class 2604 OID 18033)
+-- TOC entry 4736 (class 2604 OID 52317)
 -- Name: admins id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1403,7 +1565,7 @@ ALTER TABLE ONLY public.admins ALTER COLUMN id SET DEFAULT nextval('public.admin
 
 
 --
--- TOC entry 4851 (class 2604 OID 18034)
+-- TOC entry 4747 (class 2604 OID 52318)
 -- Name: estacionamento_pagamentos id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1411,7 +1573,7 @@ ALTER TABLE ONLY public.estacionamento_pagamentos ALTER COLUMN id SET DEFAULT ne
 
 
 --
--- TOC entry 4855 (class 2604 OID 18035)
+-- TOC entry 4741 (class 2604 OID 52319)
 -- Name: estacionamentos id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1419,7 +1581,7 @@ ALTER TABLE ONLY public.estacionamentos ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
--- TOC entry 4861 (class 2604 OID 18036)
+-- TOC entry 4751 (class 2604 OID 52320)
 -- Name: horarios_funcionamento id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1427,7 +1589,7 @@ ALTER TABLE ONLY public.horarios_funcionamento ALTER COLUMN id SET DEFAULT nextv
 
 
 --
--- TOC entry 4865 (class 2604 OID 18037)
+-- TOC entry 4755 (class 2604 OID 52321)
 -- Name: logs_admins id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1435,7 +1597,7 @@ ALTER TABLE ONLY public.logs_admins ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
--- TOC entry 4867 (class 2604 OID 18038)
+-- TOC entry 4757 (class 2604 OID 52322)
 -- Name: logs_veiculos id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1443,7 +1605,7 @@ ALTER TABLE ONLY public.logs_veiculos ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
--- TOC entry 4895 (class 2604 OID 34433)
+-- TOC entry 4760 (class 2604 OID 52323)
 -- Name: notificacoes id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1451,7 +1613,7 @@ ALTER TABLE ONLY public.notificacoes ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
--- TOC entry 4869 (class 2604 OID 18039)
+-- TOC entry 4765 (class 2604 OID 52324)
 -- Name: pagamentos id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1459,7 +1621,7 @@ ALTER TABLE ONLY public.pagamentos ALTER COLUMN id SET DEFAULT nextval('public.p
 
 
 --
--- TOC entry 4874 (class 2604 OID 18040)
+-- TOC entry 4770 (class 2604 OID 52325)
 -- Name: pagamentos_pix id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1467,7 +1629,7 @@ ALTER TABLE ONLY public.pagamentos_pix ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
--- TOC entry 4878 (class 2604 OID 18041)
+-- TOC entry 4774 (class 2604 OID 52326)
 -- Name: reservas id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1475,7 +1637,7 @@ ALTER TABLE ONLY public.reservas ALTER COLUMN id SET DEFAULT nextval('public.res
 
 
 --
--- TOC entry 4884 (class 2604 OID 18042)
+-- TOC entry 4780 (class 2604 OID 52327)
 -- Name: solicitacoes_estacionamento id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1483,7 +1645,7 @@ ALTER TABLE ONLY public.solicitacoes_estacionamento ALTER COLUMN id SET DEFAULT 
 
 
 --
--- TOC entry 4889 (class 2604 OID 18043)
+-- TOC entry 4785 (class 2604 OID 52328)
 -- Name: tipos_veiculos id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1491,7 +1653,7 @@ ALTER TABLE ONLY public.tipos_veiculos ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
--- TOC entry 4837 (class 2604 OID 18044)
+-- TOC entry 4787 (class 2604 OID 52329)
 -- Name: usuarios id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1499,7 +1661,7 @@ ALTER TABLE ONLY public.usuarios ALTER COLUMN id SET DEFAULT nextval('public.usu
 
 
 --
--- TOC entry 4841 (class 2604 OID 18045)
+-- TOC entry 4791 (class 2604 OID 52330)
 -- Name: vagas id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1507,7 +1669,7 @@ ALTER TABLE ONLY public.vagas ALTER COLUMN id SET DEFAULT nextval('public.vagas_
 
 
 --
--- TOC entry 4891 (class 2604 OID 18018)
+-- TOC entry 4796 (class 2604 OID 52331)
 -- Name: veiculos id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1515,8 +1677,8 @@ ALTER TABLE ONLY public.veiculos ALTER COLUMN id SET DEFAULT nextval('public.vei
 
 
 --
--- TOC entry 5163 (class 0 OID 17725)
--- Dependencies: 219
+-- TOC entry 5066 (class 0 OID 52174)
+-- Dependencies: 217
 -- Data for Name: SequelizeMeta; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1526,18 +1688,18 @@ COPY public."SequelizeMeta" (name) FROM stdin;
 
 
 --
--- TOC entry 5164 (class 0 OID 17728)
--- Dependencies: 220
+-- TOC entry 5067 (class 0 OID 52177)
+-- Dependencies: 218
 -- Data for Name: admins; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.admins (id, nome, email, senha, nivel_acesso, status, ultimo_acesso, reset_token, reset_token_expires, created_at, updated_at, refresh_token_hash) FROM stdin;
-2	Alisson Santos	alimiguel1098@hotmail.com	$2b$12$98TYwC7hnBkCXhcZBEM0F.gw1aqzQjOlPBmk8wyUwr4caapQ4OoeC	estacionamento	ativo	\N	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03	$2b$10$XuGZMYP9Ciz2vV6EkjUHsu6F0eG6YDMBEzxtG4QYRDbtWjALafWAa
+COPY public.admins (id, nome, email, senha, nivel_acesso, status, ultimo_acesso, reset_token, reset_token_expires, created_at, updated_at, refresh_token_hash, telefone, cnpj) FROM stdin;
+1	Mateus Veneziani da Silva	alimiguel1098@hotmail.com	$2b$12$egfF9rs4ASyS3.6uU9OQYOrpnCmVYvYsCWmInxSXE/Ixj7kQdMO7i	estacionamento	ativo	\N	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03	$2b$10$hUBx35GekoJ11Qg15eiGweC6c12EI.Vi.s1qetMmY4IVr0yA80vDO	\N	19867505000186
 \.
 
 
 --
--- TOC entry 5166 (class 0 OID 17738)
+-- TOC entry 5070 (class 0 OID 52201)
 -- Dependencies: 222
 -- Data for Name: estacionamento_pagamentos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -1547,19 +1709,19 @@ COPY public.estacionamento_pagamentos (id, estacionamento_id, tipo_chave_pix, ch
 
 
 --
--- TOC entry 5168 (class 0 OID 17749)
--- Dependencies: 224
+-- TOC entry 5069 (class 0 OID 52187)
+-- Dependencies: 220
 -- Data for Name: estacionamentos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.estacionamentos (id, nome, cnpj, endereco, telefone, email, capacidade_total, vagas_disponiveis, valor_hora, valor_diaria, valor_mensal, horario_abertura, horario_fechamento, status, data_cadastro, latitude, longitude, vagas, preco_hora, preco_dia, descricao, foto, admin_id, chave_pix_cnpj, id_solicitacao, chave_pix, tipo_chave_pix, nome_titular_pix) FROM stdin;
-1	Silcar Estacionamento LTDA	19867505000186	Rua Major Oliveira Borges, 307 | Bairro: Centro | Lorena - SP | CEP: 12600-020	12991743827	alimiguel1098@hotmail.com	150	150	5.00	30.00	600.00	08:00:00	20:00:00	ativo	2025-10-28 21:54:54.828542-03	-22.73220327	-45.12032143	150	5.00	30.00	Estacionamento parceiro ParkNow	\N	2	\N	\N	19867505000186	cnpj	Silcar Estacionamento LTDA
+COPY public.estacionamentos (id, nome, cnpj, endereco, telefone, email, capacidade_total, vagas_disponiveis, valor_hora, valor_diaria, valor_mensal, horario_abertura, horario_fechamento, status, data_cadastro, latitude, longitude, vagas, preco_hora, preco_dia, descricao, foto, admin_id, chave_pix_cnpj, id_solicitacao, chave_pix, tipo_chave_pix, nome_titular_pix, asaas_wallet_id, asaas_connected_at, cep, logradouro, numero, complemento, bairro, cidade, uf, asaas_customer_id) FROM stdin;
+1	Silcar Estacionamento LTDA	19867505000186	Rua Major Oliveira Borges, 307 | Bairro: Centro | Lorena - SP | CEP: 12600-020		alimiguel1098@hotmail.com	50	50	5.00	30.00	600.00	08:00:00	20:00:00	ativo	2025-11-11 12:23:11.0702-03	-22.73208659	-45.12024105	50	5.00	30.00	Estacionamento parceiro ParkNow	\N	1	\N	\N	19867505000186	cnpj	Silcar Estacionamento LTDA	715a03eb-aef2-451e-a25c-ced035fc8e55	2025-11-11 14:42:18.542183-03	12600-020	Rua Major Oliveira Borges	307	\N	Centro	Lorena	SP	\N
 \.
 
 
 --
--- TOC entry 5170 (class 0 OID 17760)
--- Dependencies: 226
+-- TOC entry 5073 (class 0 OID 52213)
+-- Dependencies: 225
 -- Data for Name: horarios_funcionamento; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1575,30 +1737,31 @@ COPY public.horarios_funcionamento (id, estacionamento_id, dia_semana, aberto, h
 
 
 --
--- TOC entry 5172 (class 0 OID 17768)
--- Dependencies: 228
+-- TOC entry 5075 (class 0 OID 52221)
+-- Dependencies: 227
 -- Data for Name: logs_admins; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.logs_admins (id, admin_id, acao, tabela_afetada, registro_id, valores_antigos, valores_novos, ip_address, user_agent, created_at) FROM stdin;
 1	6	Ajustou vagas Est. 5 para 50 (Add: 0, Rem: 0)	\N	\N	\N	\N	::1	\N	2025-06-23 12:07:32.859619-03
 2	6	Ajustou vagas Est. 5 para 50 (Add: 0, Rem: 0)	\N	\N	\N	\N	::1	\N	2025-06-23 12:07:50.58655-03
+3	1	Registrou entrada Vaga 1 (KZT3530) Est. 1	\N	\N	\N	\N	::1	\N	2025-11-11 12:25:50.19135-03
 \.
 
 
 --
--- TOC entry 5174 (class 0 OID 17775)
--- Dependencies: 230
+-- TOC entry 5077 (class 0 OID 52228)
+-- Dependencies: 229
 -- Data for Name: logs_veiculos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.logs_veiculos (id, vaga_id, estacionamento_id, usuario_id, tipo_operacao, placa_veiculo, data_hora, detalhes) FROM stdin;
+COPY public.logs_veiculos (id, vaga_id, estacionamento_id, usuario_id, tipo_operacao, placa_veiculo, data_hora, detalhes, saida, tempo_estacionado, valor_pago, entrada) FROM stdin;
 \.
 
 
 --
--- TOC entry 5191 (class 0 OID 34430)
--- Dependencies: 248
+-- TOC entry 5079 (class 0 OID 52236)
+-- Dependencies: 231
 -- Data for Name: notificacoes; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1607,23 +1770,20 @@ COPY public.notificacoes (id, usuario_id, tipo, titulo, mensagem, dados, lida, d
 
 
 --
--- TOC entry 5176 (class 0 OID 17783)
--- Dependencies: 232
+-- TOC entry 5081 (class 0 OID 52246)
+-- Dependencies: 233
 -- Data for Name: pagamentos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.pagamentos (id, reserva_id, id_estacionamento, id_usuario, valor, metodo_pagamento, codigo_transacao, dados_retorno, data_pagamento, created_at, updated_at, deleted_at, gateway, parcelas, status) FROM stdin;
-15	41	1	5	NaN	pix	\N	{"txid": "PARKNOW1762302076900594", "valor": null, "qr_code": "data:image/png;base64,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", "chave_pix": "19867505000186", "descricao": "Estacionamento Silcar Estacionamento LTDA - Reserva #41", "expira_em": "2025-11-05T00:51:17.075Z", "reserva_id": 41, "data_criacao": "2025-11-05T00:21:17.079Z", "nome_titular": "Silcar Estacionamento LTDA", "qr_code_text": "00020126360014BR.GOV.BCB.PIX0114198675050001865204000053039865403NaN5802BR5926Silcar Estacionamento LTDA6009SAO PAULO62270523PARKNOW1762302076900594630495E3", "tipo_chave_pix": "cnpj", "valor_pagamento": null, "metodo_pagamento": "pix", "status_pagamento": "pendente"}	\N	2025-11-04 21:21:16.706136	2025-11-04 21:21:16.706136	\N	pagarme	1	pendente
-16	42	1	5	NaN	pix	\N	{"txid": "PARKNOW176230298175050", "valor": null, "qr_code": "data:image/png;base64,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", "chave_pix": "19867505000186", "descricao": "Estacionamento Silcar Estacionamento LTDA - Reserva #42", "expira_em": "2025-11-05T01:06:21.880Z", "reserva_id": 42, "data_criacao": "2025-11-05T00:36:21.881Z", "nome_titular": "Silcar Estacionamento LTDA", "qr_code_text": "00020126360014BR.GOV.BCB.PIX0114198675050001865204000053039865403NaN5802BR5925SILCAR ESTACIONAMENTO LTD6009SAO PAULO62260522PARKNOW17623029817505063048FC4", "tipo_chave_pix": "cnpj", "valor_pagamento": null, "metodo_pagamento": "pix", "status_pagamento": "pendente"}	\N	2025-11-04 21:36:21.531054	2025-11-04 21:36:21.531054	\N	pagarme	1	pendente
-17	43	1	5	NaN	pix	\N	{"txid": "PARKNOW176230330215713", "valor": null, "qr_code": "data:image/png;base64,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", "chave_pix": "19867505000186", "descricao": "Estacionamento Silcar Estacionamento LTDA - Reserva #43", "expira_em": "2025-11-05T01:11:42.360Z", "reserva_id": 43, "data_criacao": "2025-11-05T00:41:42.366Z", "nome_titular": "Silcar Estacionamento LTDA", "qr_code_text": "00020126360014BR.GOV.BCB.PIX0114198675050001865204000053039865403NaN5802BR5925SILCAR ESTACIONAMENTO LTD6009SAO PAULO62260522PARKNOW17623033021571363046F1B", "tipo_chave_pix": "cnpj", "valor_pagamento": null, "metodo_pagamento": "pix", "status_pagamento": "pendente"}	\N	2025-11-04 21:41:41.945552	2025-11-04 21:41:41.945552	\N	pagarme	1	pendente
-18	44	1	5	NaN	pix	\N	{"txid": "PARKNOW1762303461818139", "valor": null, "qr_code": "data:image/png;base64,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", "chave_pix": "19867505000186", "descricao": "Estacionamento Silcar Estacionamento LTDA - Reserva #44", "expira_em": "2025-11-05T01:14:21.946Z", "reserva_id": 44, "data_criacao": "2025-11-05T00:44:21.947Z", "nome_titular": "Silcar Estacionamento LTDA", "qr_code_text": "00020126360014BR.GOV.BCB.PIX0114198675050001865204000053039865403NaN5802BR5925SILCAR ESTACIONAMENTO LTD6009SAO PAULO62270523PARKNOW17623034618181396304188B", "tipo_chave_pix": "cnpj", "valor_pagamento": null, "metodo_pagamento": "pix", "status_pagamento": "pendente"}	\N	2025-11-04 21:44:21.668816	2025-11-04 21:44:21.668816	\N	pagarme	1	pendente
-19	45	1	5	NaN	pix	\N	{"txid": "PARKNOW1762303585646513", "valor": null, "qr_code": "data:image/png;base64,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", "chave_pix": "19867505000186", "descricao": "Estacionamento Silcar Estacionamento LTDA - Reserva #45", "expira_em": "2025-11-05T01:16:25.779Z", "reserva_id": 45, "data_criacao": "2025-11-05T00:46:25.780Z", "nome_titular": "Silcar Estacionamento LTDA", "qr_code_text": "00020126360014BR.GOV.BCB.PIX0114198675050001865204000053039865403NaN5802BR5925SILCAR ESTACIONAMENTO LTD6009SAO PAULO62270523PARKNOW17623035856465136304C038", "tipo_chave_pix": "cnpj", "valor_pagamento": null, "metodo_pagamento": "pix", "status_pagamento": "pendente"}	\N	2025-11-04 21:46:25.49158	2025-11-04 21:46:25.49158	\N	pagarme	1	pendente
+1	2	1	1	10.00	pix	\N	{"payment_id": "8b222c46-3c02-456c-a6c7-27b04108b4e1", "reserva_id": 2, "data_criacao": "2025-11-11T17:47:06.608Z", "valor_pagamento": 10, "metodo_pagamento": "pix", "status_pagamento": "pendente", "comissao_plataforma": 1.5, "valor_estacionamento": 8.5}	\N	2025-11-11 14:47:06.609854	2025-11-11 14:47:06.609854	\N	asaas	1	pendente
+2	3	1	1	10.00	pix	\N	{"payment_id": "277d2242-b206-45d9-97dc-a8ba49acf49b", "reserva_id": 3, "data_criacao": "2025-11-11T17:50:33.884Z", "valor_pagamento": 10, "metodo_pagamento": "pix", "status_pagamento": "pendente", "comissao_plataforma": 1.5, "valor_estacionamento": 8.5}	\N	2025-11-11 14:50:33.897301	2025-11-11 14:50:33.897301	\N	asaas	1	pendente
 \.
 
 
 --
--- TOC entry 5178 (class 0 OID 17793)
--- Dependencies: 234
+-- TOC entry 5083 (class 0 OID 52256)
+-- Dependencies: 235
 -- Data for Name: pagamentos_pix; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1632,23 +1792,20 @@ COPY public.pagamentos_pix (id, id_reserva, id_estacionamento, id_usuario, valor
 
 
 --
--- TOC entry 5180 (class 0 OID 17802)
--- Dependencies: 236
+-- TOC entry 5085 (class 0 OID 52265)
+-- Dependencies: 237
 -- Data for Name: reservas; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.reservas (id, usuario_id, vaga_id, estacionamento_id, data_reserva, data_entrada_prevista, data_saida_prevista, data_entrada_real, data_saida_real, status, valor_total, forma_pagamento, status_pagamento, codigo_reserva, created_at, updated_at, placa_veiculo, data_criacao, id_pagamento) FROM stdin;
-41	5	15	1	2025-11-04 21:21:16.71	2025-11-05 00:31:00	2025-11-05 01:31:00	\N	\N	cancelada	10.00	\N	pendente	\N	2025-11-04 21:21:16.71	2025-11-04 21:31:46.928838	KZT2530	2025-11-04 21:21:16.706136	15
-42	5	11	1	2025-11-04 21:36:21.533	2025-11-05 00:46:00	2025-11-05 01:46:00	\N	\N	cancelada	10.00	\N	pendente	\N	2025-11-04 21:36:21.533	2025-11-04 21:41:30.790214	KZT2530	2025-11-04 21:36:21.531054	16
-43	5	11	1	2025-11-04 21:41:41.938	2025-11-05 00:51:00	2025-11-05 01:51:00	\N	\N	cancelada	10.00	\N	pendente	\N	2025-11-04 21:41:41.938	2025-11-04 21:44:12.52844	KZT2530	2025-11-04 21:41:41.945552	17
-44	5	11	1	2025-11-04 21:44:21.672	2025-11-05 00:54:00	2025-11-05 01:54:00	\N	\N	cancelada	10.00	\N	pendente	\N	2025-11-04 21:44:21.672	2025-11-04 21:46:13.878183	KZT2530	2025-11-04 21:44:21.668816	18
-45	5	13	1	2025-11-04 21:46:25.495	2025-11-05 00:56:00	2025-11-05 01:56:00	\N	\N	pendente	10.00	\N	pendente	\N	2025-11-04 21:46:25.495	2025-11-04 21:46:25.49158	KZT2530	2025-11-04 21:46:25.49158	19
+2	1	15	1	2025-11-11 14:47:06.038	2025-11-11 17:56:00	2025-11-11 18:56:00	\N	\N	cancelada	10.00	\N	pendente	\N	2025-11-11 14:47:06.038663	2025-11-11 14:47:44.744158	KZT4590	2025-11-11 14:47:06.038663	\N
+3	1	11	1	2025-11-11 14:50:33.543	2025-11-11 18:00:00	2025-11-11 19:00:00	\N	\N	cancelada	10.00	\N	pendente	\N	2025-11-11 14:50:33.552694	2025-11-11 15:05:54.275211	KZT4590	2025-11-11 14:50:33.552694	\N
 \.
 
 
 --
--- TOC entry 5182 (class 0 OID 17814)
--- Dependencies: 238
+-- TOC entry 5087 (class 0 OID 52275)
+-- Dependencies: 239
 -- Data for Name: solicitacoes_estacionamento; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1657,8 +1814,8 @@ COPY public.solicitacoes_estacionamento (id, usuario_id, cnpj, razao_social, nom
 
 
 --
--- TOC entry 5184 (class 0 OID 17824)
--- Dependencies: 240
+-- TOC entry 5089 (class 0 OID 52285)
+-- Dependencies: 241
 -- Data for Name: tipos_veiculos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1667,198 +1824,98 @@ COPY public.tipos_veiculos (id, nome, descricao, fator_preco) FROM stdin;
 
 
 --
--- TOC entry 5161 (class 0 OID 17543)
--- Dependencies: 217
+-- TOC entry 5091 (class 0 OID 52292)
+-- Dependencies: 243
 -- Data for Name: usuarios; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.usuarios (id, nome, email, cpf, telefone, senha, tipo_usuario, status, data_cadastro, ultimo_acesso, reset_token, reset_token_expires, email_verified_at, tipo_veiculo, placa_veiculo, refresh_token_hash, foto_perfil) FROM stdin;
-5	Alisson Santos	alimiguel1098@gmail.com	48977085837	12991743827	$argon2id$v=19$m=65536,t=3,p=4$V6NS4iNjirnnnnooo6xKag$p1Ne/W0YH7EyXb0ew6JZ5pOxOIQwzXRWVQcLFYu5Ev4	cliente	ativo	2025-10-28 20:47:42.621263	\N	\N	\N	\N	Carro	KZT2530	$2b$10$aiGa.i1KJ4mMXI6qx.Ebcu1YbVYSi8ncbJwNdFWQeszIC4wSYJTQO	\N
+1	Alisson Santos	alimiguel1098@gmail.com	489.770.858-37	12991743827	$argon2id$v=19$m=65536,t=3,p=4$SsBgvHt40bxb688XZn4iUg$3JNmd8wFkKatFppnnCGwKzj+D1XTCvD3zuazOktB69M	cliente	ativo	2025-11-11 13:08:27.863295	\N	\N	\N	\N	Carro	KZT4590	$2b$10$4/3v5CI2Jxvu8M7/HfTf8uOf8UskRg33ryuMvZKOPJVGq0mHjjnvC	\N
 \.
 
 
 --
--- TOC entry 5162 (class 0 OID 17552)
--- Dependencies: 218
+-- TOC entry 5093 (class 0 OID 52301)
+-- Dependencies: 245
 -- Data for Name: vagas; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.vagas (id, numero, estacionamento_id, status, placa, tipo_veiculo, entrada, tempo_estacionado, usuario_id, reserva_id_ativa, created_at, updated_at) FROM stdin;
-1	1	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-2	2	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-3	3	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-4	4	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-5	5	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-6	6	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-7	7	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-8	8	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-9	9	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-10	10	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-12	12	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-13	13	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-14	14	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-16	16	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-17	17	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-18	18	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-19	19	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-20	20	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-21	21	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-22	22	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-23	23	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-24	24	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-25	25	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-26	26	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-27	27	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-28	28	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-29	29	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-30	30	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-31	31	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-32	32	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-33	33	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-34	34	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-35	35	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-36	36	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-37	37	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-38	38	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-39	39	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-40	40	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-41	41	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-42	42	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-43	43	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-44	44	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-45	45	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-46	46	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-47	47	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-48	48	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-49	49	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-50	50	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-51	51	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-52	52	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-53	53	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-54	54	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-55	55	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-56	56	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-57	57	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-58	58	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-59	59	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-60	60	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-61	61	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-62	62	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-63	63	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-64	64	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-65	65	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-66	66	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-67	67	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-68	68	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-69	69	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-70	70	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-71	71	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-72	72	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-73	73	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-74	74	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-75	75	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-76	76	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-77	77	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-78	78	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-79	79	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-80	80	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-81	81	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-82	82	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-83	83	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-84	84	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-85	85	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-86	86	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-87	87	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-88	88	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-89	89	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-90	90	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-91	91	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-92	92	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-93	93	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-94	94	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-95	95	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-96	96	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-97	97	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-11	11	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-11-04 21:46:13.878183-03
-98	98	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-99	99	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-100	100	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-101	101	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-102	102	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-103	103	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-104	104	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-105	105	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-106	106	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-107	107	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-108	108	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-109	109	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-110	110	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-111	111	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-112	112	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-113	113	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-114	114	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-115	115	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-116	116	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-117	117	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-118	118	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-119	119	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-120	120	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-121	121	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-122	122	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-123	123	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-124	124	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-125	125	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-126	126	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-127	127	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-128	128	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-129	129	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-130	130	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-131	131	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-132	132	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-133	133	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-134	134	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-135	135	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-136	136	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-137	137	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-138	138	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-139	139	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-140	140	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-141	141	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-142	142	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-143	143	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-144	144	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-145	145	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-146	146	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-147	147	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-148	148	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-149	149	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-150	150	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-10-28 21:54:54.828542-03
-15	15	1	livre	\N	padrao	\N	0	\N	\N	2025-10-28 21:54:54.828542-03	2025-11-04 21:31:46.928838-03
+2	2	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+3	3	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+4	4	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+5	5	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+6	6	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+7	7	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+8	8	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+9	9	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+10	10	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+12	12	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+13	13	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+14	14	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+16	16	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+17	17	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+18	18	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+19	19	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+20	20	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+21	21	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+22	22	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+23	23	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+24	24	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+25	25	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+26	26	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+27	27	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+28	28	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+29	29	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+30	30	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 12:23:11.0702-03
+51	31	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+52	32	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+53	33	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+54	34	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+55	35	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+56	36	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+57	37	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+58	38	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+59	39	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+60	40	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+61	41	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+62	42	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+63	43	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+64	44	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+65	45	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+66	46	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+67	47	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+68	48	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+69	49	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+70	50	1	livre	\N	\N	\N	0	\N	\N	2025-11-11 12:25:07.885255-03	2025-11-11 12:25:07.885255-03
+11	11	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 15:05:54.275211-03
+1	1	1	ocupada	KZT3530	Carro	2025-11-11 12:25:50.119146	10450	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 15:20:00.085821-03
+15	15	1	livre	\N	padrao	\N	0	\N	\N	2025-11-11 12:23:11.0702-03	2025-11-11 14:47:46.14279-03
 \.
 
 
 --
--- TOC entry 5189 (class 0 OID 18015)
--- Dependencies: 246
+-- TOC entry 5095 (class 0 OID 52310)
+-- Dependencies: 247
 -- Data for Name: veiculos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.veiculos (id, usuario_id, tipo_veiculo, placa_veiculo, padrao, data_cadastro, data_atualizacao) FROM stdin;
-2	5	Carro	KZT2530	t	2025-10-29 20:30:25.701188-03	2025-10-29 20:30:25.701188-03
+3	1	Carro	KZT4590	t	2025-11-11 13:08:27.863295-03	2025-11-11 13:08:27.863295-03
 \.
 
 
 --
--- TOC entry 5259 (class 0 OID 0)
--- Dependencies: 221
+-- TOC entry 5180 (class 0 OID 0)
+-- Dependencies: 219
 -- Name: admins_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.admins_id_seq', 2, true);
+SELECT pg_catalog.setval('public.admins_id_seq', 1, true);
 
 
 --
--- TOC entry 5260 (class 0 OID 0)
+-- TOC entry 5181 (class 0 OID 0)
 -- Dependencies: 223
 -- Name: estacionamento_pagamentos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -1867,8 +1924,8 @@ SELECT pg_catalog.setval('public.estacionamento_pagamentos_id_seq', 1, false);
 
 
 --
--- TOC entry 5261 (class 0 OID 0)
--- Dependencies: 225
+-- TOC entry 5182 (class 0 OID 0)
+-- Dependencies: 224
 -- Name: estacionamentos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1876,8 +1933,8 @@ SELECT pg_catalog.setval('public.estacionamentos_id_seq', 1, true);
 
 
 --
--- TOC entry 5262 (class 0 OID 0)
--- Dependencies: 227
+-- TOC entry 5183 (class 0 OID 0)
+-- Dependencies: 226
 -- Name: horarios_funcionamento_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1885,17 +1942,17 @@ SELECT pg_catalog.setval('public.horarios_funcionamento_id_seq', 7, true);
 
 
 --
--- TOC entry 5263 (class 0 OID 0)
--- Dependencies: 229
+-- TOC entry 5184 (class 0 OID 0)
+-- Dependencies: 228
 -- Name: logs_admins_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.logs_admins_id_seq', 1, false);
+SELECT pg_catalog.setval('public.logs_admins_id_seq', 3, true);
 
 
 --
--- TOC entry 5264 (class 0 OID 0)
--- Dependencies: 231
+-- TOC entry 5185 (class 0 OID 0)
+-- Dependencies: 230
 -- Name: logs_veiculos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1903,8 +1960,8 @@ SELECT pg_catalog.setval('public.logs_veiculos_id_seq', 1, false);
 
 
 --
--- TOC entry 5265 (class 0 OID 0)
--- Dependencies: 247
+-- TOC entry 5186 (class 0 OID 0)
+-- Dependencies: 232
 -- Name: notificacoes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1912,17 +1969,17 @@ SELECT pg_catalog.setval('public.notificacoes_id_seq', 1, false);
 
 
 --
--- TOC entry 5266 (class 0 OID 0)
--- Dependencies: 233
+-- TOC entry 5187 (class 0 OID 0)
+-- Dependencies: 234
 -- Name: pagamentos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.pagamentos_id_seq', 19, true);
+SELECT pg_catalog.setval('public.pagamentos_id_seq', 2, true);
 
 
 --
--- TOC entry 5267 (class 0 OID 0)
--- Dependencies: 235
+-- TOC entry 5188 (class 0 OID 0)
+-- Dependencies: 236
 -- Name: pagamentos_pix_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1930,17 +1987,17 @@ SELECT pg_catalog.setval('public.pagamentos_pix_id_seq', 1, false);
 
 
 --
--- TOC entry 5268 (class 0 OID 0)
--- Dependencies: 237
+-- TOC entry 5189 (class 0 OID 0)
+-- Dependencies: 238
 -- Name: reservas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.reservas_id_seq', 45, true);
+SELECT pg_catalog.setval('public.reservas_id_seq', 3, true);
 
 
 --
--- TOC entry 5269 (class 0 OID 0)
--- Dependencies: 239
+-- TOC entry 5190 (class 0 OID 0)
+-- Dependencies: 240
 -- Name: solicitacoes_estacionamento_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1948,8 +2005,8 @@ SELECT pg_catalog.setval('public.solicitacoes_estacionamento_id_seq', 1, false);
 
 
 --
--- TOC entry 5270 (class 0 OID 0)
--- Dependencies: 241
+-- TOC entry 5191 (class 0 OID 0)
+-- Dependencies: 242
 -- Name: tipos_veiculos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1957,34 +2014,34 @@ SELECT pg_catalog.setval('public.tipos_veiculos_id_seq', 1, false);
 
 
 --
--- TOC entry 5271 (class 0 OID 0)
--- Dependencies: 242
+-- TOC entry 5192 (class 0 OID 0)
+-- Dependencies: 244
 -- Name: usuarios_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.usuarios_id_seq', 5, true);
+SELECT pg_catalog.setval('public.usuarios_id_seq', 1, true);
 
 
 --
--- TOC entry 5272 (class 0 OID 0)
--- Dependencies: 243
+-- TOC entry 5193 (class 0 OID 0)
+-- Dependencies: 246
 -- Name: vagas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.vagas_id_seq', 150, true);
+SELECT pg_catalog.setval('public.vagas_id_seq', 70, true);
 
 
 --
--- TOC entry 5273 (class 0 OID 0)
--- Dependencies: 245
+-- TOC entry 5194 (class 0 OID 0)
+-- Dependencies: 248
 -- Name: veiculos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.veiculos_id_seq', 2, true);
+SELECT pg_catalog.setval('public.veiculos_id_seq', 3, true);
 
 
 --
--- TOC entry 4918 (class 2606 OID 17847)
+-- TOC entry 4807 (class 2606 OID 52338)
 -- Name: SequelizeMeta SequelizeMeta_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1993,7 +2050,7 @@ ALTER TABLE ONLY public."SequelizeMeta"
 
 
 --
--- TOC entry 4920 (class 2606 OID 17849)
+-- TOC entry 4809 (class 2606 OID 52340)
 -- Name: admins admins_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2002,7 +2059,7 @@ ALTER TABLE ONLY public.admins
 
 
 --
--- TOC entry 4922 (class 2606 OID 17851)
+-- TOC entry 4811 (class 2606 OID 52342)
 -- Name: admins admins_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2011,7 +2068,7 @@ ALTER TABLE ONLY public.admins
 
 
 --
--- TOC entry 4925 (class 2606 OID 17853)
+-- TOC entry 4822 (class 2606 OID 52344)
 -- Name: estacionamento_pagamentos estacionamento_pagamentos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2020,7 +2077,7 @@ ALTER TABLE ONLY public.estacionamento_pagamentos
 
 
 --
--- TOC entry 4931 (class 2606 OID 17855)
+-- TOC entry 4815 (class 2606 OID 52346)
 -- Name: estacionamentos estacionamentos_cnpj_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2029,7 +2086,7 @@ ALTER TABLE ONLY public.estacionamentos
 
 
 --
--- TOC entry 4933 (class 2606 OID 17857)
+-- TOC entry 4817 (class 2606 OID 52348)
 -- Name: estacionamentos estacionamentos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2038,7 +2095,7 @@ ALTER TABLE ONLY public.estacionamentos
 
 
 --
--- TOC entry 4936 (class 2606 OID 17859)
+-- TOC entry 4828 (class 2606 OID 52350)
 -- Name: horarios_funcionamento horarios_funcionamento_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2047,7 +2104,7 @@ ALTER TABLE ONLY public.horarios_funcionamento
 
 
 --
--- TOC entry 4941 (class 2606 OID 17861)
+-- TOC entry 4833 (class 2606 OID 52352)
 -- Name: logs_admins logs_admins_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2056,7 +2113,7 @@ ALTER TABLE ONLY public.logs_admins
 
 
 --
--- TOC entry 4944 (class 2606 OID 17863)
+-- TOC entry 4838 (class 2606 OID 52354)
 -- Name: logs_veiculos logs_veiculos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2065,7 +2122,7 @@ ALTER TABLE ONLY public.logs_veiculos
 
 
 --
--- TOC entry 4985 (class 2606 OID 34441)
+-- TOC entry 4844 (class 2606 OID 52356)
 -- Name: notificacoes notificacoes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2074,7 +2131,7 @@ ALTER TABLE ONLY public.notificacoes
 
 
 --
--- TOC entry 4949 (class 2606 OID 17865)
+-- TOC entry 4849 (class 2606 OID 52358)
 -- Name: pagamentos pagamentos_codigo_transacao_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2083,7 +2140,7 @@ ALTER TABLE ONLY public.pagamentos
 
 
 --
--- TOC entry 4956 (class 2606 OID 17867)
+-- TOC entry 4856 (class 2606 OID 52360)
 -- Name: pagamentos_pix pagamentos_pix_codigo_copia_cola_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2092,7 +2149,7 @@ ALTER TABLE ONLY public.pagamentos_pix
 
 
 --
--- TOC entry 4958 (class 2606 OID 17869)
+-- TOC entry 4858 (class 2606 OID 52362)
 -- Name: pagamentos_pix pagamentos_pix_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2101,7 +2158,7 @@ ALTER TABLE ONLY public.pagamentos_pix
 
 
 --
--- TOC entry 4951 (class 2606 OID 17871)
+-- TOC entry 4851 (class 2606 OID 52364)
 -- Name: pagamentos pagamentos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2110,7 +2167,7 @@ ALTER TABLE ONLY public.pagamentos
 
 
 --
--- TOC entry 4964 (class 2606 OID 17873)
+-- TOC entry 4864 (class 2606 OID 52366)
 -- Name: reservas reservas_codigo_reserva_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2119,7 +2176,7 @@ ALTER TABLE ONLY public.reservas
 
 
 --
--- TOC entry 4966 (class 2606 OID 17875)
+-- TOC entry 4866 (class 2606 OID 52368)
 -- Name: reservas reservas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2128,7 +2185,7 @@ ALTER TABLE ONLY public.reservas
 
 
 --
--- TOC entry 4970 (class 2606 OID 17877)
+-- TOC entry 4870 (class 2606 OID 52370)
 -- Name: solicitacoes_estacionamento solicitacoes_estacionamento_cnpj_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2137,7 +2194,7 @@ ALTER TABLE ONLY public.solicitacoes_estacionamento
 
 
 --
--- TOC entry 4972 (class 2606 OID 17879)
+-- TOC entry 4872 (class 2606 OID 52372)
 -- Name: solicitacoes_estacionamento solicitacoes_estacionamento_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2146,7 +2203,7 @@ ALTER TABLE ONLY public.solicitacoes_estacionamento
 
 
 --
--- TOC entry 4974 (class 2606 OID 17881)
+-- TOC entry 4874 (class 2606 OID 52374)
 -- Name: tipos_veiculos tipos_veiculos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2155,7 +2212,7 @@ ALTER TABLE ONLY public.tipos_veiculos
 
 
 --
--- TOC entry 4929 (class 2606 OID 17883)
+-- TOC entry 4826 (class 2606 OID 52376)
 -- Name: estacionamento_pagamentos uk_estacionamento_pagamento; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2164,7 +2221,7 @@ ALTER TABLE ONLY public.estacionamento_pagamentos
 
 
 --
--- TOC entry 4938 (class 2606 OID 17885)
+-- TOC entry 4830 (class 2606 OID 52378)
 -- Name: horarios_funcionamento unq_estacionamento_dia; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2173,7 +2230,7 @@ ALTER TABLE ONLY public.horarios_funcionamento
 
 
 --
--- TOC entry 4907 (class 2606 OID 17887)
+-- TOC entry 4876 (class 2606 OID 52380)
 -- Name: usuarios usuarios_cpf_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2182,7 +2239,7 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
--- TOC entry 4909 (class 2606 OID 17889)
+-- TOC entry 4878 (class 2606 OID 52382)
 -- Name: usuarios usuarios_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2191,7 +2248,7 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
--- TOC entry 4911 (class 2606 OID 17590)
+-- TOC entry 4880 (class 2606 OID 52384)
 -- Name: usuarios usuarios_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2200,7 +2257,7 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
--- TOC entry 4914 (class 2606 OID 17891)
+-- TOC entry 4883 (class 2606 OID 52386)
 -- Name: vagas vagas_estacionamento_id_numero_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2209,7 +2266,7 @@ ALTER TABLE ONLY public.vagas
 
 
 --
--- TOC entry 4916 (class 2606 OID 17594)
+-- TOC entry 4885 (class 2606 OID 52388)
 -- Name: vagas vagas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2218,7 +2275,7 @@ ALTER TABLE ONLY public.vagas
 
 
 --
--- TOC entry 4977 (class 2606 OID 18023)
+-- TOC entry 4888 (class 2606 OID 52390)
 -- Name: veiculos veiculos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2227,7 +2284,7 @@ ALTER TABLE ONLY public.veiculos
 
 
 --
--- TOC entry 4979 (class 2606 OID 18025)
+-- TOC entry 4890 (class 2606 OID 52392)
 -- Name: veiculos veiculos_usuario_id_placa_veiculo_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2236,7 +2293,15 @@ ALTER TABLE ONLY public.veiculos
 
 
 --
--- TOC entry 4923 (class 1259 OID 17892)
+-- TOC entry 4812 (class 1259 OID 52534)
+-- Name: idx_admins_cnpj; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_admins_cnpj ON public.admins USING btree (cnpj);
+
+
+--
+-- TOC entry 4813 (class 1259 OID 52393)
 -- Name: idx_admins_refresh_token; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2244,7 +2309,7 @@ CREATE INDEX idx_admins_refresh_token ON public.admins USING btree (refresh_toke
 
 
 --
--- TOC entry 4926 (class 1259 OID 17893)
+-- TOC entry 4823 (class 1259 OID 52394)
 -- Name: idx_estacionamento_pagamentos_chave_pix; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2252,7 +2317,7 @@ CREATE INDEX idx_estacionamento_pagamentos_chave_pix ON public.estacionamento_pa
 
 
 --
--- TOC entry 4927 (class 1259 OID 17894)
+-- TOC entry 4824 (class 1259 OID 52395)
 -- Name: idx_estacionamento_pagamentos_estacionamento_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2260,7 +2325,15 @@ CREATE INDEX idx_estacionamento_pagamentos_estacionamento_id ON public.estaciona
 
 
 --
--- TOC entry 4934 (class 1259 OID 17895)
+-- TOC entry 4818 (class 1259 OID 52532)
+-- Name: idx_estacionamentos_asaas_wallet; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_estacionamentos_asaas_wallet ON public.estacionamentos USING btree (asaas_wallet_id);
+
+
+--
+-- TOC entry 4819 (class 1259 OID 52396)
 -- Name: idx_estacionamentos_chave_pix; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2268,7 +2341,15 @@ CREATE INDEX idx_estacionamentos_chave_pix ON public.estacionamentos USING btree
 
 
 --
--- TOC entry 4939 (class 1259 OID 17896)
+-- TOC entry 4820 (class 1259 OID 52533)
+-- Name: idx_estacionamentos_cnpj; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_estacionamentos_cnpj ON public.estacionamentos USING btree (cnpj);
+
+
+--
+-- TOC entry 4831 (class 1259 OID 52397)
 -- Name: idx_logs_admins_created; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2276,7 +2357,7 @@ CREATE INDEX idx_logs_admins_created ON public.logs_admins USING btree (created_
 
 
 --
--- TOC entry 4942 (class 1259 OID 17897)
+-- TOC entry 4834 (class 1259 OID 52398)
 -- Name: idx_logs_veiculos_data; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2284,7 +2365,23 @@ CREATE INDEX idx_logs_veiculos_data ON public.logs_veiculos USING btree (data_ho
 
 
 --
--- TOC entry 4980 (class 1259 OID 34449)
+-- TOC entry 4835 (class 1259 OID 52542)
+-- Name: idx_logs_veiculos_saida_null; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_logs_veiculos_saida_null ON public.logs_veiculos USING btree (vaga_id, entrada DESC) WHERE (saida IS NULL);
+
+
+--
+-- TOC entry 4836 (class 1259 OID 52543)
+-- Name: idx_logs_veiculos_vaga; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_logs_veiculos_vaga ON public.logs_veiculos USING btree (vaga_id, entrada DESC);
+
+
+--
+-- TOC entry 4839 (class 1259 OID 52399)
 -- Name: idx_notificacoes_data_criacao; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2292,7 +2389,7 @@ CREATE INDEX idx_notificacoes_data_criacao ON public.notificacoes USING btree (d
 
 
 --
--- TOC entry 4981 (class 1259 OID 34448)
+-- TOC entry 4840 (class 1259 OID 52400)
 -- Name: idx_notificacoes_lida; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2300,7 +2397,7 @@ CREATE INDEX idx_notificacoes_lida ON public.notificacoes USING btree (lida);
 
 
 --
--- TOC entry 4982 (class 1259 OID 34450)
+-- TOC entry 4841 (class 1259 OID 52401)
 -- Name: idx_notificacoes_tipo; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2308,7 +2405,7 @@ CREATE INDEX idx_notificacoes_tipo ON public.notificacoes USING btree (tipo);
 
 
 --
--- TOC entry 4983 (class 1259 OID 34447)
+-- TOC entry 4842 (class 1259 OID 52402)
 -- Name: idx_notificacoes_usuario_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2316,7 +2413,7 @@ CREATE INDEX idx_notificacoes_usuario_id ON public.notificacoes USING btree (usu
 
 
 --
--- TOC entry 4945 (class 1259 OID 17898)
+-- TOC entry 4845 (class 1259 OID 52403)
 -- Name: idx_pagamentos_id_estacionamento; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2324,7 +2421,7 @@ CREATE INDEX idx_pagamentos_id_estacionamento ON public.pagamentos USING btree (
 
 
 --
--- TOC entry 4946 (class 1259 OID 17899)
+-- TOC entry 4846 (class 1259 OID 52404)
 -- Name: idx_pagamentos_id_reserva; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2332,7 +2429,7 @@ CREATE INDEX idx_pagamentos_id_reserva ON public.pagamentos USING btree (reserva
 
 
 --
--- TOC entry 4947 (class 1259 OID 17900)
+-- TOC entry 4847 (class 1259 OID 52405)
 -- Name: idx_pagamentos_id_usuario; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2340,7 +2437,7 @@ CREATE INDEX idx_pagamentos_id_usuario ON public.pagamentos USING btree (id_usua
 
 
 --
--- TOC entry 4952 (class 1259 OID 17901)
+-- TOC entry 4852 (class 1259 OID 52406)
 -- Name: idx_pagamentos_pix_estacionamento; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2348,7 +2445,7 @@ CREATE INDEX idx_pagamentos_pix_estacionamento ON public.pagamentos_pix USING bt
 
 
 --
--- TOC entry 4953 (class 1259 OID 17902)
+-- TOC entry 4853 (class 1259 OID 52407)
 -- Name: idx_pagamentos_pix_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2356,7 +2453,7 @@ CREATE INDEX idx_pagamentos_pix_status ON public.pagamentos_pix USING btree (sta
 
 
 --
--- TOC entry 4954 (class 1259 OID 17903)
+-- TOC entry 4854 (class 1259 OID 52408)
 -- Name: idx_pagamentos_pix_usuario; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2364,7 +2461,7 @@ CREATE INDEX idx_pagamentos_pix_usuario ON public.pagamentos_pix USING btree (id
 
 
 --
--- TOC entry 4959 (class 1259 OID 17904)
+-- TOC entry 4859 (class 1259 OID 52409)
 -- Name: idx_reservas_estacionamento; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2372,7 +2469,7 @@ CREATE INDEX idx_reservas_estacionamento ON public.reservas USING btree (estacio
 
 
 --
--- TOC entry 4960 (class 1259 OID 18032)
+-- TOC entry 4860 (class 1259 OID 52410)
 -- Name: idx_reservas_id_pagamento; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2380,7 +2477,7 @@ CREATE INDEX idx_reservas_id_pagamento ON public.reservas USING btree (id_pagame
 
 
 --
--- TOC entry 4961 (class 1259 OID 17905)
+-- TOC entry 4861 (class 1259 OID 52411)
 -- Name: idx_reservas_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2388,7 +2485,7 @@ CREATE INDEX idx_reservas_status ON public.reservas USING btree (status);
 
 
 --
--- TOC entry 4962 (class 1259 OID 17906)
+-- TOC entry 4862 (class 1259 OID 52412)
 -- Name: idx_reservas_usuario; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2396,7 +2493,7 @@ CREATE INDEX idx_reservas_usuario ON public.reservas USING btree (usuario_id);
 
 
 --
--- TOC entry 4967 (class 1259 OID 17907)
+-- TOC entry 4867 (class 1259 OID 52413)
 -- Name: idx_solicitacoes_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2404,7 +2501,7 @@ CREATE INDEX idx_solicitacoes_status ON public.solicitacoes_estacionamento USING
 
 
 --
--- TOC entry 4968 (class 1259 OID 17908)
+-- TOC entry 4868 (class 1259 OID 52414)
 -- Name: idx_solicitacoes_usuario; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2412,7 +2509,7 @@ CREATE INDEX idx_solicitacoes_usuario ON public.solicitacoes_estacionamento USIN
 
 
 --
--- TOC entry 4912 (class 1259 OID 17909)
+-- TOC entry 4881 (class 1259 OID 52415)
 -- Name: idx_vagas_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2420,7 +2517,7 @@ CREATE INDEX idx_vagas_status ON public.vagas USING btree (estacionamento_id, st
 
 
 --
--- TOC entry 4975 (class 1259 OID 18031)
+-- TOC entry 4886 (class 1259 OID 52416)
 -- Name: idx_veiculos_usuario_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2428,7 +2525,7 @@ CREATE INDEX idx_veiculos_usuario_id ON public.veiculos USING btree (usuario_id)
 
 
 --
--- TOC entry 5009 (class 2620 OID 34419)
+-- TOC entry 4912 (class 2620 OID 52417)
 -- Name: admins prevent_duplicate_email_admins; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -2436,7 +2533,7 @@ CREATE TRIGGER prevent_duplicate_email_admins BEFORE INSERT OR UPDATE OF email O
 
 
 --
--- TOC entry 5007 (class 2620 OID 34418)
+-- TOC entry 4918 (class 2620 OID 52418)
 -- Name: usuarios prevent_duplicate_email_usuarios; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -2444,7 +2541,7 @@ CREATE TRIGGER prevent_duplicate_email_usuarios BEFORE INSERT OR UPDATE OF email
 
 
 --
--- TOC entry 5010 (class 2620 OID 17910)
+-- TOC entry 4913 (class 2620 OID 52419)
 -- Name: estacionamento_pagamentos tr_estacionamento_pagamentos_atualizacao; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -2452,7 +2549,7 @@ CREATE TRIGGER tr_estacionamento_pagamentos_atualizacao BEFORE UPDATE ON public.
 
 
 --
--- TOC entry 5011 (class 2620 OID 17911)
+-- TOC entry 4914 (class 2620 OID 52420)
 -- Name: estacionamento_pagamentos tr_limpar_chave_pix; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -2460,7 +2557,7 @@ CREATE TRIGGER tr_limpar_chave_pix BEFORE DELETE ON public.estacionamento_pagame
 
 
 --
--- TOC entry 5012 (class 2620 OID 17912)
+-- TOC entry 4915 (class 2620 OID 52421)
 -- Name: estacionamento_pagamentos tr_sincronizar_chave_pix_ins; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -2468,7 +2565,7 @@ CREATE TRIGGER tr_sincronizar_chave_pix_ins AFTER INSERT ON public.estacionament
 
 
 --
--- TOC entry 5013 (class 2620 OID 17913)
+-- TOC entry 4916 (class 2620 OID 52422)
 -- Name: estacionamento_pagamentos tr_sincronizar_chave_pix_upd; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -2476,7 +2573,7 @@ CREATE TRIGGER tr_sincronizar_chave_pix_upd AFTER UPDATE OF chave_pix ON public.
 
 
 --
--- TOC entry 5014 (class 2620 OID 17914)
+-- TOC entry 4917 (class 2620 OID 52423)
 -- Name: horarios_funcionamento update_horarios_funcionamento_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -2484,7 +2581,7 @@ CREATE TRIGGER update_horarios_funcionamento_updated_at BEFORE UPDATE ON public.
 
 
 --
--- TOC entry 5008 (class 2620 OID 17915)
+-- TOC entry 4919 (class 2620 OID 52424)
 -- Name: vagas update_vagas_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -2492,7 +2589,7 @@ CREATE TRIGGER update_vagas_updated_at BEFORE UPDATE ON public.vagas FOR EACH RO
 
 
 --
--- TOC entry 4988 (class 2606 OID 17916)
+-- TOC entry 4891 (class 2606 OID 52425)
 -- Name: estacionamentos estacionamentos_id_solicitacao_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2501,7 +2598,7 @@ ALTER TABLE ONLY public.estacionamentos
 
 
 --
--- TOC entry 4987 (class 2606 OID 17921)
+-- TOC entry 4893 (class 2606 OID 52430)
 -- Name: estacionamento_pagamentos fk_estacionamento; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2510,7 +2607,7 @@ ALTER TABLE ONLY public.estacionamento_pagamentos
 
 
 --
--- TOC entry 4989 (class 2606 OID 17926)
+-- TOC entry 4892 (class 2606 OID 52435)
 -- Name: estacionamentos fk_estacionamentos_admins; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2519,7 +2616,7 @@ ALTER TABLE ONLY public.estacionamentos
 
 
 --
--- TOC entry 4994 (class 2606 OID 18071)
+-- TOC entry 4899 (class 2606 OID 52440)
 -- Name: pagamentos fk_reserva; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2528,7 +2625,7 @@ ALTER TABLE ONLY public.pagamentos
 
 
 --
--- TOC entry 4990 (class 2606 OID 17936)
+-- TOC entry 4894 (class 2606 OID 52445)
 -- Name: horarios_funcionamento horarios_funcionamento_estacionamento_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2537,7 +2634,7 @@ ALTER TABLE ONLY public.horarios_funcionamento
 
 
 --
--- TOC entry 4991 (class 2606 OID 17941)
+-- TOC entry 4895 (class 2606 OID 52450)
 -- Name: logs_veiculos logs_veiculos_estacionamento_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2546,7 +2643,7 @@ ALTER TABLE ONLY public.logs_veiculos
 
 
 --
--- TOC entry 4992 (class 2606 OID 17946)
+-- TOC entry 4896 (class 2606 OID 52455)
 -- Name: logs_veiculos logs_veiculos_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2555,7 +2652,7 @@ ALTER TABLE ONLY public.logs_veiculos
 
 
 --
--- TOC entry 4993 (class 2606 OID 17951)
+-- TOC entry 4897 (class 2606 OID 52460)
 -- Name: logs_veiculos logs_veiculos_vaga_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2564,7 +2661,7 @@ ALTER TABLE ONLY public.logs_veiculos
 
 
 --
--- TOC entry 5006 (class 2606 OID 34442)
+-- TOC entry 4898 (class 2606 OID 52465)
 -- Name: notificacoes notificacoes_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2573,7 +2670,7 @@ ALTER TABLE ONLY public.notificacoes
 
 
 --
--- TOC entry 4995 (class 2606 OID 17956)
+-- TOC entry 4900 (class 2606 OID 52470)
 -- Name: pagamentos pagamentos_id_estacionamento_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2582,7 +2679,7 @@ ALTER TABLE ONLY public.pagamentos
 
 
 --
--- TOC entry 4996 (class 2606 OID 17961)
+-- TOC entry 4901 (class 2606 OID 52475)
 -- Name: pagamentos pagamentos_id_reserva_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2591,7 +2688,7 @@ ALTER TABLE ONLY public.pagamentos
 
 
 --
--- TOC entry 4997 (class 2606 OID 17966)
+-- TOC entry 4902 (class 2606 OID 52480)
 -- Name: pagamentos pagamentos_id_usuario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2600,7 +2697,7 @@ ALTER TABLE ONLY public.pagamentos
 
 
 --
--- TOC entry 4998 (class 2606 OID 17971)
+-- TOC entry 4903 (class 2606 OID 52485)
 -- Name: pagamentos_pix pagamentos_pix_id_estacionamento_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2609,7 +2706,7 @@ ALTER TABLE ONLY public.pagamentos_pix
 
 
 --
--- TOC entry 4999 (class 2606 OID 17976)
+-- TOC entry 4904 (class 2606 OID 52490)
 -- Name: pagamentos_pix pagamentos_pix_id_reserva_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2618,7 +2715,7 @@ ALTER TABLE ONLY public.pagamentos_pix
 
 
 --
--- TOC entry 5000 (class 2606 OID 17981)
+-- TOC entry 4905 (class 2606 OID 52495)
 -- Name: pagamentos_pix pagamentos_pix_id_usuario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2627,7 +2724,7 @@ ALTER TABLE ONLY public.pagamentos_pix
 
 
 --
--- TOC entry 5001 (class 2606 OID 18056)
+-- TOC entry 4906 (class 2606 OID 52500)
 -- Name: reservas reservas_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2636,7 +2733,7 @@ ALTER TABLE ONLY public.reservas
 
 
 --
--- TOC entry 5002 (class 2606 OID 18061)
+-- TOC entry 4907 (class 2606 OID 52505)
 -- Name: reservas reservas_vaga_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2645,7 +2742,7 @@ ALTER TABLE ONLY public.reservas
 
 
 --
--- TOC entry 5003 (class 2606 OID 17986)
+-- TOC entry 4908 (class 2606 OID 52510)
 -- Name: solicitacoes_estacionamento solicitacoes_estacionamento_aprovado_por_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2654,7 +2751,7 @@ ALTER TABLE ONLY public.solicitacoes_estacionamento
 
 
 --
--- TOC entry 5004 (class 2606 OID 17991)
+-- TOC entry 4909 (class 2606 OID 52515)
 -- Name: solicitacoes_estacionamento solicitacoes_estacionamento_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2663,7 +2760,7 @@ ALTER TABLE ONLY public.solicitacoes_estacionamento
 
 
 --
--- TOC entry 4986 (class 2606 OID 18001)
+-- TOC entry 4910 (class 2606 OID 52520)
 -- Name: vagas vagas_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2672,7 +2769,7 @@ ALTER TABLE ONLY public.vagas
 
 
 --
--- TOC entry 5005 (class 2606 OID 18026)
+-- TOC entry 4911 (class 2606 OID 52525)
 -- Name: veiculos veiculos_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2680,9 +2777,11 @@ ALTER TABLE ONLY public.veiculos
     ADD CONSTRAINT veiculos_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
 
 
--- Completed on 2025-11-04 21:52:31
+-- Completed on 2025-11-11 15:23:51
 
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict gnydz5qIcvLaEb5h3ywbcUFOfdEKb8mlHjauF0tZwdAf1AoelmpoMXvApiYnDPN
 
