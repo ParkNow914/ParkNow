@@ -159,6 +159,10 @@ app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.
 app.get('/reset-password/:token', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'reset-password.html')); });
 app.get('/admin_home/admin-home.html', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'admin_home', 'admin-home.html')); });
 
+// Rotas de retorno do pagamento ASAAS
+app.get('/pagamento-sucesso.html', (req, res) => { res.sendFile(path.join(__dirname, 'views', 'pagamento-sucesso.html')); });
+app.get('/pagamento-cancelado.html', (req, res) => { res.sendFile(path.join(__dirname, 'views', 'pagamento-cancelado.html')); });
+
 // --- Tratamento de Erros (Último) ---
 app.use(errorHandler);
 
