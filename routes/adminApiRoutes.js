@@ -135,7 +135,10 @@ router.get('/splits/transacoes/:id', [
 // GET /api/admin/splits/exportar - Exportar relatório CSV
 router.get('/splits/exportar', adminSplitsController.exportarRelatorio);
 
-module.exports = router;
+// --- Rotas de Conexão ASAAS ---
+// Rotas para gerenciar a conexão de estacionamentos com ASAAS
+const estacionamentoAsaasRoutes = require('./estacionamentoAsaasRoutes');
+router.use('/estacionamentos', estacionamentoAsaasRoutes);
 
 // Exporta o roteador configurado
 module.exports = router;

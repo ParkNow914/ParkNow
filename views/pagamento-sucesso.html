@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento Confirmado - ParkNow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            animation: scaleIn 0.5s ease 0.2s both;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .success-icon svg {
+            width: 50px;
+            height: 50px;
+            stroke: white;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        h1 {
+            color: #1f2937;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .info-box {
+            background: #f3f4f6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: #1f2937;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f4f6;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #d1fae5;
+            color: #065f46;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">
+            <svg viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        </div>
+
+        <h1>Pagamento Confirmado! 🎉</h1>
+        <p class="subtitle">Sua reserva foi confirmada com sucesso</p>
+
+        <div class="info-box" id="infoBox">
+            <div class="info-item">
+                <span class="info-label">Status:</span>
+                <span class="status-badge">Confirmado</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Reserva:</span>
+                <span class="info-value" id="reservaId">Carregando...</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Processamento:</span>
+                <span class="info-value">
+                    <span class="loading" id="loadingSpinner"></span>
+                    <span id="statusText">Verificando pagamento...</span>
+                </span>
+            </div>
+        </div>
+
+        <a href="/user/home.html" class="btn" id="btnVoltar">
+            Voltar para Minhas Reservas
+        </a>
+    </div>
+
+    <script>
+        // Extrair parâmetros da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const reservaId = urlParams.get('reserva');
+        
+        if (reservaId) {
+            document.getElementById('reservaId').textContent = `#${reservaId}`;
+            
+            // Verificar status do pagamento
+            verificarStatusPagamento(reservaId);
+        } else {
+            document.getElementById('reservaId').textContent = 'Não informada';
+            document.getElementById('statusText').textContent = 'Concluído';
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        async function verificarStatusPagamento(reservaId) {
+            try {
+                // Aguardar alguns segundos para o webhook processar
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                const token = localStorage.getItem('token');
+                
+                const response = await fetch(`/api/reservas/${reservaId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const reserva = data.reserva || data.data;
+                    
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    
+                    if (reserva.status_pagamento === 'pago') {
+                        document.getElementById('statusText').textContent = '✅ Pagamento Confirmado';
+                        document.getElementById('statusText').style.color = '#10b981';
+                    } else if (reserva.status_pagamento === 'pendente') {
+                        document.getElementById('statusText').textContent = '⏳ Processando...';
+                        document.getElementById('statusText').style.color = '#f59e0b';
+                        
+                        // Tentar novamente após 5 segundos
+                        setTimeout(() => verificarStatusPagamento(reservaId), 5000);
+                    } else {
+                        document.getElementById('statusText').textContent = `Status: ${reserva.status_pagamento}`;
+                    }
+                } else {
+                    throw new Error('Erro ao buscar reserva');
+                }
+            } catch (error) {
+                console.error('Erro ao verificar status:', error);
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('statusText').textContent = '✅ Concluído';
+                document.getElementById('statusText').style.color = '#10b981';
+            }
+        }
+
+        // Auto-redirecionar após 10 segundos
+        setTimeout(() => {
+            if (document.getElementById('statusText').textContent.includes('Confirmado')) {
+                window.location.href = '/user/home.html';
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

@@ -19,6 +19,8 @@ const logger = require('../utils/logger'); // Logger Winston
 const config = require('../config');
 const pool = require('../models/db'); // Para transação no registerAdmin
 const fs = require('fs'); // Adicionando o módulo fs que faltava
+const asaasMarketplaceService = require('../services/asaasMarketplaceService'); // Para conectar ao ASAAS
+const db = require('../config/db'); // Para queries diretas
 // Import desabilitado pois Redis foi removido
 // const { isRedisAvailable, blacklistToken, isTokenBlacklisted } = require('../utils/redisClient');
 
@@ -385,6 +387,49 @@ const registerAdmin = async (req, res, next) => {
 
         // Cria as vagas iniciais DENTRO da transação, passando a conexão
         await vagaModel.createInitialVagas(estId, parseInt(numeroVagas), connection);
+
+        // Conectar automaticamente ao ASAAS (criar subconta)
+        try {
+            logger.info(`Conectando estacionamento ${estId} ao ASAAS automaticamente...`);
+            
+            if (email && cnpj) {
+                // Criar subconta ASAAS
+                const subconta = await asaasMarketplaceService.criarSubconta({
+                    nome: nomeEstacionamento,
+                    email: email,
+                    cpfCnpj: cnpj,
+                    telefone: telefone || '11999999999'
+                });
+                
+                if (subconta.walletId) {
+                    // Atualizar estacionamento com wallet_id
+                    const updateQuery = `
+                        UPDATE estacionamentos
+                        SET asaas_wallet_id = $1, asaas_connected_at = NOW()
+                        WHERE id = $2
+                    `;
+                    await db.query(updateQuery, [subconta.walletId, estId]);
+                    
+                    logger.info(`✅ Estacionamento ${estId} conectado ao ASAAS automaticamente no registro`, {
+                        wallet_id: subconta.walletId,
+                        admin_id: adminId
+                    });
+                }
+            } else {
+                logger.warn(`⚠️ Registro sem CNPJ - estacionamento ${estId} não conectado ao ASAAS`, {
+                    estacionamento_id: estId,
+                    tem_email: !!email,
+                    tem_cnpj: !!cnpj
+                });
+            }
+        } catch (asaasError) {
+            // Não falhar o registro se der erro no ASAAS
+            logger.error('Erro ao conectar estacionamento ao ASAAS durante registro (continuando):', {
+                error: asaasError.message,
+                estacionamento_id: estId,
+                admin_id: adminId
+            });
+        }
 
         await client.query('COMMIT'); // Confirma a transação
 

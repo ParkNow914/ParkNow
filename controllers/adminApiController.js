@@ -13,6 +13,8 @@ const { AppError, NotFoundError, BadRequestError } = require('../utils/AppError'
 const cache = require('../utils/cache'); // Para invalidar cache se necessário
 // Services
 const socketService = require('../services/socketService'); // Para emitir eventos
+const asaasMarketplaceService = require('../services/asaasMarketplaceService'); // Para conectar ao ASAAS
+const db = require('../config/db'); // Para queries diretas
 
 // --- Helpers ---
 const getIp = (req) => req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || 'IP N/A';
@@ -218,6 +220,58 @@ const createEstacionamentoAdmin = async (req, res, next) => {
         const estData = { nome, endereco, latitude, longitude, foto: fotoFile ? fotoFile.filename : null, vagas: parseInt(numeroVagas), preco_hora: precoHora, preco_dia: precoDia, descricao, admin_id: adminId };
         const novoEstId = await estacionamentoModel.createEstacionamento(estData); // Usa pool
         await vagaModel.createInitialVagas(novoEstId, parseInt(numeroVagas), client); // Usa transaction
+        
+        // Conectar automaticamente ao ASAAS (criar subconta)
+        try {
+            logger.info(`Conectando estacionamento ${novoEstId} ao ASAAS...`);
+            
+            // Buscar dados do admin para criar subconta
+            const adminQuery = `
+                SELECT nome, email, cnpj, telefone 
+                FROM admins 
+                WHERE id = $1
+            `;
+            const adminResult = await db.query(adminQuery, [adminId]);
+            const admin = adminResult.rows[0];
+            
+            if (admin && admin.email && admin.cnpj) {
+                // Criar subconta ASAAS
+                const subconta = await asaasMarketplaceService.criarSubconta({
+                    nome: nome,
+                    email: admin.email,
+                    cpfCnpj: admin.cnpj,
+                    telefone: admin.telefone || '11999999999'
+                });
+                
+                if (subconta.walletId) {
+                    // Atualizar estacionamento com wallet_id
+                    const updateQuery = `
+                        UPDATE estacionamentos
+                        SET asaas_wallet_id = $1, asaas_connected_at = NOW()
+                        WHERE id = $2
+                    `;
+                    await db.query(updateQuery, [subconta.walletId, novoEstId]);
+                    
+                    logger.info(`✅ Estacionamento ${novoEstId} conectado ao ASAAS automaticamente`, {
+                        wallet_id: subconta.walletId
+                    });
+                }
+            } else {
+                logger.warn(`⚠️ Não foi possível conectar ao ASAAS: admin sem email ou CNPJ`, {
+                    estacionamento_id: novoEstId,
+                    admin_id: adminId,
+                    tem_email: !!admin?.email,
+                    tem_cnpj: !!admin?.cnpj
+                });
+            }
+        } catch (asaasError) {
+            // Não falhar a criação do estacionamento se der erro no ASAAS
+            logger.error('Erro ao conectar estacionamento ao ASAAS (continuando criação):', {
+                error: asaasError.message,
+                estacionamento_id: novoEstId
+            });
+        }
+        
         await client.query('COMMIT');
 
         cache.del('estacionamentos_list'); // Invalida cache
