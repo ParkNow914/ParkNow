@@ -319,7 +319,9 @@ const registerAdmin = async (req, res, next) => {
         numeroVagas, 
         precoHora, 
         precoDia, 
-        descricao 
+        descricao,
+        horarioAbertura,
+        horarioFechamento
     } = req.body;
     const fotoFile = req.file; // Do Multer (pode ser undefined)
     const ipAddress = req.ip || req.connection?.remoteAddress; // Pega IP
@@ -375,6 +377,8 @@ const registerAdmin = async (req, res, next) => {
             preco_hora: precoHora, 
             preco_dia: precoDia, 
             descricao, 
+            horario_abertura: horarioAbertura || '08:00:00',
+            horario_fechamento: horarioFechamento || '20:00:00',
             admin_id: adminId 
         };
         const estId = await estacionamentoModel.createEstacionamento(estData);

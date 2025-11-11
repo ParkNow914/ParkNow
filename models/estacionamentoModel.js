@@ -106,7 +106,9 @@ const createEstacionamento = async (estData) => {
         chave_pix, tipo_chave_pix, nome_titular_pix,
         // NOVOS CAMPOS DE ENDEREÇO COMPLETO
         cnpj, telefone, email,
-        cep, logradouro, numero, complemento, bairro, cidade, uf
+        cep, logradouro, numero, complemento, bairro, cidade, uf,
+        // HORÁRIOS DE FUNCIONAMENTO
+        horario_abertura, horario_fechamento
     } = estData;
 
     const sql = `
@@ -116,8 +118,10 @@ const createEstacionamento = async (estData) => {
             chave_pix, tipo_chave_pix, nome_titular_pix,
             cnpj, telefone, email,
             cep, logradouro, numero, complemento, bairro, cidade, uf,
+            horario_abertura, horario_fechamento,
+            capacidade_total, vagas_disponiveis, valor_hora, valor_diaria, valor_mensal,
             data_cadastro
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `;
 
     try {
@@ -128,6 +132,7 @@ const createEstacionamento = async (estData) => {
         const numVagas = (!isNaN(parseInt(vagas))) ? parseInt(vagas) : 0;
         const prHora = (!isNaN(parseFloat(preco_hora))) ? parseFloat(preco_hora) : 0.00;
         const prDia = (!isNaN(parseFloat(preco_dia))) ? parseFloat(preco_dia) : 0.00;
+        const valorMensal = prDia * 20; // Calcula mensal como 20 dias
         
         // Log para debug
         if (!lat || !lon) {
@@ -159,7 +164,16 @@ const createEstacionamento = async (estData) => {
                 complemento || null,
                 bairro || null,
                 cidade || null,
-                uf || null
+                uf || null,
+                // HORÁRIOS
+                horario_abertura || '08:00:00',
+                horario_fechamento || '20:00:00',
+                // CAMPOS CALCULADOS
+                numVagas, // capacidade_total
+                numVagas, // vagas_disponiveis
+                prHora,   // valor_hora
+                prDia,    // valor_diaria
+                valorMensal // valor_mensal
             ],
             type: QueryTypes.INSERT
         });
