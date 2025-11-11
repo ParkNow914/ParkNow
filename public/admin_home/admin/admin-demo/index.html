@@ -656,7 +656,48 @@
             } 
         }
         function atualizarSelectVagasOcupadas(list){ const s=document.getElementById('vagasOcupadasSelect'); s.innerHTML='<option value="">-- Selecione --</option>'; list.forEach(v=>{const o=document.createElement('option');o.value=v.id; o.text=`Vaga ${v.numero}${v.placa?` (${v.placa})`:''}`; s.add(o);}); }
-        function atualizarDisplayTemposEstacionados(list){ const d=document.getElementById('temposEstacionados'); d.innerHTML='<h3><i class="fas fa-history"></i> Veículos Estacionados</h3>'; if(list.length===0){d.innerHTML+='<p class="text-muted">Nenhum veículo.</p>';return;} list.forEach(v=>{const s=v.tempo_estacionado||0; const tF = formatarTempoLocal(s*1000); d.innerHTML+=`<p><strong>Vaga ${v.numero} ${v.placa?`(${v.placa})`:''}:</strong> ${tF}</p>`;});}
+        
+        // Armazena as vagas ocupadas para atualização em tempo real
+        let vagasOcupadasCache = [];
+        
+        function atualizarDisplayTemposEstacionados(list){ 
+            vagasOcupadasCache = list; // Armazena para atualização em tempo real
+            const d=document.getElementById('temposEstacionados'); 
+            d.innerHTML='<h3><i class="fas fa-history"></i> Veículos Estacionados</h3>'; 
+            if(list.length===0){
+                d.innerHTML+='<p class="text-muted">Nenhum veículo.</p>';
+                return;
+            } 
+            list.forEach(v=>{
+                // Calcula tempo em tempo real baseado na entrada
+                const entradaDate = v.entrada ? new Date(v.entrada) : null;
+                let tempoMs = 0;
+                if (entradaDate && !isNaN(entradaDate.getTime())) {
+                    tempoMs = Date.now() - entradaDate.getTime();
+                }
+                const tF = formatarTempoLocal(tempoMs); 
+                d.innerHTML+=`<p data-vaga-id="${v.id}"><strong>Vaga ${v.numero} ${v.placa?`(${v.placa})`:''}:</strong> <span class="tempo-real">${tF}</span></p>`;
+            });
+        }
+        
+        // Atualiza os tempos em tempo real a cada segundo
+        setInterval(() => {
+            if (vagasOcupadasCache && vagasOcupadasCache.length > 0) {
+                vagasOcupadasCache.forEach(v => {
+                    const entradaDate = v.entrada ? new Date(v.entrada) : null;
+                    if (entradaDate && !isNaN(entradaDate.getTime())) {
+                        const tempoMs = Date.now() - entradaDate.getTime();
+                        const tF = formatarTempoLocal(tempoMs);
+                        // Atualiza apenas o span do tempo
+                        const vagaEl = document.querySelector(`#temposEstacionados p[data-vaga-id="${v.id}"] .tempo-real`);
+                        if (vagaEl) {
+                            vagaEl.textContent = tF;
+                        }
+                    }
+                });
+            }
+        }, 1000); // Atualiza a cada 1 segundo
+        
         function formatarTempoLocal(ms){ if(isNaN(ms)||ms<0)return "00:00:00"; const s=Math.floor(ms/1000); const h=Math.floor(s/3600); const m=Math.floor((s%3600)/60); const sg=s%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sg).padStart(2,'0')}`; } // Helper local
         function atualizarPaginacao(){ const pUl=document.getElementById('pagination'); pUl.innerHTML=''; const nP=Math.ceil(todasAsVagas.length/VAGAS_POR_PAGINA); if(nP<=1)return; const cPI=(txt,pNum,dis=false,act=false,nav=false)=>{const li=document.createElement('li');li.className=`page-item ${dis?'disabled':''} ${act?'active':''}`; const a=document.createElement('a'); a.className='page-link'; a.href='#'; a.innerHTML=txt; if(!dis)a.onclick=(e)=>{e.preventDefault();mudarPagina(pNum);}; li.appendChild(a); return li;}; pUl.appendChild(cPI('«',paginaAtual-1,paginaAtual===1)); for(let i=1;i<=nP;i++)pUl.appendChild(cPI(i,i,false,i===paginaAtual)); pUl.appendChild(cPI('»',paginaAtual+1,paginaAtual===nP)); }
         function mudarPagina(p){ paginaAtual=p; exibirVagas(); atualizarPaginacao(); }
