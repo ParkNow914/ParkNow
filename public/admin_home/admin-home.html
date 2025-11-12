@@ -266,7 +266,10 @@
             </div>
           </div>
           
-          <!-- Campo de complemento removido conforme solicitado -->
+          <div class="form-group">
+            <label for="complementoEstacionamento">Complemento:</label>
+            <input type="text" class="form-control" id="complementoEstacionamento" name="complementoEstacionamento" placeholder="Apto, Sala, Bloco, etc (opcional)" autocomplete="off">
+          </div>
           
           <div class="form-row">
             <div class="form-group col-md-5">
@@ -419,32 +422,9 @@
                 </div>
             </div>
             
-            <!-- Horário de Funcionamento -->
-            <h3><i class="fas fa-clock mr-2"></i>Horário de Funcionamento</h3>
-            <div class="form-row">
-                <div class="form-group col-md-6">
-                    <label for="horarioAbertura">Horário de Abertura*:</label>
-                    <div class="input-group">
-                        <div class="input-group-prepend"><span class="input-group-text"><i class="far fa-clock fa-fw"></i></span></div>
-                        <input type="time" class="form-control" id="horarioAbertura" name="horarioAbertura" required>
-                        <div class="invalid-feedback">Horário de abertura é obrigatório.</div>
-                    </div>
-                    <small class="form-text text-muted">Horário que o estacionamento abre.</small>
-                </div>
-                <div class="form-group col-md-6">
-                    <label for="horarioFechamento">Horário de Fechamento*:</label>
-                    <div class="input-group">
-                        <div class="input-group-prepend"><span class="input-group-text"><i class="far fa-clock fa-fw"></i></span></div>
-                        <input type="time" class="form-control" id="horarioFechamento" name="horarioFechamento" required>
-                        <div class="invalid-feedback">Horário de fechamento é obrigatório.</div>
-                    </div>
-                    <small class="form-text text-muted">Horário que o estacionamento fecha.</small>
-                </div>
-            </div>
-            
             <button type="button" id="submitRegistration" class="btn-submit">
             <span class="spinner-border spinner-border-sm" style="display: none;"></span>
-            <i class="fas fa-paper-plane mr-1"></i> Enviar Solicitação
+            <i class="fas fa-paper-plane mr-1"></i> Criar Conta
           </button>
           <a href="#" class="form-link" onclick="showLoginForm()">Já tem uma conta? Faça Login</a>
         </form>
@@ -454,19 +434,20 @@
             <div class="modal-dialog modal-dialog-centered" role="document"> 
               <div class="modal-content"> 
                 <div class="modal-header" style="background-color: #54C87D; color: white;"> 
-                  <h5 class="modal-title" id="successPopupLabel">Solicitação Enviada!</h5> 
+                  <h5 class="modal-title" id="successPopupLabel">Cadastro Realizado!</h5> 
                   <button type="button" class="close" data-dismiss="modal" style="color: white;">×</button> 
                 </div> 
                 <div class="modal-body"> 
                   <div class="text-center mb-4">
                     <i class="fas fa-check-circle" style="font-size: 48px; color: #54C87D;"></i>
                   </div>
-                  <p>Sua solicitação de parceria foi enviada com sucesso!</p> 
-                  <p>Nossa equipe irá analisar os dados do seu estacionamento e você receberá um email com a resposta em breve.</p>
-                  <p>O cadastro do seu estacionamento só será realizado após a aprovação da nossa equipe.</p>
+                  <p><strong>Parabéns!</strong> Seu cadastro foi realizado com sucesso!</p> 
+                  <p>Sua conta de administrador e estacionamento foram criados automaticamente.</p>
+                  <p>Você já pode fazer login e começar a gerenciar seu estacionamento.</p>
+                  <p class="text-muted small"><i class="fas fa-info-circle"></i> Redirecionando para o login...</p>
                 </div> 
                 <div class="modal-footer"> 
-                  <button type="button" class="btn btn-primary" data-dismiss="modal">Entendi</button> 
+                  <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="showLoginForm()">Ir para Login</button> 
                 </div> 
               </div> 
             </div>

@@ -17,6 +17,517 @@ document.addEventListener('DOMContentLoaded', () => {
     const imagePreviewContainer = document.getElementById('imagePreviewContainer');
     const removeImageBtn = document.getElementById('removeImageBtn');
 
+    // ============================================
+    // MÁSCARAS E VALIDAÇÕES EM TEMPO REAL
+    // ============================================
+    
+    // Máscara CNPJ com validação avançada
+    $('#cnpj').mask('00.000.000/0000-00', {
+        onKeyPress: function(cnpj, e, field, options) {
+            // Validação em tempo real
+            setTimeout(() => {
+                const result = validarCNPJ(cnpj);
+                if (cnpj.replace(/\D/g, '').length === 14) {
+                    if (result.valido) {
+                        field.removeClass('is-invalid').addClass('is-valid');
+                        // Consultar Receita Federal (via API pública)
+                        consultarCNPJ(cnpj.replace(/\D/g, ''), field);
+                    } else {
+                        field.removeClass('is-valid').addClass('is-invalid');
+                        field.siblings('.invalid-feedback').text(result.mensagem || 'CNPJ inválido');
+                    }
+                } else {
+                    field.removeClass('is-valid is-invalid');
+                }
+            }, 100);
+        }
+    });
+
+    // Máscara CEP com validação ViaCEP
+    $('#cepEstacionamento').mask('00000-000', {
+        onKeyPress: function(cep, e, field, options) {
+            if (cep.replace(/\D/g, '').length === 8) {
+                field.removeClass('is-invalid').addClass('is-valid');
+            } else {
+                field.removeClass('is-valid is-invalid');
+            }
+        }
+    });
+
+    // Máscara Telefone (formato brasileiro com 9 dígitos) + validação DDD
+    const SPMaskBehavior = function (val) {
+        return val.replace(/\D/g, '').length === 11 ? '(00) 00000-0000' : '(00) 0000-00009';
+    };
+    const spOptions = {
+        onKeyPress: function(val, e, field, options) {
+            field.mask(SPMaskBehavior.apply({}, arguments), options);
+            const digits = val.replace(/\D/g, '');
+            
+            // Validar DDD brasileiro
+            if (digits.length >= 2) {
+                const ddd = parseInt(digits.substring(0, 2));
+                const dddValidos = [11,12,13,14,15,16,17,18,19,21,22,24,27,28,31,32,33,34,35,37,38,41,42,43,44,45,46,47,48,49,51,53,54,55,61,62,63,64,65,66,67,68,69,71,73,74,75,77,79,81,82,83,84,85,86,87,88,89,91,92,93,94,95,96,97,98,99];
+                
+                if (!dddValidos.includes(ddd)) {
+                    field.removeClass('is-valid').addClass('is-invalid');
+                    field.siblings('.invalid-feedback').text('DDD inválido');
+                    return;
+                }
+            }
+            
+            if (digits.length === 10 || digits.length === 11) {
+                // Validar se não é número sequencial
+                if (/^(\d)\1+$/.test(digits)) {
+                    field.removeClass('is-valid').addClass('is-invalid');
+                    field.siblings('.invalid-feedback').text('Telefone inválido');
+                } else {
+                    field.removeClass('is-invalid').addClass('is-valid');
+                }
+            } else if (digits.length > 0) {
+                field.removeClass('is-valid').addClass('is-invalid');
+            } else {
+                field.removeClass('is-valid is-invalid');
+            }
+        }
+    };
+    $('#telefone').mask(SPMaskBehavior, spOptions);
+
+    // Máscara UF (uppercase automático) + validação estados brasileiros
+    $('#ufEstacionamento').on('input', function() {
+        this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+        const ufsValidas = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+        
+        if (this.value.length === 2) {
+            if (ufsValidas.includes(this.value)) {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+            } else {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+                $(this).siblings('.invalid-feedback').text('UF inválida');
+            }
+        } else if (this.value.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // Validação Email em tempo real + verificação de domínio
+    $('#registerEmail').on('blur', function() {
+        const email = $(this).val();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        if (!emailRegex.test(email)) {
+            if (email) {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+                $(this).siblings('.invalid-feedback').text('Email inválido');
+            }
+            return;
+        }
+        
+        // Verificar se não é email temporário/descartável
+        const dominiosDescartaveis = ['tempmail.com', 'guerrillamail.com', '10minutemail.com', 'throwaway.email', 'mailinator.com', 'yopmail.com', 'sharklasers.com', 'getnada.com'];
+        const dominio = email.split('@')[1].toLowerCase();
+        
+        if (dominiosDescartaveis.includes(dominio)) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Use um email válido e permanente');
+            return;
+        }
+        
+        // Verificar email corporativo para estacionamento
+        verificarEmailReal(email, $(this));
+    });
+
+    // Validação Nome (mínimo 3 caracteres, apenas letras e espaços)
+    $('#nome').on('input', function() {
+        const nome = $(this).val().trim();
+        const nomeRegex = /^[A-Za-zÀ-ÿ\s]+$/;
+        
+        if (!nomeRegex.test(nome) && nome.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Nome deve conter apenas letras');
+            return;
+        }
+        
+        // Validar nome completo (pelo menos 2 palavras)
+        const palavras = nome.split(' ').filter(p => p.length > 0);
+        if (palavras.length >= 2 && nome.length >= 5) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (nome.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Digite nome completo (nome e sobrenome)');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // Validação Número (apenas números, não permite 0)
+    $('#numeroEstacionamento').on('input', function() {
+        this.value = this.value.replace(/\D/g, '');
+        const numero = parseInt(this.value);
+        
+        if (numero > 0 && numero <= 999999) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (this.value) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Número inválido');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // Validação Número de Vagas (mínimo 1, máximo 10000)
+    $('#numeroVagas').on('input', function() {
+        this.value = this.value.replace(/\D/g, '');
+        const vagas = parseInt(this.value);
+        
+        if (vagas >= 1 && vagas <= 10000) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (this.value) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Vagas deve ser entre 1 e 10.000');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // Validação Preços (formato decimal, mínimo R$ 0.01, máximo R$ 9999.99)
+    $('#precoHora, #precoDia').on('input', function() {
+        // Remove tudo exceto números e ponto
+        this.value = this.value.replace(/[^\d.]/g, '');
+        // Permite apenas um ponto decimal
+        const parts = this.value.split('.');
+        if (parts.length > 2) {
+            this.value = parts[0] + '.' + parts.slice(1).join('');
+        }
+        // Limita a 2 casas decimais
+        if (parts[1] && parts[1].length > 2) {
+            this.value = parts[0] + '.' + parts[1].slice(0, 2);
+        }
+        
+        const preco = parseFloat(this.value);
+        const isPrecoHora = this.id === 'precoHora';
+        
+        if (preco >= 0.01 && preco <= 9999.99) {
+            // Validar preço razoável (hora não deve ser maior que dia)
+            if (isPrecoHora) {
+                const precoDia = parseFloat($('#precoDia').val()) || 0;
+                if (precoDia > 0 && preco > precoDia) {
+                    $(this).removeClass('is-valid').addClass('is-invalid');
+                    $(this).siblings('.invalid-feedback').text('Preço/hora não pode ser maior que preço/dia');
+                    return;
+                }
+            } else {
+                const precoHora = parseFloat($('#precoHora').val()) || 0;
+                if (precoHora > 0 && preco < precoHora) {
+                    $(this).removeClass('is-valid').addClass('is-invalid');
+                    $(this).siblings('.invalid-feedback').text('Preço/dia deve ser maior que preço/hora');
+                    return;
+                }
+            }
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (this.value) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Preço deve ser entre R$ 0,01 e R$ 9.999,99');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // Validação Latitude/Longitude com precisão geográfica
+    $('#latitude, #longitude').on('input', function() {
+        // Permite números negativos e ponto decimal
+        this.value = this.value.replace(/[^\d.-]/g, '');
+        const coord = parseFloat(this.value);
+        const isLat = this.id === 'latitude';
+        const min = isLat ? -90 : -180;
+        const max = isLat ? 90 : 180;
+        
+        // Validar coordenadas do Brasil aproximadamente
+        // Lat: -33.75 a 5.27, Long: -73.99 a -28.84
+        if (!isNaN(coord) && coord >= min && coord <= max) {
+            if (isLat && (coord < -33.75 || coord > 5.27)) {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+                $(this).siblings('.invalid-feedback').text('Coordenada fora do Brasil');
+            } else if (!isLat && (coord < -73.99 || coord > -28.84)) {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+                $(this).siblings('.invalid-feedback').text('Coordenada fora do Brasil');
+            } else {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+            }
+        } else if (this.value) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Coordenada inválida');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // Validação campos de texto obrigatórios (sem números ou caracteres especiais excessivos)
+    $('#nomeEstacionamento, #bairroEstacionamento, #cidadeEstacionamento').on('input', function() {
+        const value = $(this).val().trim();
+        
+        // Validar caracteres permitidos (letras, números, espaços, hífen)
+        const regex = /^[A-Za-z0-9À-ÿ\s\-\.]+$/;
+        if (!regex.test(value) && value.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Caracteres inválidos detectados');
+            return;
+        }
+        
+        if (value.length >= 2) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (value.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Mínimo 2 caracteres');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // Validação Logradouro (mais rigorosa)
+    $('#logradouroEstacionamento').on('input', function() {
+        const value = $(this).val().trim();
+        const regex = /^[A-Za-z0-9À-ÿ\s\-\.]+$/;
+        
+        if (!regex.test(value) && value.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Caracteres inválidos detectados');
+            return;
+        }
+        
+        // Validar palavras comuns de logradouro
+        const tiposValidos = ['rua', 'avenida', 'av', 'r', 'travessa', 'alameda', 'estrada', 'rodovia', 'praça'];
+        const primeirasPalavras = value.toLowerCase().split(' ').slice(0, 2).join(' ');
+        const temTipoValido = tiposValidos.some(tipo => primeirasPalavras.includes(tipo));
+        
+        if (value.length >= 5) {
+            if (temTipoValido || value.length >= 10) {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+            } else {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+                $(this).siblings('.invalid-feedback').text('Inclua tipo de logradouro (Rua, Av, etc)');
+            }
+        } else if (value.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // Validação Chave PIX avançada
+    $('#chavePix').on('blur', function() {
+        const chave = $(this).val().trim();
+        const tipo = $('#tipoChavePix').val();
+        
+        if (!chave) {
+            $(this).removeClass('is-valid is-invalid');
+            return;
+        }
+        
+        let valido = false;
+        let mensagem = '';
+        
+        switch(tipo) {
+            case 'cpf':
+                valido = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(chave) && validarCPF(chave);
+                mensagem = 'CPF inválido';
+                break;
+            case 'cnpj':
+                const resultCnpj = validarCNPJ(chave);
+                valido = resultCnpj.valido;
+                mensagem = resultCnpj.mensagem || 'CNPJ inválido';
+                break;
+            case 'email':
+                valido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(chave);
+                mensagem = 'Email inválido';
+                break;
+            case 'telefone':
+                const digits = chave.replace(/\D/g, '');
+                valido = digits.length === 10 || digits.length === 11;
+                mensagem = 'Telefone inválido';
+                break;
+            case 'aleatoria':
+                valido = /^[a-zA-Z0-9\-]{32}$/.test(chave);
+                mensagem = 'Chave aleatória deve ter 32 caracteres alfanuméricos';
+                break;
+            default:
+                valido = chave.length >= 5;
+        }
+        
+        if (valido) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text(mensagem);
+        }
+    });
+
+    // Validação Nome Titular PIX (nome completo, apenas letras)
+    $('#nomeTitularPix').on('input', function() {
+        const nome = $(this).val().trim();
+        const nomeRegex = /^[A-Za-zÀ-ÿ\s]+$/;
+        
+        if (!nomeRegex.test(nome) && nome.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Nome deve conter apenas letras');
+            return;
+        }
+        
+        const palavras = nome.split(' ').filter(p => p.length > 0);
+        if (palavras.length >= 2 && nome.length >= 5) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (nome.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Digite nome completo');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // Validação Horários (não permitir fechamento antes da abertura)
+    $('#horarioAbertura, #horarioFechamento').on('change', function() {
+        const abertura = $('#horarioAbertura').val();
+        const fechamento = $('#horarioFechamento').val();
+        
+        if (abertura && fechamento) {
+            if (fechamento <= abertura) {
+                $('#horarioFechamento').removeClass('is-valid').addClass('is-invalid');
+                $('#horarioFechamento').siblings('.invalid-feedback').text('Fechamento deve ser após abertura');
+            } else {
+                $('#horarioAbertura').removeClass('is-invalid').addClass('is-valid');
+                $('#horarioFechamento').removeClass('is-invalid').addClass('is-valid');
+            }
+        }
+    });
+
+    // Validação Descrição (mínimo 10 caracteres, máximo 500)
+    $('#descricao').on('input', function() {
+        const desc = $(this).val().trim();
+        const contador = $(this).siblings('small').find('.char-count');
+        
+        if (contador.length) {
+            contador.text(`${desc.length}/500`);
+        }
+        
+        if (desc.length >= 10 && desc.length <= 500) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (desc.length > 500) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Máximo 500 caracteres');
+        } else if (desc.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Mínimo 10 caracteres');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // ============================================
+    // FUNÇÕES DE VALIDAÇÃO EXTERNAS (APIs)
+    // ============================================
+
+    // Consultar CNPJ na Receita Federal (via API pública)
+    async function consultarCNPJ(cnpj, field) {
+        try {
+            const cnpjLimpo = cnpj.replace(/\D/g, '');
+            
+            // Usa nossa API backend que faz a consulta
+            const response = await fetch(`/api/cnpj/${cnpjLimpo}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (!data.valido) {
+                    field.removeClass('is-valid').addClass('is-invalid');
+                    field.siblings('.invalid-feedback').text(data.mensagem || 'CNPJ inválido');
+                    return;
+                }
+                
+                // Auto-preencher nome do estacionamento se vazio
+                if ($('#nomeEstacionamento').val() === '' && data.dados.razao_social) {
+                    const nomePreferido = data.dados.nome_fantasia || data.dados.razao_social;
+                    $('#nomeEstacionamento').val(nomePreferido);
+                    $('#nomeEstacionamento').trigger('input');
+                }
+                
+                // NÃO auto-preencher telefone (pode estar desatualizado na Receita Federal)
+                // O estabelecimento deve informar o telefone atual de contato
+                
+                // Auto-preencher email se vazio
+                if ($('#registerEmail').val() === '' && data.dados.email) {
+                    $('#registerEmail').val(data.dados.email);
+                    $('#registerEmail').trigger('blur');
+                }
+                
+                field.removeClass('is-invalid').addClass('is-valid');
+                field.siblings('.invalid-feedback').text('');
+                
+                // Adicionar ícone de verificado
+                field.siblings('.verified-badge').remove();
+                field.after('<small class="verified-badge text-success ml-2"><i class="fas fa-check-circle"></i> Verificado na Receita Federal</small>');
+            } else {
+                const errorData = await response.json();
+                field.removeClass('is-valid').addClass('is-invalid');
+                field.siblings('.invalid-feedback').text(errorData.mensagem || 'CNPJ não encontrado');
+            }
+        } catch (error) {
+            console.log('Erro ao consultar CNPJ:', error);
+            // Não bloqueia se API falhar
+        }
+    }
+
+    // Verificar email real (validação simples no frontend)
+    async function verificarEmailReal(email, field) {
+        // Validação básica de formato
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            field.removeClass('is-valid').addClass('is-invalid');
+            field.siblings('.invalid-feedback').text('Email inválido');
+            return;
+        }
+        
+        // Aceita emails válidos (validação de DNS seria muito pesada)
+        field.removeClass('is-invalid').addClass('is-valid');
+        
+        // Adicionar badge verificado para formato válido
+        field.siblings('.verified-badge').remove();
+        field.after('<small class="verified-badge text-success ml-2"><i class="fas fa-check-circle"></i> Email válido</small>');
+    }
+
+    // Validar CPF (para chave PIX)
+    function validarCPF(cpf) {
+        cpf = cpf.replace(/\D/g, '');
+        
+        if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+        
+        let soma = 0;
+        let resto;
+        
+        for (let i = 1; i <= 9; i++) {
+            soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
+        }
+        
+        resto = (soma * 10) % 11;
+        if (resto === 10 || resto === 11) resto = 0;
+        if (resto !== parseInt(cpf.substring(9, 10))) return false;
+        
+        soma = 0;
+        for (let i = 1; i <= 10; i++) {
+            soma += parseInt(cpf.substring(i - 1, i)) * (12 - i);
+        }
+        
+        resto = (soma * 10) % 11;
+        if (resto === 10 || resto === 11) resto = 0;
+        if (resto !== parseInt(cpf.substring(10, 11))) return false;
+        
+        return true;
+    }
+
+    // ============================================
+    // FIM DAS MÁSCARAS E VALIDAÇÕES
+    // ============================================
+
     // --- Manipulação de Upload de Imagem ---
     if (fotoEstacionamentoInput) {
         // Atualizar label do arquivo quando selecionado
@@ -158,8 +669,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cnpj = chavePix.value.replace(/\D/g, '');
                 if (cnpj.length !== 14) {
                     isValid = setErrorFor(chavePix, 'CNPJ inválido. Deve conter 14 dígitos.');
-                } else if (!validarCNPJ(cnpj)) {
-                    isValid = setErrorFor(chavePix, 'CNPJ inválido. Verifique o número digitado.');
+                } else {
+                    const resultadoCNPJ = validarCNPJ(cnpj);
+                    if (!resultadoCNPJ.valido) {
+                        isValid = setErrorFor(chavePix, resultadoCNPJ.mensagem || 'CNPJ inválido. Verifique o número digitado.');
+                    }
                 }
             }
             
@@ -288,10 +802,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 dadosSolicitacao.fotoEstacionamentoNome = file.name;
             }
             
-            console.log('Enviando solicitação de parceria para análise:', { ...dadosSolicitacao, fotoEstacionamento: dadosSolicitacao.fotoEstacionamento ? '[IMAGEM]' : 'sem foto' });
+            console.log('Enviando registro de admin:', { ...dadosSolicitacao, fotoEstacionamento: dadosSolicitacao.fotoEstacionamento ? '[IMAGEM]' : 'sem foto' });
             
-            // Enviando solicitação para o endpoint correto
-            const response = await postJsonWithTimeoutAndRetry('/api/contact/solicitar-parceria', dadosSolicitacao, { timeoutMs: 25000, retries: 1 });
+            // Enviando para o endpoint de registro de admin
+            const response = await postJsonWithTimeoutAndRetry('/api/auth/admin/register', dadosSolicitacao, { timeoutMs: 25000, retries: 1 });
             
             console.log('Resposta do servidor:', response.status);
             
@@ -315,11 +829,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 showSuccessPopup();
                 registerForm.reset();
                 
-                // Redireciona para a página de login após 3 segundos
+                // Redireciona para a página de login após 2 segundos
                 setTimeout(() => { 
                     closePopup(); 
                     showLoginForm(); 
-                }, 3000);
+                }, 2000);
             } else {
                 const text = await response.text();
                 console.log('Resposta não-JSON:', text);
@@ -361,65 +875,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('scroll', () => { document.body.classList.toggle('scrolling', window.scrollY > 0); });
     // Mostrar Login por Padrão
     if(loginForm) showLoginForm(); // Garante que login seja exibido ao carregar
-
-    // Função para consultar CNPJ na nossa API
-    const consultarCNPJ = async (cnpj) => {
-        try {
-            const cnpjNumeros = cnpj.replace(/\D/g, '');
-            if (cnpjNumeros.length !== 14) return { valido: false, mensagem: 'CNPJ deve ter 14 dígitos' };
-
-            // Mostra loading
-            const feedbackElement = cnpjInput.closest('.form-group').querySelector('.invalid-feedback');
-            feedbackElement.textContent = 'Validando CNPJ...';
-            feedbackElement.style.display = 'block';
-            feedbackElement.className = 'invalid-feedback text-info';
-            cnpjInput.classList.remove('is-invalid');
-            cnpjInput.classList.add('is-validating');
-
-            // Faz a requisição para nossa API
-            const response = await fetch(`/api/cnpj/${cnpjNumeros}`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin'
-            });
-
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                return { 
-                    valido: false, 
-                    mensagem: errorData.mensagem || 'Erro ao validar CNPJ' 
-                };
-            }
-
-
-            const data = await response.json();
-
-            if (!data.valido) {
-                return { 
-                    valido: false, 
-                    mensagem: data.mensagem || 'CNPJ inválido' 
-                };
-            }
-
-
-            return { 
-                valido: true, 
-                dados: data.dados,
-                mensagem: data.mensagem || 'CNPJ válido e ativo' 
-            };
-
-        } catch (error) {
-            console.error('Erro ao consultar CNPJ:', error);
-            return { 
-                valido: false, 
-                mensagem: 'Erro ao validar CNPJ. Tente novamente.' 
-            };
-        }
-    };
 
     // Função para validar CNPJ
     const validarCNPJ = (cnpj) => {
@@ -509,7 +964,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cnpjInput.addEventListener('blur', async (e) => {
             const cnpj = e.target.value.replace(/\D/g, '');
             if (cnpj.length === 14) {
-                const resultado = await validarCNPJ(cnpj);
+                const resultado = validarCNPJ(cnpj);
                 const feedbackElement = cnpjInput.closest('.form-group').querySelector('.invalid-feedback');
                 
                 if (resultado.valido) {
@@ -517,18 +972,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     cnpjInput.classList.add('is-valid');
                     feedbackElement.style.display = 'none';
                     
-                    // Preenche automaticamente a chave PIX
+                    // Preenche automaticamente a chave PIX com o CNPJ
                     const chavePixInput = document.getElementById('chavePix');
-                    if (chavePixInput) {
+                    if (chavePixInput && !chavePixInput.value) {
                         chavePixInput.value = formatarCNPJ(cnpj);
                         chavePixInput.dispatchEvent(new Event('input'));
-                    }
-                    
-                    // Preenche o nome do titular com a razão social
-                    const nomeTitularPix = document.getElementById('nomeTitularPix');
-                    if (nomeTitularPix && !nomeTitularPix.value && resultado.dados?.nome) {
-                        nomeTitularPix.value = resultado.dados.nome;
-                        nomeTitularPix.dispatchEvent(new Event('input'));
                     }
                 } else {
                     cnpjInput.classList.remove('is-valid');
@@ -642,6 +1090,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const atualizarEnderecoCompleto = async () => {
         const logradouro = document.getElementById('logradouroEstacionamento')?.value.trim() || '';
         const numero = document.getElementById('numeroEstacionamento')?.value.trim() || '';
+        const complemento = document.getElementById('complementoEstacionamento')?.value.trim() || '';
         const bairro = document.getElementById('bairroEstacionamento')?.value.trim() || '';
         const cidade = document.getElementById('cidadeEstacionamento')?.value.trim() || '';
         const uf = document.getElementById('ufEstacionamento')?.value.trim() || '';
@@ -650,6 +1099,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Formata o endereço completo para exibição
         const partesEndereco = [
             logradouro && numero ? `${logradouro}, ${numero}` : logradouro || '',
+            complemento ? complemento : '',
             bairro ? `Bairro: ${bairro}` : '',
             cidade ? `${cidade} - ${uf}` : '',
             cep ? `CEP: ${cep.replace(/(\d{5})(\d{3})/, '$1-$2')}` : ''
@@ -662,17 +1112,149 @@ document.addEventListener('DOMContentLoaded', () => {
             enderecoEstacionamentoInput.value = enderecoCompleto;
         }
 
-        // Se todos os campos necessários estiverem preenchidos, calcula as coordenadas
+        // Se todos os campos necessários estiverem preenchidos, calcula as coordenadas com máxima precisão
         if (logradouro && numero && bairro && cidade && uf) {
-            // Formata o endereço para busca de coordenadas
-            const enderecoBusca = [
-                `${logradouro}, ${numero}`,
+            await calcularCoordenadasPrecisas({
+                logradouro,
+                numero,
+                complemento,
                 bairro,
-                `${cidade} - ${uf}`,
-                'Brasil'
-            ].filter(Boolean).join(', ');
+                cidade,
+                uf,
+                cep
+            });
+        }
+    };
+
+    // Função para calcular coordenadas com MÁXIMA PRECISÃO usando endereço estruturado
+    const calcularCoordenadasPrecisas = async (dadosEndereco) => {
+        try {
+            console.log('🎯 Calculando coordenadas com precisão...', dadosEndereco);
             
-            await calcularCoordenadas(enderecoBusca);
+            // Mostra indicador de carregamento
+            const latInput = document.getElementById('latitude');
+            const lngInput = document.getElementById('longitude');
+            
+            if (latInput) latInput.value = 'Calculando...';
+            if (lngInput) lngInput.value = 'Calculando...';
+            
+            // Chama API de geocodificação precisa
+            const response = await fetch('/api/utils/geocodificar-preciso', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dadosEndereco)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Erro ao calcular coordenadas');
+            }
+            
+            const result = await response.json();
+            
+            if (result.status === 'success' && result.data) {
+                const { latitude, longitude, qualityScore, confidence, precisao, consenso, distanciaMediaConsenso, fonte, type } = result.data;
+                
+                console.log('✅ Coordenadas 100% PRECISAS calculadas:', {
+                    latitude,
+                    longitude,
+                    qualityScore,
+                    confidence,
+                    precisao,
+                    consenso,
+                    distanciaMediaConsenso,
+                    fonte,
+                    message: result.message
+                });
+                
+                // Preenche os campos com as coordenadas ultra precisas
+                if (latInput) {
+                    latInput.value = latitude;
+                    latInput.classList.remove('is-invalid');
+                    latInput.classList.add('is-valid');
+                }
+                
+                if (lngInput) {
+                    lngInput.value = longitude;
+                    lngInput.classList.remove('is-invalid');
+                    lngInput.classList.add('is-valid');
+                }
+                
+                // Determina ícone e cor baseado na precisão
+                let icone, cor, cssClass, badgeText;
+                if (precisao.includes('100%') || precisao.includes('PERFEITA')) {
+                    icone = 'check-double';
+                    cor = '#28a745';
+                    cssClass = 'success';
+                    badgeText = '🎯 Precisão Perfeita (100%)';
+                } else if (precisao.includes('95%') || precisao.includes('MUITO ALTA')) {
+                    icone = 'check-circle';
+                    cor = '#20c997';
+                    cssClass = 'success';
+                    badgeText = '🎯 Precisão Muito Alta (95%)';
+                } else if (precisao.includes('85%') || precisao.includes('ALTA')) {
+                    icone = 'check-circle';
+                    cor = '#17a2b8';
+                    cssClass = 'info';
+                    badgeText = '✅ Precisão Alta (85%)';
+                } else if (precisao.includes('70%') || precisao.includes('BOA')) {
+                    icone = 'exclamation-circle';
+                    cor = '#ffc107';
+                    cssClass = 'warning';
+                    badgeText = '⚠️ Precisão Boa (70%)';
+                } else {
+                    icone = 'info-circle';
+                    cor = '#fd7e14';
+                    cssClass = 'warning';
+                    badgeText = 'ℹ️ Precisão Moderada (50%)';
+                }
+                
+                // Mostra badge de qualidade com detalhes completos
+                const feedbackQualidade = `
+                    <div class="alert alert-${cssClass} py-2 px-3 mb-0" style="font-size: 0.85rem;">
+                        <strong><i class="fas fa-${icone}"></i> ${badgeText}</strong><br>
+                        <small>
+                            📊 Score: ${qualityScore.toFixed(2)}/20 | 
+                            🔍 Consenso: ${consenso}/3 APIs | 
+                            📏 Margem: ±${distanciaMediaConsenso}m | 
+                            🌐 Fonte: ${fonte}
+                        </small>
+                    </div>
+                `;
+                
+                // Remove feedback anterior
+                $('.coords-quality-badge').remove();
+                
+                // Adiciona novo feedback
+                if (lngInput) {
+                    $(lngInput).after(`<div class="coords-quality-badge mt-2">${feedbackQualidade}</div>`);
+                }
+                
+            } else {
+                throw new Error(result.message || 'Erro ao geocodificar');
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao calcular coordenadas:', error);
+            
+            const latInput = document.getElementById('latitude');
+            const lngInput = document.getElementById('longitude');
+            
+            if (latInput) {
+                latInput.value = '';
+                latInput.classList.remove('is-valid');
+            }
+            if (lngInput) {
+                lngInput.value = '';
+                lngInput.classList.remove('is-valid');
+            }
+            
+            // Mostra mensagem de erro
+            $('.coords-quality-badge').remove();
+            if (lngInput) {
+                $(lngInput).after('<div class="coords-quality-badge mt-1"><small class="text-danger"><i class="fas fa-times-circle"></i> Não foi possível calcular as coordenadas. Verifique o endereço.</small></div>');
+            }
         }
     };
 
@@ -815,14 +1397,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Força a atualização das coordenadas quando o campo de número perde o foco
-    const numeroInput = document.getElementById('numeroEstacionamento');
-    if (numeroInput) {
-        numeroInput.addEventListener('blur', () => {
-            // Pequeno atraso para garantir que outros eventos sejam processados
-            setTimeout(() => {
-                atualizarEnderecoCompleto();
-            }, 100);
+    // Atualiza endereço completo e recalcula coordenadas quando QUALQUER campo de endereço mudar
+    const camposEndereco = [
+        'logradouroEstacionamento',
+        'numeroEstacionamento',
+        'complementoEstacionamento',
+        'bairroEstacionamento',
+        'cidadeEstacionamento',
+        'ufEstacionamento'
+    ];
+
+    // Debounce para evitar múltiplas chamadas
+    let timeoutEndereco = null;
+    
+    camposEndereco.forEach(campoId => {
+        const campo = document.getElementById(campoId);
+        if (campo) {
+            // Atualiza ao perder foco (blur)
+            campo.addEventListener('blur', () => {
+                clearTimeout(timeoutEndereco);
+                timeoutEndereco = setTimeout(() => {
+                    atualizarEnderecoCompleto();
+                }, 300);
+            });
+            
+            // Atualiza também quando tecla Enter for pressionada
+            campo.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(timeoutEndereco);
+                    atualizarEnderecoCompleto();
+                }
+            });
+        }
+    });
+
+    // Botão manual para recalcular coordenadas (se existir)
+    const btnRecalcularCoords = document.getElementById('btnRecalcularCoords');
+    if (btnRecalcularCoords) {
+        btnRecalcularCoords.addEventListener('click', () => {
+            atualizarEnderecoCompleto();
         });
     }
 

@@ -95,6 +95,8 @@ app.use(
                     "wss://*",
                     "ws://*",
                     "https://receitaws.com.br",
+                    "https://brasilapi.com.br",
+                    "https://dns.google",
                     "https://cdn.jsdelivr.net",
                     "https://cdnjs.cloudflare.com",
                     "https://unpkg.com",

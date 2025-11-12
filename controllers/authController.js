@@ -323,18 +323,21 @@ const registerAdmin = async (req, res, next) => {
         precoDia, 
         descricao,
         horarioAbertura,
-        horarioFechamento
+        horarioFechamento,
+        // CAMPOS PIX
+        chavePix,
+        tipoChavePix,
+        nomeTitularPix,
+        fotoEstacionamento,
+        fotoEstacionamentoNome
     } = req.body;
     const fotoFile = req.file; // Do Multer (pode ser undefined)
     const ipAddress = req.ip || req.connection?.remoteAddress; // Pega IP
 
-    const client = await pool.connect(); // Obtém conexão para transação
     try {
-        await client.query('BEGIN'); // Inicia transação
-
         // Valida força da senha (mesmo que rota valide comprimento, checa complexidade)
-        const psAdm = checkPasswordStrength(senha, [nome, email]);
-        if (psAdm.score < 3) throw new BadRequestError(`Senha admin fraca.`, { suggestions: psAdm.feedback.suggestions || [] });
+        const psAdm = checkPasswordStrength(senha, [email]);
+        if (psAdm.score < 2) throw new BadRequestError(`Senha admin fraca.`, { suggestions: psAdm.feedback.suggestions || [] });
 
         // Verifica se email já existe como admin
         if (await adminModel.findAdminByEmail(email)) {
@@ -346,115 +349,250 @@ const registerAdmin = async (req, res, next) => {
             throw new ConflictError("Este email já está cadastrado como usuário.");
         }
 
-        // Cria hash da senha
-        const senhaHash = await passwordUtils.hashPassword(senha);
-
-        // Cria o admin COM telefone e CNPJ
-        const adminId = await adminModel.createAdmin({ 
-            nome, 
-            email, 
-            senhaHash,
-            telefone: telefone || null,
-            cnpj: cnpj || null
-        });
-
-        // Cria o estacionamento associado COM TODOS OS CAMPOS DE ENDEREÇO
-        const estData = { 
-            nome: nomeEstacionamento, 
-            cnpj: cnpj || null,
-            telefone: telefone || null,
-            email: email,
-            latitude, 
-            longitude, 
-            endereco: enderecoEstacionamento,
-            cep: cepEstacionamento || null,
-            logradouro: logradouroEstacionamento || null,
-            numero: numeroEstacionamento || null,
-            complemento: complementoEstacionamento || null,
-            bairro: bairroEstacionamento || null,
-            cidade: cidadeEstacionamento || null,
-            uf: ufEstacionamento || null,
-            foto: fotoFile ? fotoFile.filename : null, 
-            vagas: parseInt(numeroVagas), 
-            preco_hora: precoHora, 
-            preco_dia: precoDia, 
-            descricao, 
-            horario_abertura: horarioAbertura || '08:00:00',
-            horario_fechamento: horarioFechamento || '20:00:00',
-            admin_id: adminId 
+        // ARMAZENAR DADOS PARA APROVAÇÃO POSTERIOR
+        const tempStorage = require('../utils/tempStorage');
+        const crypto = require('crypto');
+        
+        // Gerar token único para aprovação
+        const approvalToken = crypto.randomBytes(32).toString('hex');
+        const storageKey = `parceria:${approvalToken}`;
+        
+        // Preparar dados completos para aprovação
+        const solicitacaoData = {
+            nome,
+            email,
+            senha, // Será hasheada na aprovação
+            cnpj,
+            telefone,
+            nomeEstacionamento,
+            enderecoEstacionamento,
+            cepEstacionamento,
+            logradouroEstacionamento,
+            numeroEstacionamento,
+            complementoEstacionamento,
+            bairroEstacionamento,
+            cidadeEstacionamento,
+            ufEstacionamento,
+            latitude,
+            longitude,
+            numeroVagas,
+            precoHora,
+            precoDia,
+            descricao,
+            horarioAbertura: horarioAbertura || '08:00',
+            horarioFechamento: horarioFechamento || '20:00',
+            chavePix,
+            tipoChavePix,
+            nomeTitularPix,
+            fotoEstacionamento: fotoEstacionamento || null,
+            fotoEstacionamentoNome: fotoEstacionamentoNome || null,
+            dataRegistro: new Date().toISOString(),
+            ip: ipAddress
         };
-        const estId = await estacionamentoModel.createEstacionamento(estData);
-
-        // Cria as vagas iniciais DENTRO da transação, passando a conexão
-        await vagaModel.createInitialVagas(estId, parseInt(numeroVagas), connection);
-
-        // Conectar automaticamente ao ASAAS (criar subconta)
+        
+        // Armazenar com expiração de 7 dias (604800000 ms)
+        tempStorage.set(storageKey, solicitacaoData, 604800000);
+        
+        logger.info('[Auth] Solicitação de parceria armazenada para aprovação', {
+            email,
+            nomeEstacionamento,
+            token: approvalToken.substring(0, 8) + '...'
+        });
+        
+        // ENVIAR EMAIL PARA PARKNOW APROVAR
+        const { sendEmail } = require('../utils/emailUtils');
+        const config = require('../config');
+        
+        const approvalUrl = `${config.appUrl || 'http://localhost:3000'}/api/approvals/approve/${approvalToken}`;
+        const rejectUrl = `${config.appUrl || 'http://localhost:3000'}/api/approvals/reject/${approvalToken}`;
+        
+        // Email para admin ParkNow aprovar
+        const adminEmail = process.env.ADMIN_EMAIL || 'parknow.sistema@gmail.com';
+        
         try {
-            logger.info(`Conectando estacionamento ${estId} ao ASAAS automaticamente...`);
+            await sendEmail({
+                to: adminEmail,
+                subject: '🚗 Nova Solicitação de Parceria ParkNow',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                            <h1 style="margin: 0; font-size: 28px;">🚗 Nova Solicitação de Parceria</h1>
+                        </div>
+                        
+                        <div style="background-color: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 10px 10px;">
+                            <h2 style="color: #333; margin-top: 0;">Dados do Solicitante</h2>
+                            
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Nome:</strong></td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${nome}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Email:</strong></td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${email}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Telefone:</strong></td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${telefone || 'Não informado'}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>CNPJ:</strong></td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${cnpj}</td>
+                                </tr>
+                            </table>
+                            
+                            <h2 style="color: #333;">Dados do Estacionamento</h2>
+                            
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Nome:</strong></td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${nomeEstacionamento}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Endereço:</strong></td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${enderecoEstacionamento}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Cidade/UF:</strong></td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${cidadeEstacionamento}/${ufEstacionamento}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Vagas:</strong></td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${numeroVagas}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Preço/Hora:</strong></td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">R$ ${precoHora}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Preço/Dia:</strong></td>
+                                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">R$ ${precoDia}</td>
+                                </tr>
+                            </table>
+                            
+                            <div style="text-align: center; margin-top: 30px;">
+                                <a href="${approvalUrl}" 
+                                   style="display: inline-block; background-color: #28a745; color: white; 
+                                          padding: 15px 40px; text-decoration: none; border-radius: 5px; 
+                                          font-weight: bold; font-size: 16px; margin: 0 10px;">
+                                    ✅ APROVAR PARCERIA
+                                </a>
+                                
+                                <a href="${rejectUrl}" 
+                                   style="display: inline-block; background-color: #dc3545; color: white; 
+                                          padding: 15px 40px; text-decoration: none; border-radius: 5px; 
+                                          font-weight: bold; font-size: 16px; margin: 0 10px;">
+                                    ❌ REJEITAR
+                                </a>
+                            </div>
+                            
+                            <p style="margin-top: 30px; font-size: 12px; color: #777; text-align: center;">
+                                Esta solicitação expira em 7 dias.
+                            </p>
+                        </div>
+                    </div>
+                `,
+                text: `Nova Solicitação de Parceria ParkNow
+
+Dados do Solicitante:
+- Nome: ${nome}
+- Email: ${email}
+- Telefone: ${telefone || 'Não informado'}
+- CNPJ: ${cnpj}
+
+Dados do Estacionamento:
+- Nome: ${nomeEstacionamento}
+- Endereço: ${enderecoEstacionamento}
+- Cidade/UF: ${cidadeEstacionamento}/${ufEstacionamento}
+- Vagas: ${numeroVagas}
+- Preço/Hora: R$ ${precoHora}
+- Preço/Dia: R$ ${precoDia}
+
+Para aprovar: ${approvalUrl}
+Para rejeitar: ${rejectUrl}
+
+Esta solicitação expira em 7 dias.`
+            });
             
-            if (email && cnpj) {
-                // Criar subconta ASAAS
-                const subconta = await asaasMarketplaceService.criarSubconta({
-                    nome: nomeEstacionamento,
-                    email: email,
-                    cpfCnpj: cnpj,
-                    telefone: telefone || '11999999999'
-                });
-                
-                if (subconta.walletId) {
-                    // Atualizar estacionamento com wallet_id
-                    const updateQuery = `
-                        UPDATE estacionamentos
-                        SET asaas_wallet_id = $1, asaas_connected_at = NOW()
-                        WHERE id = $2
-                    `;
-                    await db.query(updateQuery, [subconta.walletId, estId]);
-                    
-                    logger.info(`✅ Estacionamento ${estId} conectado ao ASAAS automaticamente no registro`, {
-                        wallet_id: subconta.walletId,
-                        admin_id: adminId
-                    });
-                }
-            } else {
-                logger.warn(`⚠️ Registro sem CNPJ - estacionamento ${estId} não conectado ao ASAAS`, {
-                    estacionamento_id: estId,
-                    tem_email: !!email,
-                    tem_cnpj: !!cnpj
-                });
-            }
-        } catch (asaasError) {
-            // Não falhar o registro se der erro no ASAAS
-            logger.error('Erro ao conectar estacionamento ao ASAAS durante registro (continuando):', {
-                error: asaasError.message,
-                estacionamento_id: estId,
-                admin_id: adminId
+            logger.info('[Auth] Email de aprovação enviado para admin ParkNow', { adminEmail });
+        } catch (emailError) {
+            logger.error('[Auth] Erro ao enviar email de aprovação:', emailError);
+            // Não falha o registro se o email não for enviado
+        }
+        
+        // Email de confirmação para o solicitante
+        try {
+            await sendEmail({
+                to: email,
+                subject: 'Solicitação de Parceria Recebida - ParkNow',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="background-color: #667eea; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0;">
+                            <h1>Solicitação Recebida! 🎉</h1>
+                        </div>
+                        
+                        <div style="background-color: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 5px 5px;">
+                            <p>Olá <strong>${nome}</strong>,</p>
+                            
+                            <p>Recebemos sua solicitação de parceria para o estacionamento <strong>${nomeEstacionamento}</strong>.</p>
+                            
+                            <div style="background-color: #e7f3ff; padding: 15px; border-left: 4px solid #2196F3; margin: 20px 0;">
+                                <p style="margin: 0;"><strong>O que acontece agora?</strong></p>
+                                <p style="margin: 10px 0 0 0;">Nossa equipe irá analisar sua solicitação e entrar em contato em até 48 horas úteis.</p>
+                            </div>
+                            
+                            <p><strong>Dados da sua solicitação:</strong></p>
+                            <ul>
+                                <li>Estacionamento: ${nomeEstacionamento}</li>
+                                <li>Endereço: ${enderecoEstacionamento}</li>
+                                <li>Número de vagas: ${numeroVagas}</li>
+                                <li>Email: ${email}</li>
+                            </ul>
+                            
+                            <p>Caso tenha alguma dúvida, entre em contato conosco.</p>
+                            
+                            <p>Atenciosamente,<br><strong>Equipe ParkNow</strong></p>
+                        </div>
+                        
+                        <div style="text-align: center; padding: 15px; font-size: 12px; color: #777;">
+                            © ${new Date().getFullYear()} ParkNow - Todos os direitos reservados
+                        </div>
+                    </div>
+                `,
+                text: `Olá ${nome},
+
+Recebemos sua solicitação de parceria para o estacionamento ${nomeEstacionamento}.
+
+O que acontece agora?
+Nossa equipe irá analisar sua solicitação e entrar em contato em até 48 horas úteis.
+
+Dados da sua solicitação:
+- Estacionamento: ${nomeEstacionamento}
+- Endereço: ${enderecoEstacionamento}
+- Número de vagas: ${numeroVagas}
+- Email: ${email}
+
+Caso tenha alguma dúvida, entre em contato conosco.
+
+Atenciosamente,
+Equipe ParkNow
+
+© ${new Date().getFullYear()} ParkNow - Todos os direitos reservados`
             });
+            
+            logger.info('[Auth] Email de confirmação enviado para solicitante', { email });
+        } catch (emailError) {
+            logger.error('[Auth] Erro ao enviar email de confirmação:', emailError);
         }
 
-        await client.query('COMMIT'); // Confirma a transação
-
-        logger.info(`Admin ${adminId} (${email}) e Est. ${estId} (${nomeEstacionamento}) criados. IP: ${ipAddress}`);
-        await logModel.createAdminLog(adminId, `Criou conta e Estacionamento ID ${estId} (${nomeEstacionamento})`, ipAddress); // Log ação admin
-
-        res.status(201).json({ status: "success", message: "Administrador e estacionamento cadastrados com sucesso!" });
+        res.status(200).json({ 
+            status: "success", 
+            message: "Solicitação de parceria enviada com sucesso! Você receberá um email quando for aprovada."
+        });
+        
     } catch (error) {
-        await client.query('ROLLBACK'); // Desfaz a transação em caso de erro
-        logger.error("Erro registro admin/estacionamento:", error);
-        // Deleta arquivo de foto se upload ocorreu mas DB falhou?
-        if (fotoFile && fs.existsSync(fotoFile.path)) {
-            fs.unlink(fotoFile.path, (err) => {
-                if(err) logger.error(`Falha ao remover foto ${fotoFile.filename} após erro no registro:`, err);
-                else logger.info(`Foto ${fotoFile.filename} removida após erro no registro.`);
-            });
-        }
-        // Trata erro de duplicação especificamente
-        if (error.code === 'ER_DUP_ENTRY') {
-             next(new ConflictError("Email de administrador já cadastrado."));
-        } else {
-            next(error); // Passa outros erros para o handler global
-        }
-    } finally {
-        client.release(); // Libera a conexão SEMPRE
+        logger.error("Erro ao enviar solicitação de parceria:", error);
+        next(error); // Passa erro para o handler global
     }
 };
 
