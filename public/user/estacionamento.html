@@ -467,11 +467,11 @@
                 
                 // Formatar valor e data
                 const valorFormatado = formatarMoeda(dadosPagamento.valor || 0);
-                const dataExpiracao = dadosPagamento.data_expiracao || new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutos por padrão
+                const dataExpiracao = dadosPagamento.expira_em || new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutos por padrão
                 
                 valorElement.textContent = valorFormatado;
                 vencimentoElement.textContent = formatarDataHora(dataExpiracao);
-                codigoElement.value = dadosPagamento.codigo_pix || '';
+                codigoElement.value = dadosPagamento.qr_code || ''; // CORRIGIDO: usar qr_code ao invés de codigo_pix
                 
                 // Criar QR Code
                 if (dadosPagamento.qr_code_base64) {
@@ -575,7 +575,7 @@
                         btnAbrirAppBanco.target = '_blank';
                         btnAbrirAppBanco.style.display = 'inline-flex';
                         btnAbrirAppBanco.innerHTML = '<i class="fas fa-external-link-alt me-2"></i> Pagar com PIX no app';
-                    } else if (dadosPagamento.codigo_pix) {
+                    } else if (dadosPagamento.qr_code) {
                         // Se não tiver link, mas tiver código PIX, tenta abrir o app de banco genérico
                         btnAbrirAppBanco.href = `https://pix.gerencianet.com.br/cob/pagar/${dadosPagamento.id || 'pix'}`;
                         btnAbrirAppBanco.target = '_blank';
@@ -801,14 +801,14 @@
                         console.log('Exibindo modal de pagamento PIX com dados:', data.pagamento);
                         exibirModalPagamentoPix({
                             ...data.pagamento,
-                            valor: data.valor || 0 // Garantir que o valor está incluso
+                            valor: data.pagamento.valor || data.valor || 0 // Usar valor do pagamento ou fallback
                         });
                     } else if (data.data?.pagamento) {
                         // Tentar formato alternativo da resposta
                         console.log('Exibindo modal de pagamento PIX (formato alternativo):', data.data.pagamento);
                         exibirModalPagamentoPix({
                             ...data.data.pagamento,
-                            valor: data.data.valor || 0
+                            valor: data.data.pagamento.valor || data.data.valor || 0
                         });
                     } else {
                         console.warn('Dados de pagamento não encontrados na resposta:', data);
