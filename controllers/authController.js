@@ -403,8 +403,8 @@ const registerAdmin = async (req, res, next) => {
         const { sendEmail } = require('../utils/emailUtils');
         const config = require('../config');
         
-        const approvalUrl = `${config.appUrl || 'http://localhost:3000'}/api/approvals/approve/${approvalToken}`;
-        const rejectUrl = `${config.appUrl || 'http://localhost:3000'}/api/approvals/reject/${approvalToken}`;
+        const approvalUrl = `${config.appUrl || 'http://localhost:3000'}/api/approvals/approve-partner/${approvalToken}`;
+        const rejectUrl = `${config.appUrl || 'http://localhost:3000'}/api/approvals/reject-partner/${approvalToken}`;
         
         // Email para admin ParkNow aprovar
         const adminEmail = process.env.ADMIN_EMAIL || 'parknow.sistema@gmail.com';

@@ -64,17 +64,15 @@ class ReservaPagamentoController {
       }
 
       // Verifica se o estacionamento tem conta ASAAS vinculada
+      // TEMPORÁRIO: Permitir pagamentos mesmo sem asaas_wallet_id (split será feito manualmente)
       if (!estacionamento.asaas_wallet_id) {
-        logger.warn('Estacionamento sem conta ASAAS vinculada:', {
+        logger.warn('Estacionamento sem conta ASAAS vinculada - usando conta principal:', {
           estacionamento_id,
           nome: estacionamento.nome
         });
         
-        throw new AppError(
-          'Este estacionamento ainda não configurou o recebimento de pagamentos online. ' +
-          'Por favor, escolha outro método de pagamento ou outro estacionamento.',
-          400
-        );
+        // Por enquanto, permitir o pagamento mas logar o aviso
+        // TODO: Implementar split manual ou configurar marketplace
       }
 
       // Prepara os dados da reserva
@@ -99,22 +97,17 @@ class ReservaPagamentoController {
         valor
       });
 
-      // Se for PIX, cria checkout Asaas (interface profissional)
+      // Se for PIX, cria cobrança PIX direta (sem checkout Asaas)
       if (metodo_pagamento === 'pix') {
-        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-        
-        const checkoutResult = await asaasMarketplace.criarCheckout({
+        const pixResult = await asaasMarketplace.criarPagamentoPixComSplit({
           valor,
           descricao: `Reserva #${reserva.id} - ${estacionamento.nome}`,
           email_pagador: userEmail,
           nome_pagador: req.user.nome || 'Cliente',
           cpf_pagador: req.user.cpf || null,
-          telefone_pagador: req.user.telefone || null, // ✅ USANDO TELEFONE REAL DO USUÁRIO
           estacionamento_id,
           estacionamento_asaas_account_id: estacionamento.asaas_wallet_id,
-          reserva_id: reserva.id,
-          success_url: `${baseUrl}/pagamento-sucesso.html?reserva=${reserva.id}`,
-          cancel_url: `${baseUrl}/pagamento-cancelado.html?reserva=${reserva.id}`
+          reserva_id: reserva.id
         });
 
         // Salva dados do pagamento no banco
@@ -126,20 +119,23 @@ class ReservaPagamentoController {
           id_estacionamento: estacionamento_id,
           id_usuario: userId
         }, {
-          payment_id: checkoutResult.checkout_id, // Salva o checkout_id
-          comissao_plataforma: checkoutResult.comissao_plataforma,
-          valor_estacionamento: checkoutResult.valor_estacionamento
+          payment_id: pixResult.payment_id, // Salva o payment_id do Asaas
+          comissao_plataforma: pixResult.comissao_plataforma,
+          valor_estacionamento: pixResult.valor_estacionamento,
+          qr_code: pixResult.qr_code,
+          qr_code_base64: pixResult.qr_code_base64,
+          expira_em: pixResult.date_of_expiration
         });
 
-        logger.info('Checkout Asaas criado com split:', {
+        logger.info('PIX Asaas criado com split:', {
           pagamento_id: pagamentoId,
-          checkout_id: checkoutResult.checkout_id,
-          checkout_url: checkoutResult.checkout_url,
-          comissao: checkoutResult.comissao_plataforma,
-          valor_estacionamento: checkoutResult.valor_estacionamento
+          payment_id: pixResult.payment_id,
+          qr_code_presente: !!pixResult.qr_code,
+          comissao: pixResult.comissao_plataforma,
+          valor_estacionamento: pixResult.valor_estacionamento
         });
 
-        // Retorna URL do checkout para redirecionar
+        // Retorna dados do PIX diretamente
         return res.status(201).json({
           success: true,
           reserva: {
@@ -157,19 +153,21 @@ class ReservaPagamentoController {
           },
           pagamento: {
             id: pagamentoId,
-            checkout_id: checkoutResult.checkout_id,
-            checkout_url: checkoutResult.checkout_url, // URL para redirecionar
-            status: checkoutResult.status
+            payment_id: pixResult.payment_id,
+            qr_code: pixResult.qr_code, // QR Code em texto
+            qr_code_base64: pixResult.qr_code_base64, // QR Code em base64
+            status: pixResult.status,
+            expira_em: pixResult.date_of_expiration
           },
           // Dados do split
           split: {
             total: valor,
-            comissao_plataforma: checkoutResult.comissao_plataforma,
-            percentual_plataforma: `${checkoutResult.percentual_split}%`,
-            valor_estacionamento: checkoutResult.valor_estacionamento,
-            percentual_estacionamento: `${100 - checkoutResult.percentual_split}%`
+            comissao_plataforma: pixResult.comissao_plataforma,
+            percentual_plataforma: `${pixResult.percentual_split}%`,
+            valor_estacionamento: pixResult.valor_estacionamento,
+            percentual_estacionamento: `${100 - pixResult.percentual_split}%`
           },
-          message: 'Reserva criada! Redirecionando para pagamento...'
+          message: 'Reserva criada! Use o QR Code para pagar.'
         });
       }
 

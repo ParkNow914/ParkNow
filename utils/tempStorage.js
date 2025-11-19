@@ -137,7 +137,7 @@ const set = (key, value, ttl = DEFAULT_TTL) => {
   }
   
   try {
-    // Validar os dados antes de armazenar
+    // Validar os dados antes de armazenar (apenas campos obrigatórios)
     const validatedData = validateParkingData(value);
     
     const now = Date.now();
@@ -156,9 +156,11 @@ const set = (key, value, ttl = DEFAULT_TTL) => {
       console.log(`[TempStorage] Limpeza de itens antigos: ${entries.length} itens removidos`);
     }
     
+    // Armazenar TODOS os dados originais, não apenas os validados
+    // A validação garante que os campos obrigatórios estão corretos
     storage.set(key, { 
       value: { 
-        ...validatedData, 
+        ...value, // Usar dados originais completos
         _createdAt: new Date().toISOString(),
         _expiresAt: new Date(expiresAt).toISOString()
       }, 

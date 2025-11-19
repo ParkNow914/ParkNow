@@ -479,6 +479,28 @@ exports.approvePartner = async (req, res) => {
       });
     }
 
+    // LOG PARA DEBUG: Verificar dados recuperados do tempStorage
+    logger.info('Dados recuperados do tempStorage:', {
+      nome: solicitacaoData.nome,
+      email: solicitacaoData.email,
+      telefone: solicitacaoData.telefone,
+      cnpj: solicitacaoData.cnpj,
+      nomeEstacionamento: solicitacaoData.nomeEstacionamento,
+      enderecoEstacionamento: solicitacaoData.enderecoEstacionamento,
+      cepEstacionamento: solicitacaoData.cepEstacionamento,
+      logradouroEstacionamento: solicitacaoData.logradouroEstacionamento,
+      numeroEstacionamento: solicitacaoData.numeroEstacionamento,
+      complementoEstacionamento: solicitacaoData.complementoEstacionamento,
+      bairroEstacionamento: solicitacaoData.bairroEstacionamento,
+      cidadeEstacionamento: solicitacaoData.cidadeEstacionamento,
+      ufEstacionamento: solicitacaoData.ufEstacionamento,
+      latitude: solicitacaoData.latitude,
+      longitude: solicitacaoData.longitude,
+      numeroVagas: solicitacaoData.numeroVagas,
+      precoHora: solicitacaoData.precoHora,
+      precoDia: solicitacaoData.precoDia
+    });
+
     // 2. Validar os dados da solicitação
     try {
       validatePartnerRequest(solicitacaoData);
@@ -529,13 +551,15 @@ exports.approvePartner = async (req, res) => {
       
       // Usar query direta com a transação para manter consistência
       const [adminResult] = await db.sequelize.query(
-        `INSERT INTO admins (nome, email, senha, nivel_acesso, status, created_at, updated_at) 
-         VALUES (:nome, :email, :senhaHash, 'estacionamento', 'ativo', NOW(), NOW()) 
+        `INSERT INTO admins (nome, email, telefone, cnpj, senha, nivel_acesso, status, created_at, updated_at) 
+         VALUES (:nome, :email, :telefone, :cnpj, :senhaHash, 'estacionamento', 'ativo', NOW(), NOW()) 
          RETURNING id`,
         {
           replacements: {
             nome: solicitacaoData.nome,
             email: solicitacaoData.email,
+            telefone: solicitacaoData.telefone || null,
+            cnpj: solicitacaoData.cnpj.replace(/[^\d]/g, ''), // CNPJ sem formatação
             senhaHash: await bcrypt.hash(solicitacaoData.senha, 12)
           },
           type: db.sequelize.QueryTypes.INSERT,
