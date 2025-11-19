@@ -626,18 +626,68 @@ const limparHistorico = async (req, res, next) => {
             });
         }
 
-        // Verificar pagamentos pendentes no Asaas
+        // Verificar pagamentos pendentes no Asaas e cancelar para reservas canceladas
         for (const reserva of resultReservas.rows) {
-            if (reserva.payment_id && reserva.pagamento_status === 'pendente') {
+            if (reserva.pagamento_id && reserva.pagamento_status === 'pendente') {
                 try {
                     const statusAsaas = await asaasMarketplace.consultarPagamento(reserva.payment_id);
                     if (statusAsaas.status === 'PENDING') {
-                        logger.warn('Reserva com pagamento pendente - não será deletada:', {
-                            reserva_id: reserva.id
-                        });
+                        // Para reservas canceladas, tentar cancelar o pagamento novamente
+                        if (reserva.status === 'cancelada') {
+                            try {
+                                await asaasMarketplace.cancelarPagamento(reserva.payment_id);
+                                logger.info(`Pagamento cancelado no Asaas para reserva cancelada: ${reserva.payment_id}`);
+                                
+                                // Atualizar status do pagamento no banco
+                                await client.query(`
+                                    UPDATE pagamentos 
+                                    SET status = 'cancelado', updated_at = NOW() 
+                                    WHERE id = $1
+                                `, [reserva.pagamento_id]);
+                                
+                                logger.info(`Status do pagamento ${reserva.pagamento_id} atualizado para cancelado`);
+                            } catch (cancelError) {
+                                logger.error('Erro ao cancelar pagamento pendente para reserva cancelada:', {
+                                    reserva_id: reserva.id,
+                                    payment_id: reserva.payment_id,
+                                    error: cancelError.message
+                                });
+                                // Mesmo com erro, marcar como cancelado para permitir limpeza
+                                await client.query(`
+                                    UPDATE pagamentos 
+                                    SET status = 'cancelado', updated_at = NOW() 
+                                    WHERE id = $1
+                                `, [reserva.pagamento_id]);
+                            }
+                        } else {
+                            logger.warn('Reserva com pagamento pendente - não será deletada:', {
+                                reserva_id: reserva.id
+                            });
+                        }
+                    } else {
+                        // Se não está mais pendente no Asaas, atualizar status no banco
+                        const novoStatus = statusAsaas.status === 'CANCELLED' ? 'cancelado' : 
+                                          statusAsaas.status === 'CONFIRMED' || statusAsaas.status === 'RECEIVED' ? 'pago' : 'pendente';
+                        await client.query(`
+                            UPDATE pagamentos 
+                            SET status = $1, updated_at = NOW() 
+                            WHERE id = $2
+                        `, [novoStatus, reserva.pagamento_id]);
                     }
                 } catch (error) {
-                    logger.error('Erro ao verificar pagamento:', error.message);
+                    logger.error('Erro ao verificar/cancelar pagamento:', {
+                        reserva_id: reserva.id,
+                        payment_id: reserva.payment_id,
+                        error: error.message
+                    });
+                    // Para reservas canceladas, forçar cancelamento no banco mesmo com erro
+                    if (reserva.status === 'cancelada') {
+                        await client.query(`
+                            UPDATE pagamentos 
+                            SET status = 'cancelado', updated_at = NOW() 
+                            WHERE id = $1
+                        `, [reserva.pagamento_id]);
+                    }
                 }
             }
         }

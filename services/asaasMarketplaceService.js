@@ -484,6 +484,7 @@ class AsaasMarketplaceService {
     /**
      * Criar Checkout Asaas (interface pronta e profissional)
      * Retorna URL para redirecionar o cliente
+     * TEMPORÁRIO: Funciona sem split até configurar marketplace
      */
     async criarCheckout(checkoutData) {
         const {
@@ -493,7 +494,7 @@ class AsaasMarketplaceService {
             nome_pagador,
             cpf_pagador,
             estacionamento_id,
-            estacionamento_asaas_account_id,
+            estacionamento_asaas_account_id, // Pode ser null/undefined
             reserva_id,
             success_url,
             cancel_url
@@ -505,7 +506,9 @@ class AsaasMarketplaceService {
                 email_pagador,
                 nome_pagador,
                 reserva_id,
-                success_url
+                tem_wallet_id: !!estacionamento_asaas_account_id,
+                wallet_id_valor: estacionamento_asaas_account_id,
+                wallet_id_tipo: typeof estacionamento_asaas_account_id
             });
 
             // Obter ou criar cliente no Asaas
@@ -516,14 +519,41 @@ class AsaasMarketplaceService {
                 telefone: checkoutData.telefone_pagador || '1140041234' // Telefone válido
             });
 
-            // Calcular split (15% plataforma, 85% estacionamento)
-            const comissaoPlataforma = parseFloat((valor * (this.platformFeePercent / 100)).toFixed(2));
-            const valorEstacionamento = parseFloat((valor - comissaoPlataforma).toFixed(2));
+            // DEBUG: Log detalhado do wallet_id
+            logger.info('🔍 DEBUG - Verificando wallet_id:', {
+                estacionamento_asaas_account_id,
+                tipo: typeof estacionamento_asaas_account_id,
+                length: estacionamento_asaas_account_id ? estacionamento_asaas_account_id.length : 'N/A',
+                isNull: estacionamento_asaas_account_id === null,
+                isUndefined: estacionamento_asaas_account_id === undefined,
+                isEmptyString: estacionamento_asaas_account_id === '',
+                truthy: !!estacionamento_asaas_account_id
+            });
+
+            // Calcular split APENAS se tiver wallet_id do estacionamento
+            let comissaoPlataforma = 0;
+            let valorEstacionamento = valor;
+            let splitConfigurado = false;
+
+            if (estacionamento_asaas_account_id) {
+                comissaoPlataforma = parseFloat((valor * (this.platformFeePercent / 100)).toFixed(2));
+                valorEstacionamento = parseFloat((valor - comissaoPlataforma).toFixed(2));
+                splitConfigurado = true;
+
+                logger.info('Split calculado:', {
+                    valor_total: valor,
+                    comissao_plataforma: comissaoPlataforma,
+                    valor_estacionamento: valorEstacionamento
+                });
+            } else {
+                logger.warn('⚠️ Checkout sem split - todo valor vai para conta principal');
+                logger.warn('TODO: Configurar marketplace ASAAS para split automático');
+            }
 
             // Criar checkout
             const checkoutPayload = {
                 customer: customerId,
-                billingTypes: ['PIX', 'CREDIT_CARD'], // Permite PIX e Cartão
+                billingTypes: ['PIX'], // APENAS PIX - removido cartão de crédito
                 chargeTypes: ['DETACHED'], // Cobrança avulsa (não recorrente)
                 
                 // Itens do checkout (obrigatório)
@@ -536,8 +566,8 @@ class AsaasMarketplaceService {
                     }
                 ],
                 
-                // Split de pagamento
-                split: estacionamento_asaas_account_id ? [
+                // Split de pagamento APENAS se tiver wallet_id
+                split: splitConfigurado ? [
                     {
                         walletId: estacionamento_asaas_account_id,
                         fixedValue: valorEstacionamento,
@@ -552,8 +582,8 @@ class AsaasMarketplaceService {
                     autoRedirect: true
                 },
 
-                // Configurações do checkout (cartão de crédito)
-                maxInstallmentCount: 1, // Apenas à vista
+                // Configurações do checkout (cartão de crédito) - REMOVIDO pois só PIX
+                // maxInstallmentCount: 1, // Apenas à vista
                 
                 // Metadados
                 externalReference: `reserva_${reserva_id}`
@@ -566,7 +596,7 @@ class AsaasMarketplaceService {
 
             logger.info('✅ Checkout Asaas criado:', {
                 checkout_id: checkout.id,
-                split_configurado: !!checkoutPayload.split
+                split_configurado: splitConfigurado
             });
 
             // Construir URL do checkout
@@ -582,11 +612,11 @@ class AsaasMarketplaceService {
                 payment_id: checkout.payment?.id, // ID do pagamento (quando houver)
                 status: checkout.status,
                 
-                // Dados do split
+                // Dados do split (ou zeros se não configurado)
                 valor_total: valor,
                 comissao_plataforma: comissaoPlataforma,
                 valor_estacionamento: valorEstacionamento,
-                percentual_split: this.platformFeePercent,
+                percentual_split: splitConfigurado ? this.platformFeePercent : 0,
                 
                 // Metadados
                 external_reference: `reserva_${reserva_id}`
@@ -619,7 +649,7 @@ class AsaasMarketplaceService {
      */
     async criarSubconta(dadosEstacionamento) {
         try {
-            const { nome, email, cpfCnpj, telefone } = dadosEstacionamento;
+            const { nome, email, cpfCnpj, telefone, incomeValue, address, addressNumber, province, postalCode } = dadosEstacionamento;
 
             // Primeiro, tentar buscar subconta existente pelo email
             try {
@@ -645,15 +675,22 @@ class AsaasMarketplaceService {
             }
 
             // Se não encontrou, criar nova subconta
-            logger.info('Criando nova subconta ASAAS:', { nome, email, cpfCnpj });
+            logger.info('Criando nova subconta ASAAS:', { nome, email, cpfCnpj, incomeValue });
 
             const response = await this.client.post('/accounts', {
                 name: nome,
                 email: email,
                 cpfCnpj: cpfCnpj,
                 mobilePhone: telefone,
+                incomeValue: incomeValue, // Campo obrigatório: renda/faturamento mensal
                 companyType: cpfCnpj.length === 14 ? 'MEI' : 'LIMITED',
-                site: 'https://parknow.com.br'
+                site: 'https://parknow.com.br',
+                
+                // Campos de endereço obrigatórios
+                address: address,
+                addressNumber: addressNumber,
+                province: province,
+                postalCode: postalCode
             });
 
             logger.info('✅ Subconta Asaas criada:', {
