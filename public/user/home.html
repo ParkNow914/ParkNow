@@ -162,209 +162,437 @@
       --transition-normal: all 0.3s ease;
       --transition-slow: all 0.5s ease;
 
-      /* Arredondamentos */
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 20px;
-      --radius-full: 50px;
+    }
 
-      /* Gradientes */
-      --gradient-primary: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-      --gradient-secondary: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
-      --gradient-mixed: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
-      --gradient-sidebar: linear-gradient(180deg, var(--primary-light), var(--primary-color));
-      --gradient-accent: linear-gradient(to right, var(--secondary-color), var(--secondary-color), var(--secondary-color), var(--primary-color), var(--dark-color));
+    /* Reset básico e estilos do body */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
     html, body {
-      margin: 0;
-      padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
+      font-family: 'Poppins', sans-serif;
     }
 
     body {
-      font-family: 'Poppins', sans-serif;
-      background-color: #f5f5f5;
-      width: 100%;
-      height: 100%;
-      position: fixed;
-      top: 0;
-      left: 0;
       display: flex;
       flex-direction: row;
-      overflow: hidden;
+      background-color: var(--map-bg);
+      color: var(--text-color);
+      line-height: 1.6;
     }
 
-    /* Estilos de texto */
-    h1, h2, h3, h4, h5, h6 {
-      font-family: 'Days One', sans-serif;
-    }
-
-    p, span, div, input, button, select, textarea {
-      font-family: 'Poppins', sans-serif;
-    }
-
-    /* Sidebar Styling - Modernized with Gradient */
+    /* Sidebar Styles */
     .sidebar {
-      width: var(--sidebar-width);
-      height: 100vh;
-      background: var(--gradient-sidebar);
       position: fixed;
       left: 0;
       top: 0;
-      z-index: 1000;
+      width: var(--sidebar-width);
+      height: 100%;
+      background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 15px 0;
+      padding: 20px 0;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
       transition: var(--transition-normal);
-      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-      overflow-y: hidden; /* Remove a rolagem */
     }
 
     .sidebar-header {
-      margin-bottom: 20px;
-      cursor: pointer;
-      padding: 8px;
-      border-radius: var(--radius-full);
-      transition: var(--transition-normal);
       width: 50px;
       height: 50px;
+      margin-bottom: 30px;
+      cursor: pointer;
+      transition: var(--transition-normal);
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .sidebar-header:hover {
-      background-color: rgba(255, 255, 255, 0.15);
-      transform: scale(1.05);
-    }
-
     .sidebar-header img {
-      width: 42px;
-      height: 42px;
-      border-radius: var(--radius-full);
-      border: 2px solid var(--secondary-light);
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+      width: 100%;
+      height: auto;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
       transition: var(--transition-normal);
-      background-color: white;
-      object-fit: cover;
     }
 
     .sidebar-header:hover img {
-      box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-      animation: pulseAnimation 2s infinite;
+      border-color: var(--secondary-color);
+      transform: scale(1.1);
+      box-shadow: 0 0 15px rgba(84, 200, 125, 0.5);
+    }
+
+    .sidebar nav {
+      flex: 1;
+      width: 100%;
     }
 
     .sidebar nav ul {
       list-style: none;
       padding: 0;
       margin: 0;
-      width: 100%;
     }
 
     .sidebar nav li {
-      margin-bottom: 15px;
-      width: 100%;
+      margin: 10px 0;
+      position: relative;
     }
 
-    .sidebar nav {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 15px; /* Aumenta o espaçamento entre os itens */
-      padding: 10px 0; /* Ajusta o padding vertical */
-      flex-grow: 1;
-    }
-
-    .sidebar nav a {
+    .sidebar nav li a {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 10px 2px;
+      padding: 12px 10px;
       text-decoration: none;
-      color: rgba(255, 255, 255, 0.8);
+      color: rgba(255, 255, 255, 0.7);
       transition: var(--transition-normal);
-      border-radius: var(--radius-sm);
-      width: 90%;
-      margin: 0 auto 8px;
-      text-align: center;
-      border: 1px solid transparent;
+      border-radius: var(--border-radius);
       position: relative;
       overflow: hidden;
     }
 
-    .sidebar nav a::before {
+    .sidebar nav li a::before {
       content: '';
       position: absolute;
-      top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.1);
-      transform: translateX(-100%);
-      transition: var(--transition-normal);
-      z-index: -1;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 70%;
+      background: var(--secondary-color);
+      transition: width 0.3s ease;
+      border-radius: 0 10px 10px 0;
     }
 
-    .sidebar nav a img {
-      width: 22px;
-      height: 22px;
-      margin-bottom: 4px;
-      opacity: 0.9;
-      transition: var(--transition-normal);
+    .sidebar nav li:hover a::before,
+    .sidebar nav li.active a::before {
+      width: 4px;
+    }
+
+    .sidebar nav li a img {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 5px;
       filter: brightness(0) invert(1);
-    }
-
-    .sidebar nav a span {
-      font-size: 0.65rem;
-      font-weight: 500;
-      text-align: center;
-      line-height: 1.2;
-      display: block;
-      width: 100%;
-      white-space: nowrap; /* Impede quebra de linha */
-      overflow: hidden;
-      text-overflow: ellipsis; /* Adiciona ... se o texto for muito longo */
-      color: rgba(255, 255, 255, 0.85);
+      opacity: 0.7;
       transition: var(--transition-normal);
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
-    .sidebar nav a:hover {
-      background-color: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      transform: translateY(-2px);
-    }
-
-    .sidebar nav a:hover::before {
-      transform: translateX(0);
-    }
-
-    .sidebar nav a:hover span {
-      color: white;
-    }
-
-    .sidebar nav a:hover img {
+    .sidebar nav li:hover a img,
+    .sidebar nav li.active a img {
       opacity: 1;
       transform: scale(1.1);
+      filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(84, 200, 125, 0.8));
+    }
+
+    .sidebar nav li a i {
+      font-size: 24px;
+      margin-bottom: 5px;
+      opacity: 0.7;
+      transition: var(--transition-normal);
+    }
+
+    .sidebar nav li:hover a i,
+    .sidebar nav li.active a i {
+      opacity: 1;
+      transform: scale(1.1);
+      color: var(--secondary-color);
+      text-shadow: 0 0 8px rgba(84, 200, 125, 0.8);
+    }
+
+    .sidebar nav li a:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .sidebar nav li.active a {
-      background-color: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-    }
-
-    .sidebar nav li.active a span {
       color: white;
-      font-weight: 600;
+      background: rgba(255, 255, 255, 0.15);
     }
 
+    .sidebar-label-bright {
+      font-size: 10px;
+      margin-top: 3px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .sidebar-icon-bright {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .sidebar nav li:hover .sidebar-label-bright,
+    .sidebar nav li.active .sidebar-label-bright {
+      color: white;
+      text-shadow: 0 0 5px rgba(84, 200, 125, 0.5);
+    }
+
+    .sidebar nav li:hover .sidebar-icon-bright,
+    .sidebar nav li.active .sidebar-icon-bright {
+      color: white;
+    }
+  </style>
+
+  <script>
+      // Funções utilitárias do modal PIX
+      function escapeHtml(value = '') {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatMoneyValue(value) {
+        const numeric = Number(value);
+        return Number.isNaN(numeric) ? '0.00' : numeric.toFixed(2);
+      }
+
+      function normalizePixModalData(raw = {}) {
+        const data = raw || {};
+        const base64Image = data.qr_code_base64 || data.qrCodeBase64 || data.qr_code_image || data.qrCodeImage;
+        let qrImage = null;
+
+        if (base64Image) {
+          const trimmed = String(base64Image).trim();
+          qrImage = trimmed.startsWith('data:image') ? trimmed : `data:image/png;base64,${trimmed}`;
+        } else if (data.qr_code && /^data:image|^https?:\/\//i.test(String(data.qr_code))) {
+          qrImage = data.qr_code;
+        }
+
+        const pixCopyValue = data.qr_code_text
+          || data.qrCodeText
+          || data.qr_code_payload
+          || data.pix_qr_code_text
+          || data.pix_qr_code
+          || data.codigo_pix
+          || data.codigoPix
+          || data.chave_pix
+          || data.chavePix
+          || '';
+
+        const localPaymentId = data.pagamento_id
+          ?? data.payment_local_id
+          ?? (Number.isFinite(data.id) ? data.id : null);
+
+        const gatewayPaymentId = data.gateway_payment_id
+          ?? data.gatewayPaymentId
+          ?? data.payment_id
+          ?? null;
+
+        return {
+          qr_code: qrImage,
+          qr_code_image: qrImage,
+          qr_code_text: pixCopyValue,
+          reserva_id: data.reserva_id || data.reservaId || null,
+          payment_id: localPaymentId ?? gatewayPaymentId ?? null,
+          pagamento_id: localPaymentId ?? null,
+          gateway_payment_id: gatewayPaymentId ?? null,
+          split: data.split || data.splitInfo || null,
+          valor: data.valor ?? data.valor_total ?? null,
+          expira_em: data.expira_em || data.data_expiracao || data.expiration || null,
+          chave_pix: data.chave_pix || data.chavePix || null,
+          nome_titular: data.nome_titular || data.titular || null,
+          raw
+        };
+      }
+
+      function preparePixModalData(reservaId, raw = {}) {
+        return normalizePixModalData({
+          ...raw,
+          reserva_id: raw.reserva_id || raw.reservaId || reservaId || null
+        });
+      }
+
+      // Função para exibir o modal de pagamento PIX
+      function showPixPaymentModal(pixData) {
+        const modalPixData = normalizePixModalData(pixData);
+        const qrImageSrc = modalPixData.qr_code
+          || (modalPixData.qr_code_text
+            ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(modalPixData.qr_code_text)}`
+            : '');
+        const pixCopyValue = modalPixData.qr_code_text || '';
+        const pixInputValue = escapeHtml(pixCopyValue);
+        const copyButtonDisabledAttr = pixCopyValue ? '' : 'disabled aria-disabled="true"';
+        const qrCodeMarkup = qrImageSrc
+          ? `<img src="${qrImageSrc}"
+               alt="QR Code PIX"
+               class="img-fluid"
+               style="max-width: min(250px, 80vw); height: auto; border: 2px solid #004080; border-radius: 8px; padding: 10px; background: white;">`
+          : `<div class="text-muted small">QR Code indisponível. Utilize o código PIX abaixo.</div>`;
+
+        const modalContent = `
+          <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 500px;">
+            <div class="modal-content" style="max-height: 90vh;">
+              <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                  <i class="fas fa-qrcode me-2"></i>Pagamento via PIX
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fechar">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body" style="overflow-y: auto; max-height: calc(90vh - 140px);">
+                <div class="text-center">
+                  <p class="lead mb-3">Escaneie o QR Code para pagar</p>
+
+                  <div class="qr-code-container mb-3" style="display: flex; justify-content: center; align-items: center;">
+                    ${qrCodeMarkup}
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small text-muted">Ou copie o código PIX:</label>
+                    <div class="input-group">
+                      <input type="text"
+                           id="pixCode"
+                           class="form-control form-control-sm"
+                           value="${pixInputValue}"
+                           placeholder="${pixCopyValue ? '' : 'Código PIX indisponível'}"
+                           readonly
+                           style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis;">
+                      <button class="btn btn-outline-primary btn-sm"
+                          type="button"
+                          id="copyPixCode"
+                          data-reserva-id="${modalPixData.reserva_id}"
+                          ${copyButtonDisabledAttr}>
+                        <i class="fas fa-copy"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="alert alert-warning d-flex align-items-center py-2" role="alert" style="font-size: 0.9rem;">
+                    <i class="fas fa-clock me-2"></i>
+                    <div>
+                      <strong>Atenção:</strong> Você tem <strong>30 minutos</strong> para realizar o pagamento.
+                    </div>
+                  </div>
+
+                  <div id="pixCopyFeedback" class="alert alert-success py-2" style="display: none; font-size: 0.9rem;">
+                    <i class="fas fa-check-circle me-1"></i> Código copiado com sucesso!
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer d-flex justify-content-between flex-wrap">
+                <button type="button" class="btn btn-secondary btn-sm mb-1" data-dismiss="modal">
+                  <i class="fas fa-times me-1"></i>Fechar
+                </button>
+                <button type="button" class="btn btn-success btn-sm mb-1" id="confirmarPagamento">
+                  <i class="fas fa-check me-1"></i>Já efetuei o pagamento
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const modalId = 'pixPaymentModal';
+        let modal = document.getElementById(modalId);
+
+        if (modal) {
+          modal.remove();
+        }
+
+        modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'modal fade';
+        modal.tabIndex = '-1';
+        modal.role = 'dialog';
+        modal.innerHTML = modalContent;
+
+        document.body.appendChild(modal);
+
+        $(`#${modalId}`).modal('show');
+
+        $(`#${modalId} #copyPixCode`).on('click', async function() {
+          if (!pixCopyValue) {
+            return;
+          }
+
+          const pixCode = document.getElementById('pixCode');
+          const reservaId = $(this).data('reserva-id');
+
+          if (pixCode) {
+            pixCode.select();
+            document.execCommand('copy');
+          } else if (navigator.clipboard) {
+            try {
+              await navigator.clipboard.writeText(pixCopyValue);
+            } catch (err) {
+              console.error('Erro ao copiar código PIX:', err);
+            }
+          }
+
+          const originalText = $(this).html();
+          $(this).html('<i class="fas fa-check"></i> Copiado!');
+          $('#pixCopyFeedback').fadeIn();
+
+          try {
+            await fetchWithAuth(`/api/reservas/${reservaId}/notificar-pagamento`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                tipo: 'pix_copiado',
+                codigoPix: modalPixData.qr_code_text,
+                timestamp: new Date().toISOString()
+              })
+            });
+            console.log('Notificação de pagamento enviada com sucesso');
+          } catch (error) {
+            console.error('Erro ao enviar notificação de pagamento:', error);
+          }
+
+          setTimeout(() => {
+            $(this).html(originalText);
+          }, 2000);
+        });
+
+        $(`#${modalId} #confirmarPagamento`).on('click', function() {
+          $(`#${modalId}`).modal('hide');
+          showUserAlert('Aguardando confirmação do pagamento. Você pode acompanhar na aba "Minhas Reservas".', 'info');
+        });
+
+        let checkPaymentStatus = null;
+
+        if (modalPixData.payment_id) {
+          checkPaymentStatus = setInterval(async () => {
+            try {
+              const response = await fetchWithAuth(`/api/pagamentos/${modalPixData.payment_id}/status`);
+              if (response.status === 'approved') {
+                clearInterval(checkPaymentStatus);
+                showUserAlert('Pagamento aprovado! Sua reserva foi confirmada.', 'success');
+                $(`#${modalId}`).modal('hide');
+                if (document.getElementById('reservasSection').style.display === 'block') {
+                  loadMinhasReservas();
+                }
+              } else if (response.status === 'cancelled' || response.status === 'rejected') {
+                clearInterval(checkPaymentStatus);
+                showUserAlert(`Pagamento ${response.status}. Por favor, tente novamente.`, 'danger');
+              }
+            } catch (error) {
+              console.error('Erro ao verificar status do pagamento:', error);
+            }
+          }, 10000);
+        }
+
+        $(`#${modalId}`).on('hidden.bs.modal', function () {
+          if (checkPaymentStatus) {
+            clearInterval(checkPaymentStatus);
+          }
+          $(this).remove();
+        });
+      }
+  </script>
+
+  <style>
     .sidebar nav li.active a img {
       opacity: 1;
       transform: scale(1.05);
@@ -562,8 +790,8 @@
         justify-content: center;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 20px 20px 0 0;
-        backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
         box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
       }
 
@@ -883,8 +1111,8 @@
       max-width: calc(100% - 40px);
       border: 1px solid rgba(84, 200, 125, 0.3);
       transition: var(--transition-normal);
-      backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
+      backdrop-filter: blur(5px);
     }
 
     .search-container::before {
@@ -2998,12 +3226,12 @@
         /* Prevenir qualquer movimento */
         position: static !important;
         transition: none !important;
-        transform: none !important;
-        animation: none !important;
         -webkit-transform: none !important;
         -moz-transform: none !important;
         -ms-transform: none !important;
         -o-transform: none !important;
+        transform: none !important;
+        animation: none !important;
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
@@ -3013,12 +3241,12 @@
         outline: none;
         /* Garantir que não haja absolutamente nenhum movimento ao focar */
         position: static !important;
-        transform: none !important;
-        animation: none !important;
         -webkit-transform: none !important;
         -moz-transform: none !important;
         -ms-transform: none !important;
         -o-transform: none !important;
+        transform: none !important;
+        animation: none !important;
         box-shadow: none !important;
         border: none !important;
         left: auto !important;
@@ -3654,10 +3882,10 @@
 
     <nav>
       <ul>
-        <li class="active" id="nav-mapa"><a href="#" title="Mapa" id="nav-mapa-link"><img src="/user/img/search.png" alt="Mapa"><span style="color: #ffffff; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">Mapa</span></a></li>
-        <li id="nav-favoritos"><a href="#" id="favoritosLink" title="Favoritos"><i class="fas fa-star" style="font-size: 28px; color: rgba(255, 255, 255, 0.85); margin-bottom: 6px;"></i><span style="color: #ffffff; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">Favoritos</span></a></li>
-        <li id="nav-reservas"><a href="#" id="reservasLink" title="Minhas Reservas"><img src="/user/img/bookmark.png" alt="Reservas"><span style="color: #ffffff; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">Reservas</span></a></li>
-        <li><a href="#" id="logoutLink" title="Sair"><img src="/user/img/logout.png" alt="Sair"><span style="color: #ffffff; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">Sair</span></a></li>
+        <li class="active" id="nav-mapa"><a href="#" title="Mapa" id="nav-mapa-link"><img src="/user/img/search.png" alt="Mapa"><span class="sidebar-label-bright">Mapa</span></a></li>
+        <li id="nav-favoritos"><a href="#" id="favoritosLink" title="Favoritos"><i class="fas fa-star sidebar-icon-bright"></i><span class="sidebar-label-bright">Favoritos</span></a></li>
+        <li id="nav-reservas"><a href="#" id="reservasLink" title="Minhas Reservas"><img src="/user/img/bookmark.png" alt="Reservas"><span class="sidebar-label-bright">Reservas</span></a></li>
+        <li><a href="#" id="logoutLink" title="Sair"><img src="/user/img/logout.png" alt="Sair"><span class="sidebar-label-bright">Sair</span></a></li>
       </ul>
     </nav>
      <div class="sidebar-footer">
@@ -3674,13 +3902,13 @@
         </button>
       </div>
       <div id="map"></div>
-      <button type="button" id="localizarMeBtn" aria-label="Localizar minha posição" style="position: fixed; bottom: 25px; right: 25px; z-index: 1000; width: 55px; height: 55px; border-radius: 50%; background: var(--gradient-secondary); background-size: 200% 200%; animation: gradientAnimation2 5s ease infinite; color: white; border: none; box-shadow: var(--shadow-lg); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition-normal);">
+        <button type="button" id="localizarMeBtn" aria-label="Localizar minha posição">
           <i class="fas fa-location-arrow"></i> <!-- Ícone de localização -->
       </button>
   </div>
 
    <!-- Seção Favoritos (Inicialmente Oculta) -->
-   <div class="main-content" id="favoritosSection" style="display: none;">
+  <div class="main-content" id="favoritosSection">
         <div class="reservas-container"><!-- Reutilizando o estilo da seção de reservas -->
             <div class="reservas-header">
                 <h2><i class="fas fa-star mr-2"></i>Meus Favoritos</h2>
@@ -3698,7 +3926,7 @@
     </div>
 
    <!-- Seção Minhas Reservas (Inicialmente Oculta) -->
-   <div class="main-content" id="reservasSection" style="display: none;">
+  <div class="main-content" id="reservasSection">
         <div class="reservas-container">
             <div class="reservas-header">
                 <h2><i class="fas fa-bookmark mr-2"></i>Minhas Reservas</h2>
@@ -3711,7 +3939,7 @@
 
             <!-- Tabs de Navegação -->
             <ul class="nav nav-tabs mb-3" id="reservasTabs" role="tablist">
-                <li class="nav-item">
+                <li class="nav-item" role="presentation">
                     <a class="nav-link active" id="ativas-tab" data-toggle="tab"
                        href="#ativas-pane" role="tab"
                        aria-controls="ativas-pane" aria-selected="true">
@@ -3719,7 +3947,7 @@
                         <span class="badge bg-primary ms-1">0</span>
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item" role="presentation">
                     <a class="nav-link" id="historico-tab" data-toggle="tab"
                        href="#historico-pane" role="tab"
                        aria-controls="historico-pane" aria-selected="false">
@@ -3761,7 +3989,7 @@
     </div>
 
     <!-- Div para Alertas Globais da Página -->
-    <div id="mainAlertBox" style="position: fixed; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1050; width: auto; max-width: 90%;"></div>
+    <div id="mainAlertBox"></div>
 
     <!-- Container para notificações em tempo real -->
     <div id="notificationContainer" class="notification-container"></div>
@@ -3782,11 +4010,11 @@
           <div class="form-group mt-3"> <label for="reservaInicio"><strong><i class="far fa-calendar-alt mr-1"></i> Iniciar Reserva Em:</strong></label> <input type="datetime-local" class="form-control form-control-sm" id="reservaInicio" name="reservaInicio" required> <small class="form-text text-muted">Escolha data e hora futuras.</small> </div>
           <div class="form-group"> <label for="reservaVagaId"><strong><i class="fas fa-parking mr-1"></i> Vaga:</strong></label> <select class="form-control form-control-sm" id="reservaVagaId" name="reservaVagaId" required> <option value="">Selecione uma vaga...</option> </select> <small class="form-text text-muted">Selecione uma vaga disponível para reserva.</small> </div>
           <div class="form-group"> <label for="reservaDuracao"><strong><i class="far fa-clock mr-1"></i> Duração:</strong></label> <select class="form-control form-control-sm" id="reservaDuracao" name="reservaDuracao" required> <option value="30">30 min</option> <option value="60" selected>1 hora</option> <option value="90">1h 30min</option> <option value="120">2 horas</option> <option value="180">3 horas</option> <option value="240">4 horas</option> <option value="360">6 horas</option><option value="480">8 horas</option><option value="720">12 horas</option><option value="1440">24 horas</option> </select> </div>
-          <div id="reserva-feedback" class="mt-2" style="display: none;"></div>
+          <div id="reserva-feedback" class="mt-2 feedback-placeholder"></div>
         </div>
         <div class="modal-footer justify-content-between">
           <div> <button type="button" class="btn btn-sm btn-info" id="verVagasBtn"> <i class="fas fa-search-location"></i> Ocupar Agora </button> </div>
-          <div> <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button> <button type="button" class="btn btn-sm btn-primary" id="reservarVagaBtn"> <span class="spinner-border spinner-border-sm" style="display: none;"></span> <i class="far fa-calendar-check"></i> Reservar </button> </div>
+          <div> <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cancelar</button> <button type="button" class="btn btn-sm btn-primary" id="reservarVagaBtn"> <span class="spinner-border spinner-border-sm btn-spinner"></span> <i class="far fa-calendar-check"></i> Reservar </button> </div>
         </div>
       </div>
     </div>
@@ -3801,9 +4029,9 @@
           <button type="button" class="close" data-dismiss="modal">×</button>
         </div>
         <div class="modal-body">
-          <div id="estender-reserva-feedback" class="mb-3" style="display: none;"></div>
+          <div id="estender-reserva-feedback" class="mb-3 feedback-placeholder"></div>
 
-          <div class="reserva-info mb-3 p-3" style="background-color: rgba(84, 200, 125, 0.1); border-radius: var(--radius-md); border-left: 4px solid var(--secondary-color);">
+          <div class="reserva-info mb-3 p-3 reserva-info-panel">
             <h6 class="mb-2" id="estenderReservaEstacionamento">Carregando...</h6>
             <p class="mb-1 small" id="estenderReservaVaga"><strong>Vaga:</strong> Carregando...</p>
             <p class="mb-1 small" id="estenderReservaPeriodoAtual"><strong>Período atual:</strong> Carregando...</p>
@@ -3823,7 +4051,7 @@
             <small class="form-text text-muted">Selecione quanto tempo deseja adicionar à sua reserva.</small>
           </div>
 
-          <div class="novo-horario mt-3 p-2 text-center" style="background-color: rgba(0, 64, 128, 0.1); border-radius: var(--radius-md);">
+          <div class="novo-horario mt-3 p-2 text-center novo-horario-panel">
             <p class="mb-1"><strong>Novo horário de término:</strong></p>
             <p class="mb-0" id="estenderReservaNovoFim">Calculando...</p>
           </div>
@@ -3831,7 +4059,7 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
           <button type="button" class="btn btn-primary" id="confirmarEstenderBtn">
-            <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+            <span class="spinner-border spinner-border-sm btn-spinner"></span>
             <i class="fas fa-check mr-1"></i>Confirmar Extensão
           </button>
         </div>
@@ -3840,15 +4068,15 @@
   </div>
 
   <!-- Modal do Usuário (Perfil) -->
-  <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 1075px;">
-      <div class="modal-content" style="width: 100%;">
+    <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="userModalLabel"><i class="fas fa-user-circle mr-2"></i>Meu Perfil</h5>
           <button type="button" class="close" data-dismiss="modal">×</button>
         </div>
         <div class="modal-body py-2">
-          <div id="user-profile-feedback" class="mb-2" style="display: none;"></div>
+          <div id="user-profile-feedback" class="mb-2 feedback-placeholder"></div>
 
           <form id="userForm" novalidate>
             <div class="row">
@@ -3856,10 +4084,10 @@
                 <div class="user-profile-header d-flex align-items-center justify-content-center py-2">
                   <div class="user-avatar mr-4 position-relative">
                     <!-- Container com tamanho fixo para a imagem de perfil -->
-                    <div class="profile-image-container" style="width: 120px; height: 120px; max-width: 120px; max-height: 120px;">
-                      <img id="userProfileImage" src="/user/img/user.png" alt="Foto de Perfil" class="profile-image" style="width: 100%; height: 100%; max-width: 120px; max-height: 120px; object-fit: cover;">
+                    <div class="profile-image-container">
+                      <img id="userProfileImage" src="/user/img/user.png" alt="Foto de Perfil" class="profile-image">
                     </div>
-                    <input type="file" id="profileImageInput" accept="image/*" style="display: none;">
+                    <input type="file" id="profileImageInput" accept="image/*" class="hidden-input">
 
                     <!-- Botões para gerenciar a foto de perfil -->
                     <div class="profile-image-actions mt-2 text-center">
@@ -3872,8 +4100,8 @@
                     </div>
                   </div>
                   <div class="user-info">
-                    <h5 class="mb-1 font-weight-bold" id="userNameDisplay" style="font-size: 1.4rem;"></h5>
-                    <div class="text-muted" id="userEmailDisplay" style="font-size: 1.1rem;"></div>
+                    <h5 class="mb-1 font-weight-bold" id="userNameDisplay"></h5>
+                    <div class="text-muted" id="userEmailDisplay"></div>
                     <div class="text-muted small mt-2">Gerencie sua foto de perfil com os botões abaixo da imagem</div>
                   </div>
                 </div>
@@ -3963,7 +4191,7 @@
                   </div>
 
                   <div class="form-group mt-2">
-                    <div class="vehicle-info-box p-2 text-center" style="background: var(--gradient-secondary); background-size: 200% 200%; animation: gradientAnimation2 5s ease infinite; border-radius: var(--radius-md); color: white;">
+                    <div class="vehicle-info-box p-2 text-center gradient-panel">
                       <h6 class="mb-1"><i class="fas fa-info-circle mr-2"></i>Informações do Veículo</h6>
                       <p class="mb-1 small">Estas informações são utilizadas para identificar seu veículo no estacionamento.</p>
                     </div>
@@ -3981,11 +4209,11 @@
           <button type="button" class="btn btn-sm btn-primary" id="editUserBtn">
             <i class="fas fa-edit mr-1"></i>Editar Perfil
           </button>
-          <button type="button" class="btn btn-sm btn-danger" id="cancelEditBtn" style="display: none;">
+          <button type="button" class="btn btn-sm btn-danger" id="cancelEditBtn">
             <i class="fas fa-times mr-1"></i>Cancelar
           </button>
-          <button type="button" class="btn btn-sm btn-success" id="saveUserBtn" style="display: none;">
-            <span class="spinner-border spinner-border-sm mr-1" style="display: none; color: #ffffff; border-width: 0.2em; opacity: 1;"></span>
+          <button type="button" class="btn btn-sm btn-success" id="saveUserBtn">
+            <span class="spinner-border spinner-border-sm mr-1 btn-spinner white-spinner"></span>
             <i class="fas fa-save mr-1"></i>Salvar
           </button>
         </div>
@@ -3994,7 +4222,131 @@
   </div>
 
   <style>
-    /* Payment related styles removed */
+    :root {
+      --gradient-secondary: linear-gradient(135deg, #54C87D 0%, #004080 100%);
+      --radius-md: 12px;
+    }
+
+    .sidebar-label-bright {
+      color: #ffffff;
+      font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .sidebar-icon-bright {
+      font-size: 28px;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 6px;
+    }
+
+    #localizarMeBtn {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      z-index: 1000;
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      background: var(--gradient-secondary);
+      background-size: 200% 200%;
+      animation: gradientAnimation2 5s ease infinite;
+      color: #ffffff;
+      border: none;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition-normal);
+    }
+
+    #favoritosSection,
+    #reservasSection {
+      display: none;
+    }
+
+    #mainAlertBox {
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1050;
+      width: auto;
+      max-width: 90%;
+    }
+
+    .feedback-placeholder {
+      display: none;
+    }
+
+    .btn-spinner {
+      display: none;
+    }
+
+    .white-spinner {
+      color: #ffffff;
+      border-width: 0.2em;
+      opacity: 1;
+    }
+
+    .reserva-info-panel {
+      background-color: rgba(84, 200, 125, 0.1);
+      border-radius: var(--radius-md);
+      border-left: 4px solid var(--secondary-color);
+    }
+
+    .novo-horario-panel {
+      background-color: rgba(0, 64, 128, 0.1);
+      border-radius: var(--radius-md);
+    }
+
+    #cancelEditBtn,
+    #saveUserBtn {
+      display: none;
+    }
+
+    .profile-image-container {
+      width: 120px;
+      height: 120px;
+      max-width: 120px;
+      max-height: 120px;
+    }
+
+    .profile-image {
+      width: 100%;
+      height: 100%;
+      max-width: 120px;
+      max-height: 120px;
+      object-fit: cover;
+    }
+
+    .hidden-input {
+      display: none;
+    }
+
+    #userNameDisplay {
+      font-size: 1.4rem;
+    }
+
+    #userEmailDisplay {
+      font-size: 1.1rem;
+    }
+
+    .gradient-panel {
+      background: var(--gradient-secondary);
+      background-size: 200% 200%;
+      animation: gradientAnimation2 5s ease infinite;
+      border-radius: var(--radius-md);
+      color: #ffffff;
+    }
+
+    #userModal .modal-dialog {
+      max-width: 1075px;
+    }
+
+    #userModal .modal-content {
+      width: 100%;
+    }
   </style>
 
   <!-- Scripts JS -->
@@ -4478,14 +4830,16 @@
     document.addEventListener('DOMContentLoaded', async () => {
         // Verificar se voltou do checkout Asaas
         const urlParams = new URLSearchParams(window.location.search);
-        const reservaId = urlParams.get('reserva');
+        const pagamentoStatus = urlParams.get('pagamento');
+        const reservaId = urlParams.get('reserva_id') || urlParams.get('reserva');
         const status = urlParams.get('status');
 
-        if (reservaId && status) {
+        // Tratar retorno do checkout Asaas
+        if (pagamentoStatus || (reservaId && status)) {
             // Limpar os parâmetros da URL
             window.history.replaceState({}, document.title, window.location.pathname);
             
-            if (status === 'sucesso') {
+            if (pagamentoStatus === 'sucesso' || status === 'sucesso') {
                 showAlertModal(null, 
                     '✅ Pagamento realizado com sucesso! Sua reserva foi confirmada.', 
                     'success'
@@ -4495,7 +4849,7 @@
                 setTimeout(() => {
                     document.getElementById('reservasLink')?.click();
                 }, 2000);
-            } else if (status === 'cancelado') {
+            } else if (pagamentoStatus === 'cancelado' || status === 'cancelado') {
                 showAlertModal(null, 
                     '⚠️ Pagamento cancelado. Você pode tentar novamente.', 
                     'warning'
@@ -5579,39 +5933,6 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
 
     // Função para exibir o modal de pagamento PIX
     function showPixPaymentModal(pixData) {
-        // Criar breakdown do split se disponível
-        let splitInfo = '';
-        if (pixData.split && pixData.split.valor_total) {
-            const valorTotal = parseFloat(pixData.split.valor_total);
-            const comissao = parseFloat(pixData.split.comissao_plataforma || 0);
-            const valorEstacionamento = parseFloat(pixData.split.valor_estacionamento || 0);
-            const percentual = parseFloat(pixData.split.percentual || 15);
-
-            splitInfo = `
-                <!-- Informações de Split -->
-                <div class="card border-info mb-3" style="font-size: 0.9rem;">
-                    <div class="card-header bg-info text-white py-2">
-                        <i class="fas fa-info-circle me-1"></i> Detalhamento do Pagamento
-                    </div>
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span><strong>Valor Total:</strong></span>
-                            <span class="text-success"><strong>R$ ${valorTotal.toFixed(2)}</strong></span>
-                        </div>
-                        <hr class="my-1">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted small">Taxa ParkNow (${percentual}%):</span>
-                            <span class="text-muted small">R$ ${comissao.toFixed(2)}</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted small">Estacionamento:</span>
-                            <span class="text-muted small">R$ ${valorEstacionamento.toFixed(2)}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
         // Criar o conteúdo do modal de pagamento com design responsivo
         const modalContent = `
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 500px;">
@@ -5635,8 +5956,6 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
                                      class="img-fluid"
                                      style="max-width: min(250px, 80vw); height: auto; border: 2px solid #004080; border-radius: 8px; padding: 10px; background: white;">
                             </div>
-
-                            ${splitInfo}
 
                             <!-- Código PIX -->
                             <div class="mb-3">
@@ -5838,10 +6157,8 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
 
             // Extrair dados da resposta
             const reservaId = parseInt(result.reserva?.id || result.data?.reserva?.id) || 0;
-            const pagamentoId = parseInt(result.pagamento?.id || result.data?.pagamento?.id) || 0;
-            const qrCode = result.qr_code || result.data?.qr_code;
-            const pixCode = result.qr_code_text || result.data?.qr_code_text;
-            const checkoutUrl = result.pagamento?.checkout_url || result.checkout_url;
+            const pagamentoInfo = result.pagamento || result.data?.pagamento || {};
+            const checkoutUrl = pagamentoInfo.checkout_url || result.checkout_url;
 
             // Se houver checkout_url, redirecionar para interface do Asaas
             if (checkoutUrl) {
@@ -5862,17 +6179,19 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
 
             // Caso contrário, usar o modal antigo (fallback para QR Code direto)
             // Extrair informações de split (se disponíveis)
-            const split = result.split || result.data?.split || null;
+      const split = result.split || result.data?.split || null;
 
-            const pixData = {
-                qr_code: qrCode,
-                qr_code_text: pixCode,
-                payment_id: pagamentoId,
-                reserva_id: reservaId,
-                split: split
-            };
+      const pixData = preparePixModalData(reservaId, {
+        qr_code_base64: pagamentoInfo.qr_code_base64,
+        qr_code_text: pagamentoInfo.qr_code,
+        pagamento_id: pagamentoInfo.id,
+        gateway_payment_id: pagamentoInfo.payment_id,
+        valor: result.reserva?.valor_total || reservaData.valor,
+        split,
+        expira_em: pagamentoInfo.expira_em
+      });
 
-            showPixPaymentModal(pixData);
+      showPixPaymentModal(pixData);
 
             // Notifica o estacionamento que o usuário visualizou o código PIX
             if (reservaId) {
@@ -6295,57 +6614,61 @@ async function handleEfetuarPagamento(reservaId, event) {
         // Buscar informações da reserva
         const reserva = await fetchWithAuth(`/api/reservas/${reservaId}`);
 
-        let pixData = null;
-
-        // Se já tem pagamento, buscar o QR code existente
-        if (reserva.id_pagamento) {
-            const pagamento = await fetchWithAuth(`/api/pagamentos/${reserva.id_pagamento}`);
-            const dadosPix = pagamento.dados_retorno || pagamento.dados_adicionais || {};
-
-            if (dadosPix.qr_code || dadosPix.pix_qr_code) {
-                pixData = {
-                    qr_code: dadosPix.qr_code || dadosPix.pix_qr_code,
-                    qr_code_text: dadosPix.qr_code_text || dadosPix.pix_qr_code_text,
-                    payment_id: reserva.id_pagamento,
-                    reserva_id: reservaId,
-                    valor: pagamento.valor,
-                    chave_pix: dadosPix.chave_pix,
-                    nome_titular: dadosPix.nome_titular,
-                    expira_em: dadosPix.expira_em
-                };
-            }
+        // Verificar se já existe checkout_url salvo
+        if (reserva.checkout_url || reserva.pagamento?.checkout_url) {
+            const checkoutUrl = reserva.checkout_url || reserva.pagamento?.checkout_url;
+            console.log('🔗 Redirecionando para Checkout Asaas existente:', checkoutUrl);
+            
+            showUserAlert('Redirecionando para pagamento...', 'info');
+            setTimeout(() => {
+                window.location.href = checkoutUrl;
+            }, 1000);
+            return;
         }
 
-        // Se não tem pagamento, gerar QR Code PIX
-        if (!pixData) {
-            const response = await fetchWithAuth(`/api/payments/processar-pagamento/${reservaId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    metodo_pagamento: 'pix',
-                    dados_pagamento: {}
-                })
-            });
+        // Se não tem checkout, gerar novo checkout PIX
+        const response = await fetchWithAuth(`/api/payments/processar-pagamento/${reservaId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                metodo_pagamento: 'pix',
+                dados_pagamento: {}
+            })
+        });
 
-            if (response.success && response.data) {
-                const data = response.data;
-                pixData = {
-                    qr_code: data.qr_code,
-                    qr_code_text: data.qr_code_text,
-                    payment_id: data.pagamento_id,
-                    reserva_id: reservaId,
+        if (response.success && response.data) {
+            const data = response.data;
+            
+            // Se retornou checkout_url, redirecionar para o Asaas
+            if (data.checkout_url) {
+                console.log('🔗 Redirecionando para Checkout Asaas:', data.checkout_url);
+                
+                showUserAlert('Redirecionando para pagamento...', 'info');
+                setTimeout(() => {
+                    window.location.href = data.checkout_url;
+                }, 1000);
+                return;
+            }
+            
+            // Fallback: se não tem checkout_url mas tem QR Code (para casos legados)
+            if (data.qr_code_base64 || data.qr_code_text || data.qr_code) {
+                const pixData = preparePixModalData(reservaId, {
+                    qr_code_base64: data.qr_code_base64,
+                    qr_code_text: data.qr_code_text || data.qr_code,
+                    pagamento_id: data.pagamento_id,
+                    gateway_payment_id: data.gateway_payment_id || data.gatewayPaymentId,
                     valor: data.valor,
                     chave_pix: data.chave_pix,
                     nome_titular: data.nome_titular,
-                    expira_em: data.expira_em
-                };
-            } else {
-                throw new Error('Erro ao gerar QR Code PIX');
+                    expira_em: data.expira_em,
+                    split: data.split
+                });
+                showPixPaymentModal(pixData);
+                return;
             }
         }
-
-        // Abrir modal com o QR Code PIX
-        showPixPaymentModal(pixData);
+        
+        throw new Error('Erro ao gerar pagamento PIX. Tente novamente.');
 
     } catch (e) {
         console.error('Erro:', e);
@@ -6354,7 +6677,9 @@ async function handleEfetuarPagamento(reservaId, event) {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-credit-card me-1"></i> Efetuar Pagamento';
     }
-}async function handleCancelarReserva(id, event) {
+}
+
+async function handleCancelarReserva(id, event) {
     const btn=event.target.closest('button');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
