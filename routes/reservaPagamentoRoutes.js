@@ -88,6 +88,33 @@ router.post(
 
 /**
  * @swagger
+ * /api/reservas/{id}/pix:
+ *   get:
+ *     summary: Retorna o último pagamento PIX da reserva
+ *     tags: [Reservas com Pagamento]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da reserva
+ *     responses:
+ *       200:
+ *         description: Dados do PIX encontrados
+ *       404:
+ *         description: Reserva ou pagamento não encontrado
+ */
+router.get(
+  '/:id/pix',
+  protectUser,
+  reservaPagamentoController.obterPixPorReserva
+);
+
+/**
+ * @swagger
  * /api/webhooks/asaas:
  *   post:
  *     summary: Webhook para notificações do ASAAS

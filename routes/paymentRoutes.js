@@ -203,27 +203,27 @@ router.get('/test-express', function(req, res) {
     });
 });
 
-// Register the payment route with minimal middleware
+// Register the payment route
 const routePath = '/processar-pagamento/:reservaId';
 console.log(`[Payment Routes] Registering route POST ${routePath}`);
 
 router.post(
     routePath,
-    // Simple middleware to log the request
+    // Middleware to log the request
     function(req, res, next) {
         console.log('Payment route hit:', req.method, req.originalUrl);
         next();
     },
-    // Main handler
-    function(req, res) {
-        console.log('Processing payment for reservaId:', req.params.reservaId);
-        res.json({
-            success: true,
-            message: 'Payment processed successfully',
-            reservaId: req.params.reservaId,
-            timestamp: new Date().toISOString()
-        });
-    });
+    // Validation middleware
+    [
+        param('reservaId').isInt({ min: 1 }).withMessage('ID da reserva inválido')
+    ],
+    validateRequest,
+    // Main handler - calls the actual controller
+    (req, res, next) => {
+        return paymentController.processarPagamento(req, res, next);
+    }
+);
 
 /**
  * @swagger

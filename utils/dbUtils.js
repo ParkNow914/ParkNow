@@ -27,6 +27,9 @@ logger.info('Database Configuration:', {
 // Create the connection pool
 let pool;
 
+// Track pool lifecycle to avoid ending it twice during shutdown
+let poolState = 'open';
+
 try {
     pool = new Pool(poolConfig);
     logger.info('Database pool created successfully');
@@ -109,27 +112,28 @@ async function testConnection(retries = 5, delay = 2000) {
 
 // Close the connection pool
 async function closePool() {
+    if (poolState === 'closed') {
+        logger.debug('closePool called after pool was already closed.');
+        return;
+    }
+
+    if (poolState === 'closing') {
+        logger.debug('closePool called while pool is closing. Ignoring duplicate request.');
+        return;
+    }
+
+    poolState = 'closing';
+
     try {
         await pool.end();
+        poolState = 'closed';
         logger.info('Database connection pool closed');
     } catch (error) {
+        poolState = 'open';
         logger.error('Error closing database connection pool', { error });
         throw error;
     }
 }
-
-// Handle process termination
-process.on('SIGTERM', async () => {
-    logger.info('Received SIGTERM. Closing database connection pool...');
-    await closePool();
-    process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-    logger.info('Received SIGINT. Closing database connection pool...');
-    await closePool();
-    process.exit(0);
-});
 
 // Store the original query method
 const originalQuery = pool.query.bind(pool);
@@ -206,15 +210,7 @@ module.exports = {
     },
     query,
     testConnection,
-    closePool: async () => {
-        try {
-            await pool.end();
-            logger.info('Database connection pool closed');
-        } catch (error) {
-            logger.error('Error closing database connection pool:', error);
-            throw error;
-        }
-    },
+    closePool,
     pool,
     // For backward compatibility
     formatDate: (date) => date ? new Date(date).toISOString() : null,

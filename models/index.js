@@ -40,13 +40,17 @@ const sequelize = new Sequelize(
 const db = {};
 
 // Primeiro, carregar os modelos sem associações
+// Evita carregar helpers/DAOs que causam dependências circulares
+const isSequelizeModelFile = (file) => /^[A-Z]/.test(file);
+
 const modelFiles = fs.readdirSync(__dirname)
   .filter(file => {
     return (
       file.indexOf('.') !== 0 &&
       file !== basename &&
       file.slice(-3) === '.js' &&
-      file.indexOf('.test.js') === -1
+      file.indexOf('.test.js') === -1 &&
+      isSequelizeModelFile(file)
     );
   });
 
