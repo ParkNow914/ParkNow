@@ -25,7 +25,6 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23000' d='M135.2 117.4L109.1 192H402.9l-26.1-74.6C372.3 104.6 360.2 96 346.6 96H165.4c-13.6 0-25.7 8.6-30.2 21.4zM39.6 196.8L74.8 96.3C88.3 57.8 124.6 32 165.4 32H346.6c40.8 0 77.1 25.8 90.6 64.3l35.2 100.5c23.2 9.6 39.6 32.5 39.6 59.2V400v48c0 17.7-14.3 32-32 32H448c-17.7 0-32-14.3-32-32V400H96v48c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32V400 256c0-26.7 16.4-49.6 39.6-59.2zM128 288a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm288 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64z'/></svg>">
     <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16 32x32">
     <link rel="apple-touch-icon" href="/favicon.ico">
-    <meta name="theme-color" content="#000000">
 
 </head>
 <body>
@@ -35,7 +34,7 @@
         <div class="container">
             <nav class="navbar navbar-expand-lg navbar-dark bg-transparent py-0"> <!-- py-0 para reduzir altura -->
                 <a class="navbar-brand" href="/">
-                    <img src="/img/logo.png" alt="Logo ParkNow" class="logo">
+                    <img src="/img/logo-black.png" alt="Logo ParkNow" class="logo">
                 </a>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -72,7 +71,7 @@
 
     <!-- Seção Banner Principal -->
     <section class="banner">
-        <img src="/img/banner.jpeg" alt="Estacionamento moderno ao entardecer" class="banner-image" loading="lazy" fetchpriority="high"> <!-- Otimização imagem -->
+        <img src="/img/logo.png" alt="Estacionamento moderno ao entardecer" class="banner-image" loading="lazy"> <!-- Otimização imagem -->
         <div class="container">
             
         </div>
@@ -83,7 +82,7 @@
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-lg-8 text-center">
-                     <h2 class="section-title days-one-regular" style="color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">É Dono de Estacionamento?</h2>
+                     <h2 class="section-title days-one-regular text-glow">É Dono de Estacionamento?</h2>
                     <p class="section-paragraph days-one-regular mb-5">Aumente sua receita, otimize a ocupação e ofereça uma experiência moderna aos seus clientes.</p>
                     <a href="/admin_home/admin-home.html" class="btn btn-success btn-lg px-5 py-3">
                        <i class="fas fa-chart-line mr-2"></i> Gerenciar Meu Negócio
@@ -96,7 +95,7 @@
     <!-- Seção de Features/Recursos (Estático) -->
     <section class="section-features py-5" id="features">
         <div class="container">
-            <h2 class="section-title text-center days-one-regular mb-5" style="color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); background-color: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 8px; display: inline-block;">Recursos Exclusivos</h2>
+            <h2 class="section-title text-center days-one-regular mb-5 text-glow highlight-badge">Recursos Exclusivos</h2>
             
             <!-- Features estáticas -->
             <div class="row justify-content-center">
@@ -133,11 +132,11 @@
             <div class="row align-items-center">
                 <aside class="col-lg-5 col-md-6 order-md-1 inscricao mb-4 mb-md-0">
                     <div class="inscricao-conteudo">
-                        <h2 class="section-title days-one-regular" style="color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Fique por Dentro!</h2>
+                        <h2 class="section-title days-one-regular text-glow">Fique por Dentro!</h2>
                         <p class="section-paragraph days-one-regular">Receba novidades e ofertas ParkNow no seu email.</p>
                     </div>
                     <form id="newsletterForm" class="inscricao-formulario" novalidate autocomplete="on">
-                        <div id="newsletter-feedback" style="display: none;"></div>
+                        <div id="newsletter-feedback" class="feedback-placeholder"></div>
                         <div class="form-group">
                             <label for="newsletterNome" class="sr-only">Nome</label>
                             <input type="text" class="form-control form-control-lg" id="newsletterNome" name="nome" placeholder="Seu nome *" required autocomplete="name">
@@ -148,15 +147,15 @@
                             <input type="email" class="form-control form-control-lg" id="newsletterEmail" name="email" placeholder="Seu email *" required autocomplete="email">
                              <div class="invalid-feedback">Email inválido.</div>
                         </div>
-                        <button type="submit" id="signUpButton" class="btn btn-primary btn-lg">
-                             <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                            <button type="submit" id="signUpButton" class="btn btn-primary btn-lg">
+                                <span class="spinner-border spinner-border-sm btn-spinner"></span>
                             <i class="fas fa-paper-plane mr-2"></i> Inscrever-se
                         </button>
                     </form>
                 </aside>
                 <article class="col-lg-7 col-md-6 order-md-2 mapa">
                     <h3 class="text-center days-one-regular mb-3 d-md-none">Encontre Estacionamentos</h3>
-                    <div id="map" style="height: 450px; width: 100%; border-radius: 10px;"></div>
+                    <div id="map"></div>
                 </article>
             </div>
         </div>
@@ -167,12 +166,12 @@
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-lg-10 text-center">
-                    <h2 class="section-title days-one-regular mb-4" style="color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Fale Conosco</h2>
+                    <h2 class="section-title days-one-regular mb-4 text-glow">Fale Conosco</h2>
                     <p class="section-paragraph days-one-regular mb-5">Dúvidas, sugestões ou problemas? Estamos aqui para ajudar!</p>
                 </div>
             </div>
             <form id="contatoForm" method="post" novalidate autocomplete="on">
-                <div id="contato-feedback" style="display: none;"></div>
+                <div id="contato-feedback" class="feedback-placeholder"></div>
                 <div class="form-row">
                     <div class="form-group col-md-6">
                         <label for="contatoNome">Nome*</label>
@@ -195,8 +194,8 @@
                     <textarea class="form-control" id="contatoMensagem" name="mensagem" rows="5" required autocomplete="off"></textarea>
                      <div class="invalid-feedback">Mensagem obrigatória.</div>
                 </div>
-                <button type="submit" class="btn btn-primary">
-                     <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                 <button type="submit" class="btn btn-primary">
+                     <span class="spinner-border spinner-border-sm btn-spinner"></span>
                     <i class="fas fa-envelope mr-2"></i> Enviar Mensagem
                 </button>
             </form>
@@ -226,7 +225,7 @@
                         <button type="button" class="close" data-dismiss="modal">×</button>
                     </div>
                     <div class="modal-body">
-                        <div id="login-feedback" style="display: none;"></div>
+                        <div id="login-feedback" class="feedback-placeholder"></div>
                         <form id="loginUserForm" method="POST" novalidate autocomplete="on">
                             <div class="form-group">
                                 <label for="loginEmail">Email</label>
@@ -239,7 +238,7 @@
                                 <div class="invalid-feedback">Senha obrigatória.</div>
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">
-                                <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                                <span class="spinner-border spinner-border-sm btn-spinner"></span>
                                 Entrar
                             </button>
                             <div class="text-center mt-3">
@@ -260,7 +259,7 @@
                         <button type="button" class="close" data-dismiss="modal">×</button>
                     </div>
                     <div class="modal-body">
-                        <div id="register-feedback" style="display: none;"></div>
+                        <div id="register-feedback" class="feedback-placeholder"></div>
                         <form id="registerUserForm" method="POST" novalidate autocomplete="on">
                             <div class="form-group">
                                 <label for="newUsername">Nome Completo*</label>
@@ -310,7 +309,7 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">
-                                <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                                <span class="spinner-border spinner-border-sm btn-spinner"></span>
                                 Cadastrar
                             </button>
                         </form>
@@ -328,7 +327,7 @@
                         <button type="button" class="close" data-dismiss="modal">×</button>
                     </div>
                     <div class="modal-body">
-                        <div id="forgot-feedback" style="display: none;"></div>
+                        <div id="forgot-feedback" class="feedback-placeholder"></div>
                         <form id="forgotPasswordForm" method="POST" novalidate autocomplete="on">
                             <p class="text-muted small">Digite seu email cadastrado para receber o link de redefinição.</p>
                             <div class="form-group">
@@ -337,7 +336,7 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">
-                                <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                                <span class="spinner-border spinner-border-sm btn-spinner"></span>
                                 Enviar Link
                             </button>
                         </form>
@@ -355,10 +354,10 @@
                         <button type="button" class="close" data-dismiss="modal">×</button>
                     </div>
                     <div class="modal-body">
-                        <div id="reset-feedback" style="display: none;"></div>
+                        <div id="reset-feedback" class="feedback-placeholder"></div>
                         <form id="resetPasswordForm" method="POST" novalidate autocomplete="on">
                             <input type="hidden" id="resetToken" name="token" value="">
-                            <div style="display:none">
+                            <div class="visually-hidden-block" aria-hidden="true">
                                 <label for="resetPasswordUsername">Nome de usuário</label>
                                 <input type="text" id="resetPasswordUsername" name="username" autocomplete="username">
                             </div>
@@ -373,7 +372,7 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">
-                                <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                                <span class="spinner-border spinner-border-sm btn-spinner"></span>
                                 Redefinir Senha
                             </button>
                         </form>
