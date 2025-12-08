@@ -97,17 +97,33 @@ class ReservaPagamentoController {
         valor
       });
 
-      // Se for PIX, cria cobrança PIX direta (sem checkout Asaas)
+      // Se for PIX, usa o Checkout oficial do Asaas (interface pronta e segura)
       if (metodo_pagamento === 'pix') {
-        const pixResult = await asaasMarketplace.criarPagamentoPixComSplit({
+        // Construir URLs de callback
+        const baseUrl = process.env.BASE_URL || process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+        const successUrl = `${baseUrl}/user/home.html?pagamento=sucesso&reserva_id=${reserva.id}`;
+        const cancelUrl = `${baseUrl}/user/home.html?pagamento=cancelado&reserva_id=${reserva.id}`;
+
+        logger.info('Criando Checkout Asaas para reserva:', {
+          reserva_id: reserva.id,
+          baseUrl,
+          successUrl,
+          cancelUrl
+        });
+
+        // Criar checkout no Asaas (redireciona para página oficial de pagamento)
+        const checkoutResult = await asaasMarketplace.criarCheckout({
           valor,
           descricao: `Reserva #${reserva.id} - ${estacionamento.nome}`,
           email_pagador: userEmail,
           nome_pagador: req.user.nome || 'Cliente',
           cpf_pagador: req.user.cpf || null,
+          telefone_pagador: req.user.telefone || null,
           estacionamento_id,
           estacionamento_asaas_account_id: estacionamento.asaas_wallet_id,
-          reserva_id: reserva.id
+          reserva_id: reserva.id,
+          success_url: successUrl,
+          cancel_url: cancelUrl
         });
 
         // Salva dados do pagamento no banco
@@ -119,23 +135,19 @@ class ReservaPagamentoController {
           id_estacionamento: estacionamento_id,
           id_usuario: userId
         }, {
-          payment_id: pixResult.payment_id, // Salva o payment_id do Asaas
-          comissao_plataforma: pixResult.comissao_plataforma,
-          valor_estacionamento: pixResult.valor_estacionamento,
-          qr_code: pixResult.qr_code,
-          qr_code_base64: pixResult.qr_code_base64,
-          expira_em: pixResult.date_of_expiration
+          checkout_id: checkoutResult.checkout_id,
+          checkout_url: checkoutResult.checkout_url,
+          payment_id: checkoutResult.payment_id
         });
 
-        logger.info('PIX Asaas criado com split:', {
+        logger.info('Checkout Asaas criado:', {
           pagamento_id: pagamentoId,
-          payment_id: pixResult.payment_id,
-          qr_code_presente: !!pixResult.qr_code,
-          comissao: pixResult.comissao_plataforma,
-          valor_estacionamento: pixResult.valor_estacionamento
+          checkout_id: checkoutResult.checkout_id,
+          checkout_url: checkoutResult.checkout_url,
+          valor: valor
         });
 
-        // Retorna dados do PIX diretamente
+        // Retorna URL do checkout para redirecionamento
         return res.status(201).json({
           success: true,
           reserva: {
@@ -153,21 +165,13 @@ class ReservaPagamentoController {
           },
           pagamento: {
             id: pagamentoId,
-            payment_id: pixResult.payment_id,
-            qr_code: pixResult.qr_code, // QR Code em texto
-            qr_code_base64: pixResult.qr_code_base64, // QR Code em base64
-            status: pixResult.status,
-            expira_em: pixResult.date_of_expiration
+            checkout_id: checkoutResult.checkout_id,
+            checkout_url: checkoutResult.checkout_url,
+            status: 'pendente'
           },
-          // Dados do split
-          split: {
-            total: valor,
-            comissao_plataforma: pixResult.comissao_plataforma,
-            percentual_plataforma: `${pixResult.percentual_split}%`,
-            valor_estacionamento: pixResult.valor_estacionamento,
-            percentual_estacionamento: `${100 - pixResult.percentual_split}%`
-          },
-          message: 'Reserva criada! Use o QR Code para pagar.'
+          // URL do checkout para redirecionamento direto
+          checkout_url: checkoutResult.checkout_url,
+          message: 'Reserva criada! Redirecionando para pagamento...'
         });
       }
 
@@ -221,15 +225,54 @@ class ReservaPagamentoController {
         });
 
         // Buscar pagamento no banco pelo payment_id do Asaas (salvo em dados_retorno)
+        // Também procurar pelo checkout_id caso o pagamento tenha sido feito via checkout
         const sqlBuscaPagamento = `
           SELECT p.*
           FROM pagamentos p
           WHERE p.dados_retorno->>'payment_id' = $1
+             OR p.dados_retorno->>'checkout_id' = $2
           LIMIT 1
         `;
         
         const { pool } = require('../config/database');
-        const resultPagamento = await pool.query(sqlBuscaPagamento, [paymentId]);
+        
+        // Buscar pelo payment_id ou external_reference
+        let resultPagamento = await pool.query(sqlBuscaPagamento, [paymentId, paymentId]);
+        
+        // Se não encontrou, tentar buscar pelo external_reference (reserva_id)
+        if (resultPagamento.rows.length === 0 && paymentData.externalReference) {
+          const reservaIdMatch = paymentData.externalReference.match(/reserva_(\d+)/);
+          if (reservaIdMatch) {
+            const reservaId = reservaIdMatch[1];
+            logger.info('Buscando pagamento pela reserva_id:', reservaId);
+            
+            const sqlBuscaPorReserva = `
+              SELECT p.*
+              FROM pagamentos p
+              WHERE p.reserva_id = $1
+              ORDER BY p.created_at DESC
+              LIMIT 1
+            `;
+            resultPagamento = await pool.query(sqlBuscaPorReserva, [reservaId]);
+            
+            // Se encontrou, atualizar o payment_id no dados_retorno
+            if (resultPagamento.rows.length > 0) {
+              const pagamentoEncontrado = resultPagamento.rows[0];
+              const dadosAtuais = pagamentoEncontrado.dados_retorno || {};
+              dadosAtuais.payment_id = paymentId;
+              
+              await pool.query(
+                'UPDATE pagamentos SET dados_retorno = $1, updated_at = NOW() WHERE id = $2',
+                [JSON.stringify(dadosAtuais), pagamentoEncontrado.id]
+              );
+              
+              logger.info('✅ payment_id atualizado no pagamento:', {
+                pagamento_id: pagamentoEncontrado.id,
+                payment_id: paymentId
+              });
+            }
+          }
+        }
 
         if (resultPagamento.rows.length > 0) {
           const pagamento = resultPagamento.rows[0];
@@ -362,6 +405,94 @@ class ReservaPagamentoController {
           pix_qr_code_text: pagamento.pix_qr_code_text,
           chave_pix: pagamento.chave_pix,
           expira_em: pagamento.expira_em
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Retorna os dados PIX associados a uma reserva
+   */
+  async obterPixPorReserva(req, res, next) {
+    try {
+      const reservaId = parseInt(req.params.id, 10);
+      const userId = req.user.id;
+
+      if (Number.isNaN(reservaId)) {
+        throw new AppError('ID da reserva inválido', 400);
+      }
+
+      const reserva = await reservaModel.findReservaById(reservaId);
+
+      if (!reserva) {
+        throw new AppError('Reserva não encontrada', 404);
+      }
+
+      if (reserva.usuario_id !== userId) {
+        throw new AppError('Você não tem permissão para acessar esta reserva', 403);
+      }
+
+      const pagamento = await pagamentoModel.buscarUltimoPagamentoPorReserva(reservaId);
+
+      if (!pagamento) {
+        throw new AppError('Nenhum pagamento associado a esta reserva', 404);
+      }
+
+      const metodoPagamento = pagamento.metodo_pagamento || pagamento.metodo;
+      if (metodoPagamento !== 'pix') {
+        throw new AppError('Esta reserva não possui pagamento PIX válido', 400);
+      }
+
+      const rawData = pagamento.dados_retorno || {};
+      let dadosPix = rawData;
+      if (typeof rawData === 'string') {
+        try {
+          dadosPix = JSON.parse(rawData);
+        } catch (parseError) {
+          logger.warn('Falha ao parsear dados_retorno do pagamento PIX:', {
+            pagamento_id: pagamento.id,
+            error: parseError.message
+          });
+          dadosPix = {};
+        }
+      }
+
+      const qrCodeBase64 = dadosPix.qr_code_base64 || dadosPix.pix_qr_code_base64 || pagamento.pix_qr_code;
+      const qrCodeText = dadosPix.qr_code_text || dadosPix.qr_code || dadosPix.pix_qr_code;
+
+      if (!qrCodeBase64 && !qrCodeText) {
+        throw new AppError('Dados do QR Code PIX indisponíveis. Gere um novo pagamento.', 409);
+      }
+
+      const splitInfo = dadosPix.split || {
+        total: pagamento.valor,
+        comissao_plataforma: dadosPix.comissao_plataforma,
+        valor_estacionamento: dadosPix.valor_estacionamento,
+        percentual_plataforma: dadosPix.percentual_split,
+        percentual_estacionamento: dadosPix.percentual_estacionamento ||
+          (typeof dadosPix.percentual_split === 'number'
+            ? parseFloat((100 - dadosPix.percentual_split).toFixed(2))
+            : undefined)
+      };
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          reserva_id: reservaId,
+          pagamento_id: pagamento.id,
+          payment_id: dadosPix.payment_id || pagamento.id,
+          gateway_payment_id: dadosPix.payment_id || pagamento.id,
+          status: pagamento.status,
+          valor: pagamento.valor,
+          qr_code: qrCodeText,
+          qr_code_text: qrCodeText,
+          qr_code_base64: qrCodeBase64,
+          split: splitInfo,
+          expira_em: dadosPix.expira_em || dadosPix.date_of_expiration || pagamento.expira_em,
+          chave_pix: dadosPix.chave_pix || null,
+          nome_titular: dadosPix.nome_titular || req.user.nome || null
         }
       });
     } catch (error) {

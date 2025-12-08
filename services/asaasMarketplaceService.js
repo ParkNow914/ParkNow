@@ -231,35 +231,21 @@ class AsaasMarketplaceService {
 
             logger.info('Customer ID obtido:', customerId);
 
-            // Calcular split (15% plataforma, 85% estacionamento)
-            const comissaoPlataforma = parseFloat((valor * (this.platformFeePercent / 100)).toFixed(2));
-            const valorEstacionamento = parseFloat((valor - comissaoPlataforma).toFixed(2));
-
-            logger.info('Split calculado:', {
+            // SEM SPLIT - Todo valor vai para a conta principal
+            logger.info('💰 Pagamento PIX sem split - valor integral para conta principal:', {
                 valor_total: valor,
-                comissao_plataforma: comissaoPlataforma,
-                percentual: `${this.platformFeePercent}%`,
-                valor_estacionamento: valorEstacionamento,
-                percentual_estacionamento: `${100 - this.platformFeePercent}%`
+                reserva_id
             });
 
-            // Criar cobrança no Asaas
+            // Criar cobrança no Asaas (SEM SPLIT)
             const cobrancaPayload = {
                 customer: customerId, // ID do cliente Asaas
                 billingType: 'PIX',
                 value: valor,
                 dueDate: new Date().toISOString().split('T')[0], // Hoje
                 description: descricao || `Reserva #${reserva_id} - ParkNow`,
-                externalReference: `reserva_${reserva_id}`,
-                
-                // Split de pagamento
-                split: estacionamento_asaas_account_id ? [
-                    {
-                        walletId: estacionamento_asaas_account_id, // ID da conta do estacionamento
-                        fixedValue: valorEstacionamento, // 85% vai para o estacionamento
-                        percentualValue: null
-                    }
-                ] : undefined
+                externalReference: `reserva_${reserva_id}`
+                // SEM SPLIT - removido completamente
             };
 
             logger.info('Payload Asaas:', JSON.stringify(cobrancaPayload, null, 2));
@@ -271,22 +257,8 @@ class AsaasMarketplaceService {
             logger.info('Cobrança Asaas criada:', {
                 payment_id: payment.id,
                 status: payment.status,
-                split_configurado: !!cobrancaPayload.split,
-                wallet_destino: estacionamento_asaas_account_id
+                valor: valor
             });
-
-            // Log detalhado do split
-            if (cobrancaPayload.split) {
-                logger.info('✅ SPLIT DE PAGAMENTO CONFIGURADO:', {
-                    plataforma_recebe: comissaoPlataforma,
-                    estacionamento_recebe: valorEstacionamento,
-                    wallet_estacionamento: estacionamento_asaas_account_id,
-                    percentual_plataforma: `${this.platformFeePercent}%`,
-                    percentual_estacionamento: `${100 - this.platformFeePercent}%`
-                });
-            } else {
-                logger.warn('⚠️ PAGAMENTO SEM SPLIT - Todo valor vai para a conta principal');
-            }
 
             // Gerar QR Code PIX
             const pixResponse = await this.client.get(`/payments/${payment.id}/pixQrCode`);
@@ -301,7 +273,7 @@ class AsaasMarketplaceService {
                 qr_code_presente: !!pixData.payload
             });
 
-            // Retornar dados do pagamento
+            // Retornar dados do pagamento (sem split)
             return {
                 payment_id: payment.id,
                 status: payment.status,
@@ -309,13 +281,11 @@ class AsaasMarketplaceService {
                 
                 // Dados PIX
                 qr_code: pixData.payload,
+                qr_code_text: pixData.payload,
                 qr_code_base64: pixData.encodedImage,
                 
-                // Dados do split
+                // Valor total
                 valor_total: valor,
-                comissao_plataforma: comissaoPlataforma,
-                valor_estacionamento: valorEstacionamento,
-                percentual_split: this.platformFeePercent,
                 
                 // Metadados
                 external_reference: `reserva_${reserva_id}`,
@@ -519,36 +489,11 @@ class AsaasMarketplaceService {
                 telefone: checkoutData.telefone_pagador || '1140041234' // Telefone válido
             });
 
-            // DEBUG: Log detalhado do wallet_id
-            logger.info('🔍 DEBUG - Verificando wallet_id:', {
-                estacionamento_asaas_account_id,
-                tipo: typeof estacionamento_asaas_account_id,
-                length: estacionamento_asaas_account_id ? estacionamento_asaas_account_id.length : 'N/A',
-                isNull: estacionamento_asaas_account_id === null,
-                isUndefined: estacionamento_asaas_account_id === undefined,
-                isEmptyString: estacionamento_asaas_account_id === '',
-                truthy: !!estacionamento_asaas_account_id
+            // SEM SPLIT - Todo valor vai para a conta principal do Asaas
+            logger.info('💰 Pagamento sem split - valor integral para conta principal:', {
+                valor_total: valor,
+                reserva_id
             });
-
-            // Calcular split APENAS se tiver wallet_id do estacionamento
-            let comissaoPlataforma = 0;
-            let valorEstacionamento = valor;
-            let splitConfigurado = false;
-
-            if (estacionamento_asaas_account_id) {
-                comissaoPlataforma = parseFloat((valor * (this.platformFeePercent / 100)).toFixed(2));
-                valorEstacionamento = parseFloat((valor - comissaoPlataforma).toFixed(2));
-                splitConfigurado = true;
-
-                logger.info('Split calculado:', {
-                    valor_total: valor,
-                    comissao_plataforma: comissaoPlataforma,
-                    valor_estacionamento: valorEstacionamento
-                });
-            } else {
-                logger.warn('⚠️ Checkout sem split - todo valor vai para conta principal');
-                logger.warn('TODO: Configurar marketplace ASAAS para split automático');
-            }
 
             // Criar checkout
             const checkoutPayload = {
@@ -566,14 +511,7 @@ class AsaasMarketplaceService {
                     }
                 ],
                 
-                // Split de pagamento APENAS se tiver wallet_id
-                split: splitConfigurado ? [
-                    {
-                        walletId: estacionamento_asaas_account_id,
-                        fixedValue: valorEstacionamento,
-                        percentualValue: null
-                    }
-                ] : undefined,
+                // SEM SPLIT - Todo valor vai para conta principal
 
                 // Callback de notificação (webhook)
                 callback: {
@@ -596,7 +534,7 @@ class AsaasMarketplaceService {
 
             logger.info('✅ Checkout Asaas criado:', {
                 checkout_id: checkout.id,
-                split_configurado: splitConfigurado
+                valor: valor
             });
 
             // Construir URL do checkout
@@ -611,14 +549,7 @@ class AsaasMarketplaceService {
                 checkout_url: checkoutUrl,
                 payment_id: checkout.payment?.id, // ID do pagamento (quando houver)
                 status: checkout.status,
-                
-                // Dados do split (ou zeros se não configurado)
                 valor_total: valor,
-                comissao_plataforma: comissaoPlataforma,
-                valor_estacionamento: valorEstacionamento,
-                percentual_split: splitConfigurado ? this.platformFeePercent : 0,
-                
-                // Metadados
                 external_reference: `reserva_${reserva_id}`
             };
 
