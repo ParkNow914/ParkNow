@@ -69,6 +69,31 @@
     flex-direction: column;
     position: relative;
   }
+
+  /* Util classes for repeated patterns */
+  .text-glow {
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  }
+
+  .highlight-badge {
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 8px;
+    display: inline-block;
+  }
+
+  .feedback-placeholder {
+    display: none;
+  }
+
+  .btn-spinner {
+    display: none;
+  }
+
+  .visually-hidden-block {
+    display: none;
+  }
   
   /* Apply gradient animation to specific sections only */
   .section-features,
@@ -410,8 +435,8 @@
 
   /* Banner Principal */
   .banner {
-    background-image: url('/img/banner.jpeg'); /* Target Image */
-    background-size: cover;
+    background-image: url('/img/logo.png'); /* Target Image */
+    background-size: 100% auto;
     background-position: center;
     background-repeat: no-repeat;
     min-height: 500px; /* Target Height */
@@ -1506,7 +1531,7 @@
     }
 
     .section-features {
-      min-height: auto; /* Auto height */
+      min-height: 0;
       padding: 50px 0;
       /* background-image: none; /* Optional: remove image on mobile if too busy */
       /* background-color: #111; /* Fallback dark color */

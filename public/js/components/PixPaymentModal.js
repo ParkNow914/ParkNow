@@ -1,294 +1,291 @@
-// Envolve o componente em uma IIFE para evitar conflitos de escopo
-(function() {
+// Componente vanilla para exibir o modal de pagamento PIX
+(function(window, document) {
   'use strict';
-  
-  // Usa React do escopo global (sem import/export)
-  const { useState, useEffect, createElement: h, Fragment } = typeof React !== 'undefined' ? React : {};
 
-  // Usa axios do escopo global
-  const httpClient = typeof axios !== 'undefined' ? axios : null;
+  const DEFAULT_MODAL_ID = 'pixPaymentModal';
+  const noop = () => {};
 
-  // Usa toast do escopo global; fallback para console caso não exista
-  const toastGlobal = typeof toast !== 'undefined' ? toast : {
-    error: function (msg) { try { console.error(msg); } catch (_) {} },
-    success: function (msg) { try { console.log(msg); } catch (_) {} }
-  };
-
-  const PixPaymentModal = ({ isOpen, onClose, reservaId, valorTotal, estacionamentoId, onPaymentConfirmed }) => {
-  
-  // Verifica se o React está disponível
-  if (typeof React === 'undefined') {
-    console.error('[PixPaymentModal] Erro: React não está disponível');
-    return null;
+  function escapeHtml(value = '') {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
-  
-  const [loading, setLoading] = useState(false);
-  const [pixData, setPixData] = useState(null);
-  const [copied, setCopied] = useState(false);
-  const [countdown, setCountdown] = useState(300); // 5 minutos em segundos
 
-  useEffect(() => {
-    if (isOpen && reservaId) {
-      fetchPixData();
-    } else if (!isOpen) {
-      setPixData(null);
-      setCountdown(300);
+  function toDataUri(value) {
+    if (!value) return null;
+    const trimmed = String(value).trim();
+    if (!trimmed) return null;
+    return trimmed.startsWith('data:image') ? trimmed : `data:image/png;base64,${trimmed}`;
+  }
+
+  function formatCurrency(value) {
+    const numeric = Number(value);
+    return Number.isNaN(numeric) ? '0.00' : numeric.toFixed(2);
+  }
+
+  function normalizePixPaymentData(raw = {}) {
+    const base64Image = raw.qr_code_base64 || raw.qrCodeBase64 || raw.qr_code_image || raw.qrCodeImage;
+    let qrImage = toDataUri(base64Image);
+
+    if (!qrImage && raw.qr_code && /^data:image|^https?:\/\//i.test(String(raw.qr_code))) {
+      qrImage = raw.qr_code;
     }
-  }, [isOpen, reservaId]);
 
-  useEffect(() => {
-    let timer;
-    if (isOpen && countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    } else if (countdown === 0) {
-      // Tempo esgotado
-      onClose();
+    const pixCopyValue = raw.qr_code_text
+      || raw.qrCodeText
+      || raw.qr_code_payload
+      || raw.pix_qr_code_text
+      || raw.pix_qr_code
+      || raw.codigo_pix
+      || raw.codigoPix
+      || raw.chave_pix
+      || raw.chavePix
+      || '';
+
+    const localPaymentId = raw.pagamento_id
+      ?? raw.payment_local_id
+      ?? (Number.isFinite(raw.id) ? raw.id : null);
+
+    const gatewayPaymentId = raw.gateway_payment_id
+      ?? raw.gatewayPaymentId
+      ?? raw.payment_id
+      ?? null;
+
+    return {
+      qr_code: qrImage,
+      qr_code_text: pixCopyValue,
+      reserva_id: raw.reserva_id || raw.reservaId || null,
+      pagamento_id: localPaymentId ?? null,
+      gateway_payment_id: gatewayPaymentId ?? null,
+      payment_id: localPaymentId ?? gatewayPaymentId ?? null,
+      valor: raw.valor ?? raw.valor_total ?? null,
+      split: raw.split || raw.splitInfo || null,
+      expira_em: raw.expira_em || raw.data_expiracao || null,
+      chave_pix: raw.chave_pix || raw.chavePix || null,
+      nome_titular: raw.nome_titular || raw.titular || null
+    };
+  }
+
+  function buildSplitMarkup(data) {
+    if (!data.split) return '';
+    const split = data.split;
+    const total = formatCurrency(split.total ?? data.valor);
+    const comissao = formatCurrency(split.comissao_plataforma);
+    const valorEstacionamento = formatCurrency(split.valor_estacionamento);
+    const percentual = split.percentual_plataforma ?? split.percentual ?? '--';
+    const percentualEst = split.percentual_estacionamento ?? '--';
+
+    return `
+      <div class="card border-info mb-3" style="font-size: 0.9rem;">
+        <div class="card-header bg-info text-white py-2">
+          <i class="fas fa-info-circle me-1"></i> Detalhamento do Pagamento
+        </div>
+        <div class="card-body p-2">
+          <div class="d-flex justify-content-between mb-1">
+            <span><strong>Valor Total:</strong></span>
+            <span class="text-success"><strong>R$ ${total}</strong></span>
+          </div>
+          <hr class="my-1">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted small">Taxa ParkNow (${percentual}%):</span>
+            <span class="text-muted small">R$ ${comissao}</span>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="text-muted small">Estacionamento (${percentualEst}%):</span>
+            <span class="text-muted small">R$ ${valorEstacionamento}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildModalMarkup(data) {
+    const qrImageSrc = data.qr_code
+      || (data.qr_code_text
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data.qr_code_text)}`
+        : '');
+
+    const qrCodeMarkup = qrImageSrc
+      ? `<img src="${qrImageSrc}"
+               alt="QR Code PIX"
+               class="img-fluid"
+               style="max-width: min(250px, 80vw); height: auto; border: 2px solid #004080; border-radius: 8px; padding: 10px; background: white;">`
+      : `<div class="text-muted small">QR Code indisponível. Copie o código PIX abaixo.</div>`;
+
+    const pixInputValue = escapeHtml(data.qr_code_text || '');
+    const copyDisabledAttr = data.qr_code_text ? '' : 'disabled aria-disabled="true"';
+
+    return `
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 500px;">
+        <div class="modal-content" style="max-height: 90vh;">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">
+              <i class="fas fa-qrcode me-2"></i>Pagamento via PIX
+            </h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fechar">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body" style="overflow-y: auto; max-height: calc(90vh - 140px);">
+            <div class="text-center">
+              <p class="lead mb-3">Escaneie o QR Code para pagar</p>
+              <div class="qr-code-container mb-3" style="display: flex; justify-content: center; align-items: center;">
+                ${qrCodeMarkup}
+              </div>
+              ${buildSplitMarkup(data)}
+              <div class="mb-3">
+                <label class="form-label small text-muted">Ou copie o código PIX:</label>
+                <div class="input-group">
+                  <input type="text"
+                         id="pixCode"
+                         class="form-control form-control-sm"
+                         value="${pixInputValue}"
+                         placeholder="${data.qr_code_text ? '' : 'Código PIX indisponível'}"
+                         readonly
+                         style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis;">
+                  <button class="btn btn-outline-primary btn-sm"
+                          type="button"
+                          id="copyPixCode"
+                          data-reserva-id="${data.reserva_id || ''}"
+                          ${copyDisabledAttr}>
+                    <i class="fas fa-copy"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="alert alert-warning d-flex align-items-center py-2" role="alert" style="font-size: 0.9rem;">
+                <i class="fas fa-clock me-2"></i>
+                <div>
+                  <strong>Atenção:</strong> Você tem <strong>30 minutos</strong> para realizar o pagamento.
+                </div>
+              </div>
+              <div id="pixCopyFeedback" class="alert alert-success py-2" style="display: none; font-size: 0.9rem;">
+                <i class="fas fa-check-circle me-1"></i> Código copiado com sucesso!
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer d-flex justify-content-between flex-wrap">
+            <button type="button" class="btn btn-secondary btn-sm mb-1" data-dismiss="modal">
+              <i class="fas fa-times me-1"></i>Fechar
+            </button>
+            <button type="button" class="btn btn-success btn-sm mb-1" id="confirmarPagamento">
+              <i class="fas fa-check me-1"></i>Já efetuei o pagamento
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function attachEvents(modalId, data, options) {
+    const $ = window.jQuery;
+    const selector = `#${modalId}`;
+    if (!$ || !$.fn || !$.fn.modal) {
+      console.warn('[PixPaymentModal] jQuery/Bootstrap não encontrados. Eventos avançados foram desativados.');
+      return;
     }
-    return () => clearTimeout(timer);
-  }, [countdown, isOpen]);
 
-  const createReservaAndGetPixData = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      // Extrai o ID real da vaga (remove o prefixo temp- se existir)
-      const vagaId = reservaId.startsWith('temp-') ? reservaId.replace('temp-', '') : reservaId;
-      
-      // Cria a reserva com status pendente de pagamento
-      if (!httpClient) { throw new Error('Cliente HTTP (axios) não disponível'); }
-      const reservaResponse = await httpClient.post(
-        '/api/reservas/com-pagamento',
-        {
-          vaga_id: parseInt(vagaId, 10), // Garante que é um número
-          estacionamento_id: parseInt(estacionamentoId, 10), // Garante que é um número
-          valor: parseFloat(valorTotal), // Garante que é um número
-          data_entrada: new Date().toISOString(),
-          data_saida: new Date(Date.now() + 3600000).toISOString(), // 1 hora depois
-          metodo_pagamento: 'pix'
-        },
-        {
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
+    $(`${selector} #copyPixCode`).on('click', async function() {
+      if (!data.qr_code_text) return;
+
+      const input = document.querySelector(`${selector} #pixCode`);
+      if (input) {
+        input.focus();
+        input.select();
+        document.execCommand('copy');
+      } else if (navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(data.qr_code_text);
+        } catch (err) {
+          console.error('Erro ao copiar PIX:', err);
         }
-      );
-      
-      // Atualiza o ID da reserva para o ID real (mantém localmente)
-      const realReservaId = reservaResponse.data.data.id;
-      
-      // Busca os dados do PIX
-      const pixResponse = await httpClient.get(`/api/reservas/${realReservaId}/pix`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (pixResponse.data && pixResponse.data.data) {
-        setPixData(pixResponse.data.data);
-        setCountdown(300); // Reinicia a contagem regressiva
-      } else {
-        throw new Error('Dados do PIX não retornados corretamente');
       }
-      
-    } catch (error) {
-      console.error('Erro ao processar reserva/PIX:', error);
-      const errorMessage = (error && error.response && error.response.data && error.response.data.message)
-        ? error.response.data.message
-        : 'Erro ao processar pagamento. Tente novamente.';
-      toastGlobal.error(errorMessage);
-      onClose();
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const fetchPixData = async () => {
-    if (reservaId.startsWith('temp-')) {
-      // Se for uma reserva temporária, cria a reserva primeiro
-      await createReservaAndGetPixData();
-    } else {
-      // Se já for uma reserva real, busca apenas os dados do PIX
+
+      const originalHtml = $(this).html();
+      $(this).html('<i class="fas fa-check"></i> Copiado!');
+      $('#pixCopyFeedback').fadeIn();
+
       try {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        if (!httpClient) { throw new Error('Cliente HTTP (axios) não disponível'); }
-        const response = await httpClient.get(`/api/reservas/${reservaId}/pix`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setPixData(response.data.data);
-        setCountdown(300);
-      } catch (error) {
-        console.error('Erro ao buscar dados do PIX:', error);
-        toastGlobal.error('Erro ao carregar dados do pagamento. Tente novamente.');
-        onClose();
+        options.onCopy(data);
       } finally {
-        setLoading(false);
+        setTimeout(() => $(this).html(originalHtml), 2000);
       }
-    }
-  };
+    });
 
-  const copyToClipboard = () => {
-    if (!pixData) return;
-    
-    navigator.clipboard.writeText(pixData.chave_pix)
-      .then(() => {
-        setCopied(true);
-        toastGlobal.success('Chave PIX copiada para a área de transferência!');
-        setTimeout(() => setCopied(false), 3000);
-      })
-      .catch(err => {
-        console.error('Erro ao copiar chave PIX:', err);
-        toastGlobal.error('Erro ao copiar chave PIX');
-      });
-  };
+    $(`${selector} #confirmarPagamento`).on('click', () => {
+      options.onConfirm(data);
+      if (options.closeOnConfirm !== false) {
+        $(selector).modal('hide');
+      }
+    });
 
-  if (!isOpen) {
-    return null;
+    $(selector).on('hidden.bs.modal', function() {
+      $(this).remove();
+      options.onClose(data);
+    });
   }
-  
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-  
-  // Usando React.createElement em vez de JSX
-  return h('div', {
-    className: 'pix-payment-modal-overlay',
-    onClick: onClose,
-    style: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      display: isOpen ? 'flex' : 'none',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 9999
-    }
-  },
-    h('div', {
-      className: 'pix-payment-modal-content',
-      onClick: e => e.stopPropagation(),
-      style: {
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '25px',
-        width: '100%',
-        maxWidth: '500px',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        position: 'relative',
-        boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)'
+
+  function mountModal(html, modalId) {
+    const existing = document.getElementById(modalId);
+    if (existing) {
+      if (window.jQuery && window.jQuery.fn && window.jQuery.fn.modal) {
+        window.jQuery(existing).modal('hide');
       }
-    },
-      h('div', { className: 'p-6' },
-        h('div', { className: 'flex justify-between items-center mb-4' },
-          h('h3', { className: 'text-xl font-semibold text-gray-800' }, 'Pagamento via PIX'),
-          h('button', {
-            onClick: onClose,
-            className: 'pix-payment-modal-close',
-            'aria-label': 'Fechar modal'
-          }, '×')
-        ),
-        loading
-          ? h('div', { className: 'flex justify-center py-8' },
-              h('div', { className: 'animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500' })
-            )
-          : h(Fragment, null,
-              h('div', { className: 'mb-6' },
-                h('div', { className: 'bg-blue-50 p-4 rounded-lg mb-4' },
-                  h('p', { className: 'text-sm text-gray-600 mb-2' }, 'Tempo restante para pagamento:'),
-                  h('p', { className: 'text-2xl font-bold text-blue-600' }, formatTime(countdown))
-                ),
-                h('div', { className: 'bg-gray-50 p-4 rounded-lg mb-4' },
-                  h('p', { className: 'text-sm font-medium text-gray-700 mb-2' }, 'Valor:'),
-                  h('p', { className: 'text-2xl font-bold text-gray-900' },
-                    new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL'
-                    }).format((pixData && pixData.valor) ? pixData.valor : valorTotal)
-                  )
-                ),
-                h('div', { className: 'bg-gray-50 p-4 rounded-lg mb-4' },
-                  h('div', { className: 'flex justify-between items-center mb-2' },
-                    h('p', { className: 'text-sm font-medium text-gray-700' }, 'Chave PIX:'),
-                    h('button', {
-                      onClick: copyToClipboard,
-                      className: 'text-sm text-blue-600 hover:text-blue-800 flex items-center'
-                    },
-                      copied ? 'Copiado!' : 'Copiar',
-                      h('svg', {
-                        className: 'w-4 h-4 ml-1',
-                        fill: 'none',
-                        stroke: 'currentColor',
-                        viewBox: '0 0 24 24'
-                      },
-                        h('path', {
-                          strokeLinecap: 'round',
-                          strokeLinejoin: 'round',
-                          strokeWidth: '2',
-                          d: 'M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3'
-                        })
-                      )
-                    )
-                  ),
-                  h('div', { className: 'bg-white p-3 rounded border border-gray-200 break-all font-mono text-sm' },
-                    (pixData && pixData.chave_pix) ? pixData.chave_pix : 'Carregando...'
-                  ),
-                  h('p', { className: 'mt-1 text-xs text-gray-500' },
-                    'Tipo: ' + ((pixData && pixData.tipo_chave_pix) ? pixData.tipo_chave_pix : 'Carregando...')
-                  )
-                ),
-                h('div', { className: 'bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4' },
-                  h('div', { className: 'flex' },
-                    h('div', { className: 'flex-shrink-0' },
-                      h('svg', {
-                        className: 'h-5 w-5 text-yellow-400',
-                        fill: 'currentColor',
-                        viewBox: '0 0 20 20'
-                      },
-                        h('path', {
-                          fillRule: 'evenodd',
-                          d: 'M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z',
-                          clipRule: 'evenodd'
-                        })
-                      )
-                    ),
-                    h('div', { className: 'ml-3' },
-                      h('p', { className: 'text-sm text-yellow-700' },
-                        'Após realizar o pagamento, o estacionamento irá confirmar manualmente o recebimento. Você receberá um e-mail quando a confirmação for concluída.'
-                      )
-                    )
-                  )
-                )
-              ),
-              h('div', { className: 'flex justify-end space-x-3' },
-                h('button', {
-                  type: 'button',
-                  onClick: onClose,
-                  className: 'px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50'
-                }, 'Fechar'),
-                h('button', {
-                  type: 'button',
-                  onClick: () => {
-                    copyToClipboard();
-                    onClose();
-                  },
-                  className: 'px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                }, 'Copiar chave PIX e fechar')
-              )
-            )
-      )
-    )
-  );
-};
+      existing.remove();
+    }
 
-  // Expõe no escopo global para uso sem bundler
-  window.PixPaymentModal = PixPaymentModal;
+    const modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'modal fade';
+    modal.tabIndex = '-1';
+    modal.role = 'dialog';
+    modal.innerHTML = html;
+    document.body.appendChild(modal);
+    return modal;
+  }
 
-})(); // Fim da IIFE
+  function openPixModal(rawData = {}, options = {}) {
+    const data = normalizePixPaymentData(rawData);
+    const settings = Object.assign({
+      modalId: DEFAULT_MODAL_ID,
+      autoShow: true,
+      closeOnConfirm: false,
+      onCopy: noop,
+      onConfirm: noop,
+      onClose: noop
+    }, options);
+
+    const modal = mountModal(buildModalMarkup(data), settings.modalId);
+    const $ = window.jQuery;
+    if ($ && $.fn && $.fn.modal && settings.autoShow) {
+      $(modal).modal('show');
+    } else {
+      modal.classList.add('show');
+      modal.style.display = 'block';
+    }
+
+    attachEvents(settings.modalId, data, settings);
+    return { modalId: settings.modalId, data };
+  }
+
+  function closePixModal(modalId = DEFAULT_MODAL_ID) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    const $ = window.jQuery;
+    if ($ && $.fn && $.fn.modal) {
+      $(modal).modal('hide');
+    } else {
+      modal.remove();
+    }
+  }
+
+  window.PixPaymentModal = {
+    normalize: normalizePixPaymentData,
+    open: openPixModal,
+    close: closePixModal
+  };
+
+})(window, document);
