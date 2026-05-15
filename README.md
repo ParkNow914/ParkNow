@@ -174,6 +174,10 @@ Isso criará:
     ```
 *   **Acesso:** A aplicação estará rodando na URL definida por `FRONTEND_URL` ou `http://localhost:PORT` (ex: `http://localhost:3000`).
 *   **Health checks:** `GET /health` (liveness) e `GET /health/ready` (readiness incluindo banco).
+*   **Métricas:** `GET /metrics` em formato Prometheus (em produção requer loopback ou `Authorization: Bearer $METRICS_TOKEN`).
+*   **Error tracking:** defina `SENTRY_DSN` e instale `@sentry/node` para enviar erros ao Sentry; sem isso, erros caem no Winston (sem deps extras).
+*   **Webhook ASAAS:** o endpoint `POST /api/webhooks/asaas` valida `asaas-access-token` contra `ASAAS_WEBHOOK_SECRET`.
+*   **Idempotência:** envie header `Idempotency-Key: <opaco>` em `POST /api/reservas/com-pagamento` para garantir que retries não produzam duplicatas.
 
 ## Qualidade e Testes
 

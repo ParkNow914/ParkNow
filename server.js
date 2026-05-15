@@ -12,11 +12,16 @@ const config = require('./config');                  // Carrega configurações 
 const logger = require('./utils/logger');              // Logger customizado (Winston)
 const { validateEnv } = require('./utils/envValidator'); // Validação fail-fast das variáveis de ambiente
 const requestId = require('./middleware/requestId');   // Correlation id por requisição
+const errorTracker = require('./utils/errorTracker');  // Error tracking facade (Sentry/Datadog/noop)
+const { metricsMiddleware, metricsHandler } = require('./utils/metrics'); // Prometheus metrics
 const { initSocketIO } = require('./services/socketService'); // Inicializador do Socket.IO
 const { testConnection, closePool } = require('./utils/dbUtils'); // Utilitário de conexão com o banco de dados
 
 // Validate environment early. In production a missing/invalid var aborts startup.
 validateEnv(logger);
+
+// Initialise error tracker (no-op unless SENTRY_DSN is set + @sentry/node installed).
+errorTracker.init();
 
 // Import routes
 const apiRoutes = require('./routes');                 // Main API router (/api/*)
@@ -64,7 +69,6 @@ app.use(
                 scriptSrc: [
                     "'self'",
                     "'unsafe-inline'",
-                    "'unsafe-eval'",
                     "cdn.socket.io",
                     "https://cdn.socket.io",
                     "code.jquery.com",
@@ -132,10 +136,13 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Body Parsers: Habilita leitura de JSON e dados de formulário
-// Aumentado para 10MB para suportar upload de imagens em base64
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body Parsers: Habilita leitura de JSON e dados de formulário.
+// Limite default 10MB para acomodar imagens em base64 (approvalController).
+// Pode ser reduzido via env `BODY_LIMIT` (ex: `1mb`) em deploys que não
+// recebem imagens via JSON.
+const BODY_LIMIT = process.env.BODY_LIMIT || '10mb';
+app.use(express.json({ limit: BODY_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: BODY_LIMIT }));
 
 // Logger HTTP (Morgan)
 // Inclui o request-id em todos os formatos para correlação cross-service.
@@ -145,6 +152,9 @@ const morganFormat =
         ? ':id :remote-addr :method :url :status :res[content-length] - :response-time ms'
         : ':id :method :url :status :response-time ms - :res[content-length]';
 app.use(morgan(morganFormat, { stream: logger.stream }));
+
+// Prometheus metrics collection (must come after morgan so we measure the same scope)
+app.use(metricsMiddleware);
 
 // Timezone Middleware: Detecta e define o timezone do usuário
 app.use(detectTimezone);
@@ -167,6 +177,23 @@ app.use('/api/public', approvalRoutes); // Rotas de aprovação de parcerias
 
 // Health checks na raiz para uso por Docker/K8s/uptime monitors (/health, /health/ready)
 app.use('/', healthRoutes);
+
+// Prometheus metrics endpoint. Restrict in production: only accessible from
+// loopback or from a host providing the configured METRICS_TOKEN bearer.
+app.get('/metrics', (req, res, next) => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (!isProduction) return metricsHandler(req, res, next);
+
+    const token = process.env.METRICS_TOKEN;
+    const auth = req.get('Authorization') || '';
+    const provided = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    const loopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip);
+
+    if (loopback || (token && provided && provided === token)) {
+        return metricsHandler(req, res, next);
+    }
+    return res.status(404).end();
+});
 
 // Todas as rotas da API (com prefixo /api)
 app.use('/api', apiRoutes);
@@ -276,8 +303,13 @@ process.on('unhandledRejection', (reason, promise) => {
     logger.error('Rejeição de promessa não tratada:', {
         reason,
         promise,
-        stack: reason.stack
+        stack: reason && reason.stack
     });
+    if (reason instanceof Error) {
+        errorTracker.captureException(reason, { source: 'unhandledRejection' });
+    } else {
+        errorTracker.captureMessage(String(reason), 'error', { source: 'unhandledRejection' });
+    }
     // Não é necessário encerrar o processo aqui, apenas registrar o erro
 });
 
@@ -287,6 +319,7 @@ process.on('uncaughtException', (error) => {
         error: error.message,
         stack: error.stack
     });
+    errorTracker.captureException(error, { source: 'uncaughtException' });
     // Encerrar o processo após registrar o erro
     process.exit(1);
 });
