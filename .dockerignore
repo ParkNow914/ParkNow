@@ -1,0 +1,50 @@
+# Ignore everything that doesn't belong in the production image.
+# Keeps the build context small and avoids leaking secrets/dev files.
+
+.git
+.gitignore
+.gitattributes
+.github
+.vscode
+.idea
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+
+# Dev tooling
+.eslintrc*
+.eslintignore
+.prettierrc*
+.prettierignore
+.editorconfig
+.nvmrc
+nodemon.json
+
+# Tests / coverage
+tests
+__tests__
+**/*.test.js
+coverage
+
+# Logs / uploads (runtime data, recreated inside the container)
+logs
+uploads
+*.log
+
+# Docs / misc
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+ARQUITETURA_SISTEMA.md
+docs
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+node_modules
+npm-debug.log*

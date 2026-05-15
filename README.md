@@ -39,24 +39,25 @@ O ParkNow visa oferecer uma experiência fluida tanto para motoristas que procur
 
 ### Variáveis de Ambiente
 
-Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis de ambiente necessárias:
+Crie um arquivo `.env` na raiz do projeto. Veja `.env.example` para a lista completa e comentada — abaixo está apenas o mínimo necessário:
 
 ```env
-# Configurações do Banco de Dados
-DB_HOST=localhost
-DB_USER=seu_usuario
-DB_PASSWORD=sua_senha
-DB_NAME=nome_do_banco
+# Configurações do Banco de Dados (PostgreSQL)
+PG_HOST=localhost
+PG_PORT=5432
+PG_USER=seu_usuario
+PG_PASSWORD=sua_senha
+PG_DATABASE=parknow_db
 
-# Configurações de Autenticação
+# Configurações de Autenticação (mínimo 32 caracteres em produção)
 JWT_SECRET=seu_segredo_jwt
 JWT_REFRESH_SECRET=seu_segredo_refresh_jwt
 
 # Configurações de E-mail (para recuperação de senha)
-SMTP_HOST=smtp.seu-provedor.com
-SMTP_PORT=587
-SMTP_USER=seu_email@provedor.com
-SMTP_PASS=sua_senha_email
+EMAIL_HOST=smtp.seu-provedor.com
+EMAIL_PORT=587
+EMAIL_USER=seu_email@provedor.com
+EMAIL_PASS=sua_senha_email
 
 # Configurações do ASAAS (Gateway de Pagamento)
 ASAAS_SANDBOX=true
@@ -64,8 +65,9 @@ ASAAS_SANDBOX_API_KEY=sua_chave_sandbox_asaas
 ASAAS_API_KEY=sua_chave_producao_asaas
 ASAAS_PLATFORM_FEE_PERCENT=15.0
 ASAAS_WEBHOOK_URL=https://seu-dominio.com/api/webhooks/asaas
-ASAAS_PIX_EXPIRATION_MINUTES=30
 ```
+
+> As variáveis de ambiente são validadas no startup com `zod` (`utils/envValidator.js`). Em produção o servidor recusa subir com segredos ausentes ou abaixo de 32 caracteres.
 
 ### Configuração do ASAAS
 
@@ -116,11 +118,10 @@ Isso criará:
 
 ## Pré-requisitos
 
-*   [Node.js](https://nodejs.org/) (v16 ou superior recomendado)
-*   [npm](https://www.npmjs.com/) ou [yarn](https://yarnpkg.com/)
+*   [Node.js](https://nodejs.org/) **v18 ou superior** (veja `.nvmrc`)
+*   [npm](https://www.npmjs.com/) v9+
 *   [Git](https://git-scm.com/)
-*   [PostgreSQL](https://www.postgresql.org/) (v12 ou superior recomendado) - Pode ser executado via [Docker](https://www.docker.com/) ou instalado localmente
-*   **Opcional (Recomendado):** Servidor [Redis](https://redis.io/) (para blacklist de JWT - pode ser via Docker ou serviço cloud).
+*   [PostgreSQL](https://www.postgresql.org/) (v13 ou superior recomendado) — pode ser executado via [Docker](https://www.docker.com/) (`docker compose up db`) ou instalado localmente
 *   **Opcional (Para Reset Senha):** Credenciais de um servidor SMTP (SendGrid, Mailgun, Mailtrap para teste, etc.).
 
 ## Instalação e Setup
@@ -146,10 +147,9 @@ Isso criará:
 4.  **Configure as Variáveis de Ambiente:**
     *   **Copie `.env.example` para `.env`:** `cp .env.example .env` (Linux/Mac) ou `copy .env.example .env` (Windows).
     *   **Edite o arquivo `.env`:** Preencha **TODAS** as variáveis com seus valores:
-        *   Credenciais do Banco de Dados (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`).
-        *   **Gerar segredos JWT FORTES** para `JWT_SECRET` e `JWT_REFRESH_SECRET`. Use um gerador de senhas seguras.
-        *   Configurações de Email (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_SECURE`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM`) se for usar o reset de senha.
-        *   Configurações do Redis (`REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`) se for usar Redis para blacklist.
+        *   Credenciais do Banco de Dados (`PG_HOST`, `PG_USER`, `PG_PASSWORD`, `PG_DATABASE`).
+        *   **Gerar segredos JWT FORTES** (mínimo 32 caracteres) para `JWT_SECRET` e `JWT_REFRESH_SECRET`. Em produção, segredos fracos/ausentes abortam o startup.
+        *   Configurações de Email (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM`) se for usar o reset de senha.
         *   `FRONTEND_URL` (URL base onde o frontend será acessado).
         *   Ajuste `NODE_ENV` para `production` em ambiente de produção.
 
@@ -167,7 +167,24 @@ Isso criará:
     npm start
     # ou: NODE_ENV=production node server.js
     ```
+*   **Modo Docker (recomendado para reproduzir prod localmente):**
+    ```bash
+    cp .env.example .env  # ajuste os valores
+    docker compose up --build
+    ```
 *   **Acesso:** A aplicação estará rodando na URL definida por `FRONTEND_URL` ou `http://localhost:PORT` (ex: `http://localhost:3000`).
+*   **Health checks:** `GET /health` (liveness) e `GET /health/ready` (readiness incluindo banco).
+
+## Qualidade e Testes
+
+Após `npm install`:
+
+```bash
+npm run lint           # ESLint
+npm run format         # Prettier
+npm test               # Jest (smoke + unitários)
+npm run test:coverage  # Cobertura
+```
 
 ## Testando a Integração de Pagamento
 
@@ -206,7 +223,7 @@ https://seu-dominio.com/api/webhooks/asaas
 ## Estrutura do Projeto
 
 PI_NODE/
-├── config/ # Configuração (DB, JWT, Email, Cache, Redis)
+├── config/ # Configuração (DB, JWT, Email, Cache)
 ├── controllers/ # Lógica de aplicação (manipula requisições)
 ├── logs/ # Arquivos de log (gerados pelo Winston)
 ├── middleware/ # Middlewares (Auth, Erro, Validação, Upload)
@@ -284,7 +301,6 @@ Consulte o arquivo `.env.example` para ver a lista completa de variáveis necess
 *   **Email:** Nodemailer (`nodemailer`)
 *   **Logging:** Winston (`winston`), Morgan (`morgan`)
 *   **Cache (Simples):** `node-cache`
-*   **Blacklist (Opcional):** Redis (`ioredis`)
 *   **Upload:** Multer (`multer`)
 *   **Outros:** `dotenv`, `crypto`, `uuid`
 
