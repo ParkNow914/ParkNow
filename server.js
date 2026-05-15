@@ -10,13 +10,19 @@ const http = require('http');                          // Módulo HTTP nativo do
 const morgan = require('morgan');                      // Middleware para log HTTP
 const config = require('./config');                  // Carrega configurações da aplicação (inclui .env)
 const logger = require('./utils/logger');              // Logger customizado (Winston)
+const { validateEnv } = require('./utils/envValidator'); // Validação fail-fast das variáveis de ambiente
+const requestId = require('./middleware/requestId');   // Correlation id por requisição
 const { initSocketIO } = require('./services/socketService'); // Inicializador do Socket.IO
 const { testConnection, closePool } = require('./utils/dbUtils'); // Utilitário de conexão com o banco de dados
+
+// Validate environment early. In production a missing/invalid var aborts startup.
+validateEnv(logger);
 
 // Import routes
 const apiRoutes = require('./routes');                 // Main API router (/api/*)
 const approvalRoutes = require('./routes/approvalRoutes'); // Partner approval routes
 const timeRoutes = require('./routes/timeRoutes');     // Time service routes
+const healthRoutes = require('./routes/healthRoutes'); // Liveness / readiness
 const errorHandler = require('./middleware/errorMiddleware'); // Global error handler
 
 // Importa tarefas agendadas após a conexão com o banco ser estabelecida
@@ -32,13 +38,18 @@ const io = initSocketIO(server);       // Inicializa e anexa Socket.IO ao servid
 // Configuração do cookie-parser para ler cookies
 app.use(cookieParser());
 
+// Correlation id (deve vir cedo para que todos os middlewares/logs subsequentes o vejam)
+app.use(requestId);
+
 // Configuração das opções de cookie
+// O `path` precisa ser compatível tanto com a rota de refresh quanto com logout
+// para que `res.clearCookie` no logout efetivamente remova o cookie no browser.
 const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Apenas HTTPS em produção
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Para cross-site em produção
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
-    path: '/api/auth/refresh-token' // Apenas acessível pela rota de refresh
+    path: '/api/auth' // Cobre /api/auth/refresh, /api/auth/logout etc.
 };
 
 // Torna as opções de cookie disponíveis globalmente
@@ -127,7 +138,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logger HTTP (Morgan)
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', { stream: logger.stream }));
+// Inclui o request-id em todos os formatos para correlação cross-service.
+morgan.token('id', (req) => req.id || '-');
+const morganFormat =
+    process.env.NODE_ENV === 'production'
+        ? ':id :remote-addr :method :url :status :res[content-length] - :response-time ms'
+        : ':id :method :url :status :response-time ms - :res[content-length]';
+app.use(morgan(morganFormat, { stream: logger.stream }));
 
 // Timezone Middleware: Detecta e define o timezone do usuário
 app.use(detectTimezone);
@@ -147,6 +164,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rotas públicas (não requerem autenticação)
 app.use('/api/public', approvalRoutes); // Rotas de aprovação de parcerias
+
+// Health checks na raiz para uso por Docker/K8s/uptime monitors (/health, /health/ready)
+app.use('/', healthRoutes);
 
 // Todas as rotas da API (com prefixo /api)
 app.use('/api', apiRoutes);
