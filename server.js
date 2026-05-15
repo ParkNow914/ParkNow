@@ -200,8 +200,35 @@ app.use('/api', apiRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/time', timeRoutes);
 
-// Rotas de webhooks do ASAAS (configuradas no apiRoutes)
-// app.use('/api/webhooks', webhookRoutes);
+// OpenAPI / Swagger UI — gera a spec a partir dos JSDoc das rotas.
+// `/api/docs.json` retorna o JSON puro (cacheável). `/api/docs` serve a UI.
+// Em produção a UI é desabilitada se DOCS_DISABLED=true.
+if (process.env.DOCS_DISABLED !== 'true') {
+    try {
+        const swaggerUi = require('swagger-ui-express');
+        const { buildSpec } = require('./utils/openapi');
+        const spec = buildSpec();
+        app.get('/api/docs.json', (req, res) => {
+            res.set('Cache-Control', 'public, max-age=300');
+            res.json(spec);
+        });
+        app.use(
+            '/api/docs',
+            swaggerUi.serve,
+            swaggerUi.setup(spec, {
+                explorer: true,
+                customSiteTitle: 'ParkNow API Docs',
+            })
+        );
+        logger.info('[openapi] Swagger UI mounted at /api/docs (spec: /api/docs.json)');
+    } catch (err) {
+        logger.warn('[openapi] failed to mount Swagger UI', { error: err.message });
+    }
+} else {
+    logger.info('[openapi] DOCS_DISABLED=true, skipping Swagger UI mount');
+}
+
+// Rotas de webhooks do ASAAS (mounted via routes/index.js -> reservaPagamentoRoutes)
 
 // Rotas de páginas
 app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });

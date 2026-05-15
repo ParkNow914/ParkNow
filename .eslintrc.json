@@ -32,8 +32,19 @@
         },
         {
             "files": ["public/**/*.js"],
-            "env": { "browser": true, "node": false },
-            "parserOptions": { "sourceType": "module" }
+            "env": { "browser": true, "jquery": true, "node": false },
+            "parserOptions": { "sourceType": "module" },
+            "globals": {
+                "L": "readonly",
+                "io": "readonly",
+                "flatpickr": "readonly",
+                "React": "readonly",
+                "ReactDOM": "readonly",
+                "ReservaButton": "readonly",
+                "ManualPixPaymentModal": "readonly",
+                "google": "readonly",
+                "Stripe": "readonly"
+            }
         }
     ]
 }
