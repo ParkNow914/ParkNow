@@ -5,11 +5,12 @@
 const vagaModel = require('../models/vagaModel');
 const estacionamentoModel = require('../models/estacionamentoModel');
 const userModel = require('../models/userModel');
+const reservaModel = require('../models/reservaModel');
 const logModel = require('../models/logModel');
 // Utils
 const logger = require('../utils/logger');
 const pool = require('../models/db'); // Para transações
-const { AppError, NotFoundError, BadRequestError } = require('../utils/AppError'); // Erros customizados
+const { AppError, NotFoundError, BadRequestError, AuthorizationError } = require('../utils/AppError'); // Erros customizados
 const cache = require('../utils/cache'); // Para invalidar cache se necessário
 // Services
 const socketService = require('../services/socketService'); // Para emitir eventos

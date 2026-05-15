@@ -6,6 +6,7 @@ const logger = require('../utils/logger');       // Logger Winston
 const config = require('../config');             // Configurações da aplicação
 const jwtUtils = require('../utils/jwtUtils');   // Para autenticar conexão via JWT
 const vagaModel = require('../models/vagaModel'); // Modelo de vagas para buscar estado
+const userModel = require('../models/userModel'); // Para autenticação por handshake
 // const { isRedisConnected, isTokenBlacklisted } = require('../utils/redisClient'); // Para checar blacklist no handshake (Redis desabilitado)
 
 let io; // Variável global para a instância do servidor Socket.IO

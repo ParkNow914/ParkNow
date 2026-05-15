@@ -19,6 +19,7 @@ const logger = require('../utils/logger'); // Logger Winston
 const config = require('../config');
 const pool = require('../models/db'); // Para transação no registerAdmin
 const fs = require('fs'); // Adicionando o módulo fs que faltava
+const jwt = require('jsonwebtoken'); // Necessário para jwt.decode() fallback em logout
 const asaasMarketplaceService = require('../services/asaasMarketplaceService'); // Para conectar ao ASAAS
 const db = require('../config/db'); // Para queries diretas
 // Import desabilitado pois Redis foi removido

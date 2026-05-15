@@ -2,6 +2,7 @@ const estacionamentoPaymentService = require('../services/estacionamentoPaymentS
 const { AppError, UnauthorizedError, BadRequestError } = require('../utils/AppError');
 const logger = require('../utils/logger');
 const { PAYMENT_METHODS, BANK_ACCOUNT_TYPES } = require('../config/constants');
+const pool = require('../models/db'); // Pool pg para verificarPropriedadeEstacionamento
 
 class EstacionamentoPaymentController {
     /**
@@ -140,14 +141,12 @@ class EstacionamentoPaymentController {
      */
     async verificarPropriedadeEstacionamento(userId, estacionamentoId) {
         try {
-            // Implemente a lógica para verificar se o usuário é dono do estacionamento
-            // Este é um exemplo - ajuste conforme sua estrutura de banco de dados
-            const [estacionamento] = await db('estacionamentos')
-                .where({ id: estacionamentoId, usuario_id: userId })
-                .select('id');
-                
-            return !!estacionamento;
-            
+            // Verifica se o usuário (admin) é dono do estacionamento via pool pg.
+            const { rows } = await pool.query(
+                'SELECT 1 FROM estacionamentos WHERE id = $1 AND admin_id = $2 LIMIT 1',
+                [estacionamentoId, userId]
+            );
+            return rows.length > 0;
         } catch (error) {
             logger.error('Erro ao verificar propriedade do estacionamento:', {
                 error: error.message,
