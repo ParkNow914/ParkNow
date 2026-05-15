@@ -2,12 +2,59 @@
 // Define as rotas para autenticação (registro, login, refresh, reset, logout).
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const authController = require('../controllers/authController');
 const upload = require('../middleware/uploadMiddleware'); // Middleware Multer para upload
 const { body, param } = require('express-validator'); // Funções de validação
 const { handleValidationErrors } = require('../middleware/validationMiddleware'); // Handler de erros
+const auditLog = require('../middleware/auditLog');
+const originCheck = require('../middleware/originCheck')();
+const logger = require('../utils/logger');
 
 const router = express.Router();
+
+// --- Rate limiters específicos das rotas de auth ---
+// Login: muito restritivo (anti brute-force), conta apenas falhas para não
+// punir clientes legítimos que entraram com sucesso.
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: { success: false, error: 'too_many_login_attempts' },
+    handler: (req, res, _next, options) => {
+        logger.warn('[authRoutes] login rate limit hit', { ip: req.ip, requestId: req.id });
+        res.status(options.statusCode).json(options.message);
+    },
+});
+
+// Registro e forgot-password: limita criação massiva de contas / spam de email.
+const signupLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hora
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'too_many_signups' },
+});
+
+const forgotPasswordLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hora
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'too_many_password_reset_requests' },
+});
+
+// Refresh / logout: shares one limiter (anti-abuse; complements the
+// Origin/Referer check applied by `originCheck`).
+const refreshLogoutLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'too_many_requests' },
+});
 
 // --- Validações Reutilizáveis ---
 const emailValidation = body('email', 'Email inválido').trim().isEmail().normalizeEmail();
@@ -73,7 +120,7 @@ const cpfValidation = body('cpf')
 // --- Rotas de Autenticação de Usuário ---
 
 // POST /api/auth/register - Registro de Usuário
-router.post('/register', [
+router.post('/register', signupLimiter, auditLog('auth.register'), [
     body('nome', 'Nome é obrigatório').trim().notEmpty().isLength({ max: 255 }).escape(),
     emailValidation,
     passwordRegisterValidation,
@@ -85,24 +132,26 @@ router.post('/register', [
 ], handleValidationErrors, authController.registerUser);
 
 // POST /api/auth/login - Login de Usuário
-router.post('/login', [
+router.post('/login', loginLimiter, auditLog('auth.login'), [
     emailValidation,
     passwordLoginValidation
 ], handleValidationErrors, authController.loginUser);
 
 // POST /api/auth/refresh-token - Renovar Access Token usando Refresh Token do cookie
-router.post('/refresh-token', authController.refreshToken); // Controller lê cookie e valida
+// Requer Origin/Referer válido pois usa cookie (mitigação CSRF).
+router.post('/refresh-token', refreshLogoutLimiter, originCheck, authController.refreshToken);
 
 // POST /api/auth/logout - Logout (invalida refresh token)
-router.post('/logout', authController.logout); // Controller lê cookie para invalidar
+// Idem: protege contra CSRF de logout forçado.
+router.post('/logout', refreshLogoutLimiter, originCheck, auditLog('auth.logout'), authController.logout);
 
 // POST /api/auth/forgot-password - Solicitar Redefinição de Senha
-router.post('/forgot-password', [
+router.post('/forgot-password', forgotPasswordLimiter, auditLog('auth.forgot_password'), [
     emailValidation
 ], handleValidationErrors, authController.requestPasswordReset);
 
 // POST /api/auth/reset-password/:token - Definir Nova Senha
-router.post('/reset-password/:token', [
+router.post('/reset-password/:token', signupLimiter, auditLog('auth.reset_password'), [
     param('token', 'Token de redefinição inválido').isHexadecimal().isLength({ min: 64, max: 64 }),
     passwordRegisterValidation, // Reusa validação de senha de registro
     confirmPasswordValidation('password') // Confirma o campo 'password' (nome diferente no body)
@@ -112,7 +161,7 @@ router.post('/reset-password/:token', [
 // --- Rotas de Autenticação de Administrador ---
 
 // POST /api/auth/admin/register - Registro de Admin + Estacionamento
-router.post('/admin/register', [
+router.post('/admin/register', signupLimiter, auditLog('auth.admin.register'), [
     // 1. Middleware Multer ANTES da validação do body
     upload.single('fotoEstacionamento'),
     // 2. Validações do body
@@ -131,13 +180,13 @@ router.post('/admin/register', [
 ], handleValidationErrors, authController.registerAdmin);
 
 // POST /api/auth/admin/login - Login de Admin
-router.post('/admin/login', [
+router.post('/admin/login', loginLimiter, auditLog('auth.admin.login'), [
     emailValidation,
     passwordLoginValidation
 ], handleValidationErrors, authController.loginAdmin);
 
 // POST /api/auth/admin/logout - Logout de Admin (invalida refresh token)
-router.post('/admin/logout', authController.logout); // Usa o mesmo controller de logout
+router.post('/admin/logout', refreshLogoutLimiter, originCheck, auditLog('auth.admin.logout'), authController.logout);
 
 // Adicionar rotas /admin/forgot-password, /admin/reset-password/:token se necessário
 

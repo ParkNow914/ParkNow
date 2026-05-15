@@ -1,9 +1,12 @@
 const express = require('express');
+const logger = require('../utils/logger');
+const auditLog = require('../middleware/auditLog');
+
 const router = express.Router();
 
 // Log all webhook requests
 router.use((req, res, next) => {
-    console.log(`[Webhook] ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
+    logger.info('[webhook]', { method: req.method, path: req.originalUrl, requestId: req.id });
     next();
 });
 
@@ -17,15 +20,15 @@ router.get('/test', (req, res) => {
 });
 
 // PIX webhook endpoint
-router.post('/pix', (req, res) => {
-    console.log('PIX webhook received:', req.body);
+router.post('/pix', auditLog('webhook.pix'), (req, res) => {
+    logger.info('PIX webhook received', { requestId: req.id });
     // Process PIX webhook here
     res.status(200).json({ status: 'received' });
 });
 
 // Generic payment webhook endpoint
-router.post('/payments', (req, res) => {
-    console.log('Payment webhook received:', req.body);
+router.post('/payments', auditLog('webhook.payments'), (req, res) => {
+    logger.info('Payment webhook received', { requestId: req.id });
     // Process payment webhook here
     res.status(200).json({ status: 'received' });
 });
