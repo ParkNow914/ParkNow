@@ -1,0 +1,54 @@
+# Docker Compose for local development of ParkNow.
+# Usage: cp .env.example .env && docker compose up --build
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: parknow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PG_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-postgres}
+      POSTGRES_DB: ${PG_DATABASE:-parknow_db}
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    volumes:
+      - parknow-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres} -d ${PG_DATABASE:-parknow_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: parknow-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3000}
+      PG_HOST: db
+      PG_PORT: 5432
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD:-postgres}
+      PG_DATABASE: ${PG_DATABASE:-parknow_db}
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_changeme_min_32_chars_aaaa}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_jwt_refresh_secret_changeme_32_chars}
+      SESSION_SECRET: ${SESSION_SECRET:-dev_session_secret_changeme_min_32_chars}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      TZ: ${TZ:-America/Sao_Paulo}
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - parknow-logs:/app/logs
+      - parknow-uploads:/app/uploads
+
+volumes:
+  parknow-db-data:
+  parknow-logs:
+  parknow-uploads:

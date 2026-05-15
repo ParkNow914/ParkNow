@@ -1,0 +1,10 @@
+node_modules/
+coverage/
+logs/
+uploads/
+public/vendor/
+public/js/components/
+public/js/pages/
+dist/
+build/
+*.min.js
