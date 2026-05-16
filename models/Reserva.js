@@ -62,41 +62,6 @@ module.exports = (sequelize) => {
         throw error;
       }
     }
-  static async createReserva(reservaData, transaction) {
-    try {
-      return await this.create({
-        usuario_id: reservaData.usuario_id,
-        vaga_id: reservaData.vaga_id,
-        estacionamento_id: reservaData.estacionamento_id,
-        placa_veiculo: reservaData.placa_veiculo,
-        horario_inicio_reserva: reservaData.horario_inicio_reserva,
-        horario_fim_reserva: reservaData.horario_fim_reserva,
-        status: reservaData.status || 'pendente_pagamento',
-        valor_reserva: reservaData.valor_reserva,
-        metodo_pagamento: reservaData.metodo_pagamento,
-        status_pagamento: reservaData.status_pagamento || 'pending',
-        dados_pagamento: reservaData.dados_pagamento || {}
-      }, { transaction });
-    } catch (error) {
-      logger.error('Erro ao criar reserva:', error);
-      throw error;
-    }
-  }
-
-  static async findActiveReservaByVagaId(vagaId, transaction) {
-    try {
-      return await this.findOne({
-        where: {
-          vaga_id: vagaId,
-          status: [RESERVATION_STATUS.CONFIRMADA, RESERVATION_STATUS.EM_ANDAMENTO, RESERVATION_STATUS.PENDENTE_PAGAMENTO]
-        },
-        transaction
-      });
-    } catch (error) {
-      logger.error('Erro ao buscar reserva ativa por vaga:', error);
-      throw error;
-    }
-  }
 
   static async findActiveReservaByUsuarioAndEstacionamento(usuarioId, estacionamentoId, transaction) {
     try {
@@ -303,7 +268,6 @@ module.exports = (sequelize) => {
       },
       vaga_id: {
         type: DataTypes.INTEGER,
-        allowNull: true,
         allowNull: false,
         comment: 'ID da vaga reservada',
         references: {
@@ -374,12 +338,6 @@ module.exports = (sequelize) => {
         type: DataTypes.JSONB,
         allowNull: true,
         comment: 'Dados adicionais do pagamento (ID do pagamento, dados do cartão, etc)'
-      },
-      codigo_reserva: {
-        type: DataTypes.STRING(10),
-        allowNull: true,
-        unique: true,
-        comment: 'Código único para identificação da reserva'
       },
       check_in: {
         type: DataTypes.DATE,

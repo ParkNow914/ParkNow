@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Special characters pattern
-    const specialCharsPattern = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?`~]/;
+    const specialCharsPattern = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/;
 
     // Password strength checker
     document.getElementById('registerSenha').addEventListener('input', function() {
