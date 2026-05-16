@@ -326,20 +326,13 @@ const formatCNPJ = (cnpj) => {
  * @param {number} length - Comprimento da senha
  * @returns {string} Senha aleatória
  */
-const generateRandomPassword = (length = 12) => {
+const _generateRandomPassword = (length = 12) => {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]\\:;?><,./-=';
+  const crypto = require('crypto');
   let password = '';
   const values = new Uint32Array(length);
-  
-  // Usando crypto API para números aleatórios seguros
-  if (typeof window !== 'undefined' && window.crypto) {
-    window.crypto.getRandomValues(values);
-  } else if (typeof require === 'function') {
-    // Node.js
-    const crypto = require('crypto');
-    crypto.randomFillSync(new Uint8Array(length * 4));
-  }
-  
+  crypto.randomFillSync(values);
+
   for (let i = 0; i < length; i++) {
     password += charset[values[i] % charset.length];
   }
@@ -347,8 +340,8 @@ const generateRandomPassword = (length = 12) => {
   // Garantir que a senha atenda aos requisitos mínimos
   if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+~`|}{[\]\\:;?><,./\-=])/.test(password)) {
     // Se não atender aos requisitos, tenta novamente (máximo de 3 tentativas)
-    if (length < 8) return generateRandomPassword(12);
-    return generateRandomPassword(length);
+    if (length < 8) return _generateRandomPassword(12);
+    return _generateRandomPassword(length);
   }
   
   return password;
