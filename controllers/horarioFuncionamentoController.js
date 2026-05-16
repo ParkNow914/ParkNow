@@ -299,7 +299,7 @@ class HorarioFuncionamentoController {
       }
       
       // Tentar obter do cache primeiro
-      const cacheKey = `estacionamento:${estacionamentoId}:horarios`;
+      const _cacheKey = `estacionamento:${estacionamentoId}:horarios`;
       const cachedHorarios = getHorariosByEstacionamento(estacionamentoId);
       
       if (cachedHorarios) {

@@ -2,13 +2,13 @@
 const reservaModel = require('../models/reservaModel');
 const vagaModel = require('../models/vagaModel');
 const userModel = require('../models/userModel');
-const pagamentoModel = require('../models/pagamentoModel');
+const _pagamentoModel = require('../models/pagamentoModel');
 const asaasMarketplace = require('../services/asaasMarketplaceService');
 const logger = require('../utils/logger');
 const pool = require('../models/db');
 const { AppError, NotFoundError, BadRequestError, AuthorizationError } = require('../utils/AppError');
 const socketService = require('../services/socketService'); // Para emitir evento
-const config = require('../config');
+const _config = require('../config');
 
 const criarReserva = async (req, res, next) => {
     const usuario_id = req.user.id;

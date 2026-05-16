@@ -8,7 +8,7 @@
 require('dotenv').config();
 const db = require('../config/db');
 const asaasMarketplaceService = require('../services/asaasMarketplaceService');
-const logger = require('../utils/logger');
+const _logger = require('../utils/logger');
 
 async function conectarEstacionamentoAsaas(estacionamentoId) {
     try {

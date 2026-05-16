@@ -15,7 +15,7 @@ const RESERVATION_STATUS = {
 };
 
 // Métodos auxiliares
-const calcularValorReserva = (horarioInicio, horarioFim, valorHora) => {
+const _calcularValorReserva = (horarioInicio, horarioFim, valorHora) => {
   const diffMs = new Date(horarioFim) - new Date(horarioInicio);
   const diffHours = diffMs / (1000 * 60 * 60);
   return (diffHours * valorHora).toFixed(2);
@@ -660,7 +660,7 @@ module.exports = (sequelize) => {
   });
 
   // Hooks
-  Reserva.beforeCreate(async (reserva, options) => {
+  Reserva.beforeCreate(async (reserva, _options) => {
     if (!reserva.codigo_reserva) {
       // Gera um código de reserva único
       const timestamp = Date.now().toString(36);

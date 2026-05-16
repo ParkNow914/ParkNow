@@ -1,5 +1,5 @@
 const { body, param } = require('express-validator');
-const { AppError } = require('../../utils/AppError');
+const { AppError: _AppError } = require('../../utils/AppError');
 
 const validateHorarioId = [
   param('id')

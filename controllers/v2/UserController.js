@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 const { User } = require('../../models');
-const { AppError, NotFoundError, BadRequestError } = require('../../utils/AppError');
-const logger = require('../../utils/logger');
+const { AppError: _AppError, NotFoundError, BadRequestError } = require('../../utils/AppError');
+const _logger = require('../../utils/logger');
 
 // Configurações
 const PROFILE_IMAGE_SIZE = 300; // Tamanho padrão para imagens de perfil (300x300 pixels)

@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 const fs = require('fs');
-const path = require('path');
+const _path = require('path');
 require('dotenv').config();
 
 // Configurações do PostgreSQL

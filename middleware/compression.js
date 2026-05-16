@@ -73,8 +73,8 @@ function compression(options = {}) {
     // Flags para controle
     let ended = false;
     let streaming = false;
-    let acceptEncoding = '';
-    let compress = false;
+    let _acceptEncoding = '';
+    let _compress = false;
     let stream = null;
     let length = 0;
     const buffers = [];

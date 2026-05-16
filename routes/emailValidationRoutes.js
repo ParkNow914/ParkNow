@@ -61,7 +61,7 @@ router.post(
     // Compressão de resposta
     compressResponse()
   ],
-  async (req, res, next) => {
+  async (req, res, _next) => {
     const requestId = req.headers['x-request-id'] || uuidv4();
     const startTime = process.hrtime();
     
@@ -377,7 +377,7 @@ function sendResponse(res, data) {
 }
 
 // Middleware de tratamento de erros
-router.use((err, req, res, next) => {
+router.use((err, req, res, _next) => {
   const errorId = uuidv4();
   
   logger.error(`[${errorId}] Erro na rota de validação de e-mail`, {

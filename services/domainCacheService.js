@@ -1,5 +1,5 @@
 const NodeCache = require('node-cache');
-const logger = require('../utils/logger');
+const _logger = require('../utils/logger');
 
 class DomainCacheService {
     constructor(ttlSeconds = 3600) {

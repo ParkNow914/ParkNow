@@ -5,7 +5,7 @@ const { sequelize } = require('../config/db.postgres');
 const { QueryTypes, Op } = require('sequelize');
 const logger = require('../utils/logger');
 const cache = require('../utils/cache'); // Para invalidar cache
-const { PAGAMENTO_STATUS, PAYMENT_METHODS } = require('../config/constants');
+const { PAGAMENTO_STATUS: _PAGAMENTO_STATUS, PAYMENT_METHODS: _PAYMENT_METHODS } = require('../config/constants');
 const { Estacionamento } = require('../models'); // Importa o modelo Estacionamento
 
 const CACHE_KEY_LIST = 'estacionamentos_list'; // Chave de cache
@@ -268,7 +268,7 @@ const deleteEstacionamentoAdmin = async (id, connection) => {
             transaction: connection.transaction
         });
 
-        const [vagasResult] = await connection.query(deleteVagasSql, {
+        const [_vagasResult] = await connection.query(deleteVagasSql, {
             replacements: [id],
             transaction: connection.transaction
         });

@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Constantes
-    const VALIDATION_DEBOUNCE = 500; // 500ms de debounce (reduzido para melhor UX)
+    const _VALIDATION_DEBOUNCE = 500; // 500ms de debounce (reduzido para melhor UX)
     const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 dias em ms
     const API_TIMEOUT = 15000; // 15 segundos de timeout para a API
     

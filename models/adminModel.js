@@ -3,7 +3,7 @@
 
 const { pool } = require('../utils/dbUtils'); // Importa a pool de conexões
 const logger = require('../utils/logger'); // Importa o logger
-const { v4: uuidv4 } = require('uuid');
+const { v4: _uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 const BCRYPT_SALT_ROUNDS = 12; // Número de rodadas para o salt do bcrypt
 

@@ -6,7 +6,7 @@ const readdir = promisify(fs.readdir);
 const unlink = promisify(fs.unlink);
 const stat = promisify(fs.stat);
 const { exec } = require('child_process');
-const execAsync = promisify(exec);
+const _execAsync = promisify(exec);
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
@@ -246,7 +246,7 @@ async function runMaintenance() {
     const statsBefore = await checkDatabaseStats(client);
     
     // 2. Executar VACUUM ANALYZE
-    const vacuumResult = await runVacuumAnalyze(client);
+    const _vacuumResult = await runVacuumAnalyze(client);
     
     // 3. Reconstruir índices
     const reindexResult = await reindexDatabase(client);

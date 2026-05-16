@@ -91,7 +91,7 @@ class FormDateHandler {
      * @param {string} timezone - The target timezone (defaults to browser's timezone)
      * @returns {Date} The parsed date in the specified timezone
      */
-    static parseDateFromInput(dateString, timezone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+    static parseDateFromInput(dateString, _timezone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
         if (!dateString) return null;
         
         try {

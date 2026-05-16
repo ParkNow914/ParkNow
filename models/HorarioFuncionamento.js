@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 /**
  * Modelo para a tabela de horários de funcionamento dos estacionamentos
  */
-module.exports = (sequelize) => {
+module.exports = (_sequelize) => {
   class HorarioFuncionamento extends Model {
     /**
      * Inicializa o modelo

@@ -138,7 +138,7 @@ const set = (key, value, ttl = DEFAULT_TTL) => {
   
   try {
     // Validar os dados antes de armazenar (apenas campos obrigatórios)
-    const validatedData = validateParkingData(value);
+    const _validatedData = validateParkingData(value);
     
     const now = Date.now();
     const expiresAt = now + ttl;

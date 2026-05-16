@@ -12,7 +12,7 @@ const PAGAMENTO_STATUS = PAYMENT_STATUS;
 const TIPO_PAGAMENTO = PAYMENT_METHODS;
 
 // TTL para cache de consultas (em segundos)
-const CACHE_TTL = 300; // 5 minutos
+const _CACHE_TTL = 300; // 5 minutos
 
 /**
  * Cria um novo registro de pagamento
