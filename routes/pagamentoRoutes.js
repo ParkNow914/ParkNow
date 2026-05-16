@@ -128,7 +128,7 @@ router.post(
  *         schema:
  *           type: string
  *         required: true
- *         description: Ação do pagamento (ex: 'payment.updated')
+ *         description: Ação do pagamento (ex. payment.updated)
  *     responses:
  *       200:
  *         description: Webhook processado com sucesso
