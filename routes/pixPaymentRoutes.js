@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const pixPaymentController = require('../controllers/pixPaymentController');
 const { protectUser } = require('../middleware/authMiddleware');
+const { deprecate } = require('../middleware/deprecation');
+
+// Marca todo o router como legado (RFC 8594). Clientes devem migrar para
+// `/api/reservas/com-pagamento` (fluxo ASAAS canônico — ver docs/ROUTES_PAGAMENTO.md).
+router.use(deprecate({
+    replacement: '/api/reservas/com-pagamento',
+    sunset: '2027-01-01',
+    docs: '/api/docs',
+}));
 
 /**
  * @swagger
