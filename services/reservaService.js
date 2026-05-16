@@ -304,67 +304,6 @@ class ReservaService {
 
       const reserva = reservaResult.rows[0];
 
-      return {
-        reserva: {
-          ...reserva,
-          id_pagamento: pagamento.id,
-          status_pagamento: 'pendente'
-        },
-        pagamento: {
-          id: pagamento.id,
-          status: pagamento.status,
-          created_at: pagamento.created_at
-        }
-      };
-    } catch (error) {
-      // Rollback em caso de erro
-      await client.query('ROLLBACK');
-      logger.error('Erro ao criar reserva com pagamento:', error);
-
-      if (error instanceof AppError) {
-        throw error;
-      }
-
-      throw new AppError(
-        `Falha ao processar a reserva: ${error.message || 'Erro desconhecido'}`,
-        500
-      );
-    } finally {
-      // Libera o cliente de volta para o pool
-      client.release();
-    }
-  }
-
-  /**
-   * Obtém os detalhes de uma reserva pelo ID do pagamento
-   * @param {string} paymentId - ID do pagamento
-   * @returns {Promise<Object>} Detalhes da reserva e do pagamento
-   */
-  async obterReservaPorPagamento(paymentId) {
-    const client = await db.getClient();
-
-    try {
-      // Busca a reserva pelo ID do pagamento
-      const reservaResult = await client.query(
-        `SELECT r.*,
-                e.nome as estacionamento_nome,
-                e.endereco as estacionamento_endereco,
-                e.telefone as estacionamento_telefone,
-                u.nome as usuario_nome,
-                u.email as usuario_email
-         FROM reservas r
-         JOIN estacionamentos e ON r.estacionamento_id = e.id
-         JOIN usuarios u ON r.usuario_id = u.id
-         WHERE r.id_pagamento = $1`,
-        [paymentId]
-      );
-
-      if (reservaResult.rows.length === 0) {
-        throw new AppError('Reserva não encontrada para o pagamento informado', 404);
-      }
-
-      const reserva = reservaResult.rows[0];
-
       // Formata os dados de retorno
       return {
         id: reserva.id,
