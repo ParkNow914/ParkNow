@@ -1,5 +1,5 @@
 const estacionamentoPaymentService = require('../services/estacionamentoPaymentService');
-const { AppError, UnauthorizedError, BadRequestError } = require('../utils/AppError');
+const { AppError: _AppError, UnauthorizedError, BadRequestError } = require('../utils/AppError');
 const logger = require('../utils/logger');
 const { PAYMENT_METHODS, BANK_ACCOUNT_TYPES } = require('../config/constants');
 const pool = require('../models/db'); // Pool pg para verificarPropriedadeEstacionamento

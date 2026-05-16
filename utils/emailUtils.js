@@ -7,7 +7,7 @@ const logger = require('./logger'); // Importa o logger Winston
 
 let transporter;
 let isEmailConfigured = false; // Flag para verificar se a configuração está OK
-let isSmtpVerified = false; // Flag para verificar se a conexão SMTP funcionou
+let _isSmtpVerified = false; // Flag para verificar se a conexão SMTP funcionou
 
 // Tenta criar o transportador na inicialização
 try {
@@ -34,7 +34,7 @@ try {
         transporter.verify()
             .then(() => {
                 logger.info(`[Email] Conexão SMTP com ${config.email.host}:${config.email.port} verificada.`);
-                isSmtpVerified = true; // Marca como verificado
+                _isSmtpVerified = true; // Marca como verificado
             })
             .catch(err => {
                 logger.error(`[Email] FALHA ao verificar servidor SMTP (${config.email.host}). Emails podem não ser enviados.`);

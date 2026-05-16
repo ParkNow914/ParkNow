@@ -3,17 +3,17 @@ const config = require('../config');
 const db = require('../models'); // Usando o Sequelize
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
-const { Op } = require('sequelize');
+const { Op: _Op } = require('sequelize');
 const HorarioFuncionamentoController = require('./horarioFuncionamentoController');
 const tempStorage = require('../utils/tempStorage');
 const emailConfig = require('../config/emailConfig');
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/AppError');
-const adminModel = require('../models/adminModel');
+const _adminModel = require('../models/adminModel');
 
 // Prefixo para as chaves de token no armazenamento temporário
 const TOKEN_PREFIX = 'parceria:';
-const TOKEN_EXPIRATION = 24 * 60 * 60 * 1000; // 24 horas
+const _TOKEN_EXPIRATION = 24 * 60 * 60 * 1000; // 24 horas
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY = 1000; // 1 segundo
 
@@ -309,7 +309,7 @@ const validatePartnerRequest = (data, isUpdate = false) => {
  * @param {string} cnpj - CNPJ a ser formatado
  * @returns {string} CNPJ formatado
  */
-const formatCNPJ = (cnpj) => {
+const _formatCNPJ = (cnpj) => {
   if (!cnpj) return '';
   // Remove tudo que não for dígito
   const digits = cnpj.replace(/\D/g, '');
@@ -352,7 +352,7 @@ const _generateRandomPassword = (length = 12) => {
  * @param {string} password - Senha em texto plano
  * @returns {Promise<string>} Hash da senha
  */
-const hashPassword = async (password) => {
+const _hashPassword = async (password) => {
   const saltRounds = 10;
   return bcrypt.hash(password, saltRounds);
 };
@@ -363,7 +363,7 @@ const hashPassword = async (password) => {
  * @param {string} hash - Hash da senha
  * @returns {Promise<boolean>} True se a senha for válida
  */
-const verifyPassword = async (password, hash) => {
+const _verifyPassword = async (password, hash) => {
   try {
     return await bcrypt.compare(password, hash);
   } catch (error) {
@@ -377,7 +377,7 @@ const verifyPassword = async (password, hash) => {
  * @param {number} [length=64] - Comprimento do token em bytes
  * @returns {Promise<string>} Token hexadecimal
  */
-const generateToken = (length = 64) => {
+const _generateToken = (length = 64) => {
   return new Promise((resolve, reject) => {
     require('crypto').randomBytes(length, (err, buffer) => {
       if (err) {
@@ -395,7 +395,7 @@ const generateToken = (length = 64) => {
  * @param {boolean} [includeTime=false] - Incluir hora
  * @returns {string} Data formatada
  */
-const formatDate = (date, includeTime = false) => {
+const _formatDate = (date, includeTime = false) => {
   if (!date) return '';
   
   const d = new Date(date);
@@ -424,10 +424,10 @@ exports.approvePartner = async (req, res) => {
   const storageKey = `${TOKEN_PREFIX}${token}`;
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const startTime = Date.now();
-  let client = null;
-  let transactionCompleted = false;
-  let adminId = null;
-  let estacionamentoId = null;
+  let _client = null;
+  let _transactionCompleted = false;
+  let _adminId = null;
+  let _estacionamentoId = null;
   
   // Configuração de timeouts
   const TIMEOUTS = {

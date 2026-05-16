@@ -71,7 +71,7 @@ class EstacionamentoPaymentConfigService {
         [estacionamentoId]
       );
 
-      const dadosAtualizacao = {
+      const _dadosAtualizacao = {
         estacionamento_id: estacionamentoId,
         tipo_chave_pix,
         chave_pix,

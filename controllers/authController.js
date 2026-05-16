@@ -4,30 +4,30 @@
 // Models
 const userModel = require('../models/userModel');
 const adminModel = require('../models/adminModel');
-const estacionamentoModel = require('../models/estacionamentoModel');
-const vagaModel = require('../models/vagaModel');
-const logModel = require('../models/logModel'); // Adicionando o modelo de log faltante
+const _estacionamentoModel = require('../models/estacionamentoModel');
+const _vagaModel = require('../models/vagaModel');
+const _logModel = require('../models/logModel'); // Adicionando o modelo de log faltante
 // Utils
 const passwordUtils = require('../utils/passwordUtils');
 const jwtUtils = require('../utils/jwtUtils');
 const tokenUtils = require('../utils/tokenUtils'); // Para reset
 const emailUtils = require('../utils/emailUtils'); // Para reset
 const { checkPasswordStrength } = require('../utils/zxcvbnUtil');
-const { AppError, AuthenticationError, BadRequestError, AuthorizationError, ValidationError, ConflictError } = require('../utils/AppError'); // Erros customizados
+const { AppError, AuthenticationError, BadRequestError, AuthorizationError: _AuthorizationError, ValidationError: _ValidationError, ConflictError } = require('../utils/AppError'); // Erros customizados
 const bcrypt = require('bcrypt');
 const logger = require('../utils/logger'); // Logger Winston
 const config = require('../config');
-const pool = require('../models/db'); // Para transação no registerAdmin
-const fs = require('fs'); // Adicionando o módulo fs que faltava
+const _pool = require('../models/db'); // Para transação no registerAdmin
+const _fs = require('fs'); // Adicionando o módulo fs que faltava
 const jwt = require('jsonwebtoken'); // Necessário para jwt.decode() fallback em logout
-const asaasMarketplaceService = require('../services/asaasMarketplaceService'); // Para conectar ao ASAAS
-const db = require('../config/db'); // Para queries diretas
+const _asaasMarketplaceService = require('../services/asaasMarketplaceService'); // Para conectar ao ASAAS
+const _db = require('../config/db'); // Para queries diretas
 // Import desabilitado pois Redis foi removido
 // const { isRedisAvailable, blacklistToken, isTokenBlacklisted } = require('../utils/redisClient');
 
 const BCRYPT_SALT_ROUNDS = 10; // Custo para hash do refresh token
 // Opções base para cookie, maxAge será adicionado dinamicamente
-const refreshTokenCookieOptions = { ...config.cookieProps };
+const _refreshTokenCookieOptions = { ...config.cookieProps };
 const clearTokenCookieOptions = { ...config.cookieProps }; // Opções para limpar
 
 // --- Helpers ---
@@ -194,7 +194,7 @@ const refreshToken = async (req, res, next) => {
     }
 };
 
-const logout = async (req, res, next) => {
+const logout = async (req, res, _next) => {
     const requestRefreshToken = req.cookies?.refreshToken;
     let userId = null; let adminId = null; let accountType = null;
     try {
@@ -332,7 +332,7 @@ const registerAdmin = async (req, res, next) => {
         fotoEstacionamento,
         fotoEstacionamentoNome
     } = req.body;
-    const fotoFile = req.file; // Do Multer (pode ser undefined)
+    const _fotoFile = req.file; // Do Multer (pode ser undefined)
     const ipAddress = req.ip || req.connection?.remoteAddress; // Pega IP
 
     try {

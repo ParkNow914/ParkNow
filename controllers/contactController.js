@@ -3,11 +3,11 @@ const config = require('../config');
 const { validationResult } = require('express-validator');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const db = require('../config/db');
+const _db = require('../config/db');
 const tempStorage = require('../utils/tempStorage');
 const juice = require('juice');
 const path = require('path');
-const fs = require('fs');
+const _fs = require('fs');
 
 // Configuração
 const TOKEN_PREFIX = 'parceria:';
@@ -173,7 +173,7 @@ exports.subscribeNewsletter = async (req, res, next) => {
  * Envia um email estilizado para a equipe de análise com todos os dados do estacionamento
  * e um botão para aprovar automaticamente o cadastro
  */
-exports.solicitarParceria = async (req, res, next) => {
+exports.solicitarParceria = async (req, res, _next) => {
   try {
     console.log('Recebida solicitação de parceria:', req.body);
     
@@ -185,10 +185,10 @@ exports.solicitarParceria = async (req, res, next) => {
       senha,
       cnpj,
       nomeEstacionamento,
-      cepEstacionamento,
-      logradouroEstacionamento,
-      numeroEstacionamento,
-      bairroEstacionamento,
+      _cepEstacionamento,
+      _logradouroEstacionamento,
+      _numeroEstacionamento,
+      _bairroEstacionamento,
       cidadeEstacionamento,
       ufEstacionamento,
       enderecoEstacionamento,
@@ -268,7 +268,7 @@ exports.solicitarParceria = async (req, res, next) => {
 
     // Configurar o email
     const logoUrl = `${baseUrl}/img/logo.png`;
-    const currentDate = new Date().toLocaleDateString('pt-BR', {
+    const _currentDate = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',
       year: 'numeric'

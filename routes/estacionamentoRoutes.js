@@ -4,7 +4,7 @@
 const express = require('express');
 const estacionamentoController = require('../controllers/estacionamentoController');
 const { protectUser } = require('../middleware/authMiddleware'); // Protege rotas de usuário
-const { param, query, body } = require('express-validator'); // Validação de params, query e body
+const { param, query, body: _body } = require('express-validator'); // Validação de params, query e body
 const { handleValidationErrors } = require('../middleware/validationMiddleware'); // Handler
 
 const router = express.Router();
