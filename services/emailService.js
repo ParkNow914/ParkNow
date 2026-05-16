@@ -7,7 +7,7 @@ const path = require('path');
 const handlebars = require('handlebars');
 const config = require('../config');
 const { promisify } = require('util');
-const readFile = promisify(fs.readFile);
+const _readFile = promisify(fs.readFile);
 const pug = require('pug');
 
 class EmailService {
@@ -19,7 +19,7 @@ class EmailService {
    * @param {string} options.template - Nome do template a ser usado
    * @param {Object} options.data - Dados para o template
    */
-  async enviarEmailGenerico({ to, subject, template, data = {} }) {
+  async enviarEmailGenerico({ to, subject, template: _template, data = {} }) {
     try {
       // Implementação básica - pode ser estendida para suportar templates
       const text = data.text || 'Notificação do ParkNow';

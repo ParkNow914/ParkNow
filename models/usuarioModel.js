@@ -3,7 +3,7 @@
 
 const { pool } = require('../utils/dbUtils');
 const logger = require('../utils/logger');
-const config = require('../config');
+const _config = require('../config');
 
 /**
  * Busca um usuário pelo ID

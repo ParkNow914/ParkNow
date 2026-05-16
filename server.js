@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');                     // Segurança HTTP Headers
 const detectTimezone = require('./middleware/detectTimezone');  // Timezone detection middleware
-const rateLimit = require('express-rate-limit');     // Limita requisições (Rate Limiting)
+const _rateLimit = require('express-rate-limit');     // Limita requisições (Rate Limiting)
 const cookieParser = require('cookie-parser');         // Para ler/escrever cookies (refresh token)
 const http = require('http');                          // Módulo HTTP nativo do Node.js (para Socket.IO)
 const morgan = require('morgan');                      // Middleware para log HTTP
@@ -36,7 +36,7 @@ const initCronJobs = require('./services/cronJobs'); // Importa a função de in
 // --- Inicialização do Express e Servidor HTTP ---
 const app = express();
 const server = http.createServer(app); // Cria servidor HTTP a partir do Express app
-const io = initSocketIO(server);       // Inicializa e anexa Socket.IO ao servidor HTTP
+const _io = initSocketIO(server);       // Inicializa e anexa Socket.IO ao servidor HTTP
 
 // --- Middlewares Essenciais de Segurança ---
 

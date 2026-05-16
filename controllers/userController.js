@@ -60,7 +60,7 @@ const updateUserProfile = async (req, res, next) => {
         else next(error);
     }
 };
-const uploadProfileImage = async (req, res, next) => {
+const uploadProfileImage = async (req, res, _next) => {
     try {
         // Verificar se o arquivo foi enviado
         if (!req.file) {
@@ -192,7 +192,7 @@ const updateUserProfile = async (req, res, next) => {
 /**
  * Remove a foto de perfil do usuário
  */
-const removeProfileImage = async (req, res, next) => {
+const removeProfileImage = async (req, res, _next) => {
     try {
         // Verificar se o usuário está autenticado
         if (!req.user || !req.user.id) {

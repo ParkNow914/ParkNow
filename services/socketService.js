@@ -230,9 +230,9 @@ const getIO = () => {
     if (!io || !config.realtime.enabled) {
         // Mock para evitar erros em outras partes do código se socket estiver off
         return {
-            emit: (ev, data) => logger.debug(`[Socket.IO Mock] Emit global: '${ev}' (desabilitado)`),
+            emit: (ev, _data) => logger.debug(`[Socket.IO Mock] Emit global: '${ev}' (desabilitado)`),
             to: (room) => ({
-                emit: (ev, data) => logger.debug(`[Socket.IO Mock] Emit para sala '${room}': '${ev}' (desabilitado)`)
+                emit: (ev, _data) => logger.debug(`[Socket.IO Mock] Emit para sala '${room}': '${ev}' (desabilitado)`)
             })
         };
     }

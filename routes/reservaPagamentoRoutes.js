@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const reservaPagamentoController = require('../controllers/reservaPagamentoController');
-const { protectUser, protectAdmin } = require('../middleware/authMiddleware');
+const { protectUser, protectAdmin: _protectAdmin } = require('../middleware/authMiddleware');
 const asaasWebhookAuth = require('../middleware/asaasWebhookAuth');
 const idempotency = require('../middleware/idempotency');
 const auditLog = require('../middleware/auditLog');

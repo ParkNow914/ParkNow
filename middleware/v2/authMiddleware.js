@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../../models');
 const { AppError, UnauthorizedError, ForbiddenError } = require('../../utils/AppError');
-const logger = require('../../utils/logger');
+const _logger = require('../../utils/logger');
 
 /**
  * Middleware para verificar se o usuário está autenticado

@@ -36,12 +36,12 @@ if (typeof process.env.ENABLE_PAYMENT_MODULE === 'undefined') {
 }
 
 // Middleware para validar IDs
-const validateId = [
+const _validateId = [
     param('id').isInt({ min: 1 }).withMessage('ID inválido')
 ];
 
 // Middleware para validação de pagamento
-const validatePayment = [
+const _validatePayment = [
     body('metodo_pagamento').isIn(Object.values(require('../config/constants').PAYMENT_METHODS)),
     body('dados_pagamento').isObject().withMessage('Dados de pagamento inválidos')
 ];
@@ -123,7 +123,7 @@ console.log(`[Payment Routes] Rotas de pagamento carregadas (módulo ${process.e
  *         description: Acesso negado
  */
 // Define the route handler function as a separate function
-function processarPagamentoHandler(req, res, next) {
+function _processarPagamentoHandler(req, res, next) {
     console.log('[processarPagamentoHandler] Iniciando processamento de pagamento');
 
     // Ensure the controller method exists
@@ -146,7 +146,7 @@ function processarPagamentoHandler(req, res, next) {
 }
 
 // Validation middleware for payment processing
-const validatePaymentRequest = [
+const _validatePaymentRequest = [
     // Validate reservaId parameter
     (req, res, next) => {
         console.log('[Payment Routes] Validating reservaId parameter');

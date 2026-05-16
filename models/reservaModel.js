@@ -3,8 +3,8 @@
 
 const { pool } = require('../utils/dbUtils');
 const logger = require('../utils/logger');
-const config = require('../config');
-const { format, parseISO } = require('date-fns');
+const _config = require('../config');
+const { format, parseISO: _parseISO } = require('date-fns');
 
 // Status de reserva suportados
 const RESERVATION_STATUS = {

@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnLogin = document.getElementById('btn-login');
     const btnRegister = document.getElementById('btn-register');
     const successPopup = $('#successPopup'); // jQuery para modal Bootstrap
-    const btnBuscarCep = document.getElementById('btnBuscarCep');
+    const _btnBuscarCep = document.getElementById('btnBuscarCep');
     const cepInput = document.getElementById('cepEstacionamento');
     const cnpjInput = document.getElementById('cnpj');
     const fotoEstacionamentoInput = document.getElementById('fotoEstacionamento');
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Máscara CNPJ com validação avançada
     $('#cnpj').mask('00.000.000/0000-00', {
-        onKeyPress: function(cnpj, e, field, options) {
+        onKeyPress: function(cnpj, e, field, _options) {
             // Validação em tempo real
             setTimeout(() => {
                 const result = validarCNPJ(cnpj);
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Máscara CEP com validação ViaCEP
     $('#cepEstacionamento').mask('00000-000', {
-        onKeyPress: function(cep, e, field, options) {
+        onKeyPress: function(cep, e, field, _options) {
             if (cep.replace(/\D/g, '').length === 8) {
                 field.removeClass('is-invalid').addClass('is-valid');
             } else {
@@ -923,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Função auxiliar para mostrar feedback de e-mail
-    function showEmailFeedback(input, message, type = 'info') {
+    function _showEmailFeedback(input, message, type = 'info') {
         const emailGroup = input.closest('.form-group');
         let feedback = emailGroup.querySelector('.email-feedback');
         
@@ -1154,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             
             if (result.status === 'success' && result.data) {
-                const { latitude, longitude, qualityScore, confidence, precisao, consenso, distanciaMediaConsenso, fonte, type } = result.data;
+                const { latitude, longitude, qualityScore, confidence, precisao, consenso, distanciaMediaConsenso, fonte, type: _type } = result.data;
                 
                 console.log('✅ Coordenadas 100% PRECISAS calculadas:', {
                     latitude,
@@ -1182,30 +1182,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 // Determina ícone e cor baseado na precisão
-                let icone, cor, cssClass, badgeText;
+                let icone, _cor, cssClass, badgeText;
                 if (precisao.includes('100%') || precisao.includes('PERFEITA')) {
                     icone = 'check-double';
-                    cor = '#28a745';
+                    _cor = '#28a745';
                     cssClass = 'success';
                     badgeText = '🎯 Precisão Perfeita (100%)';
                 } else if (precisao.includes('95%') || precisao.includes('MUITO ALTA')) {
                     icone = 'check-circle';
-                    cor = '#20c997';
+                    _cor = '#20c997';
                     cssClass = 'success';
                     badgeText = '🎯 Precisão Muito Alta (95%)';
                 } else if (precisao.includes('85%') || precisao.includes('ALTA')) {
                     icone = 'check-circle';
-                    cor = '#17a2b8';
+                    _cor = '#17a2b8';
                     cssClass = 'info';
                     badgeText = '✅ Precisão Alta (85%)';
                 } else if (precisao.includes('70%') || precisao.includes('BOA')) {
                     icone = 'exclamation-circle';
-                    cor = '#ffc107';
+                    _cor = '#ffc107';
                     cssClass = 'warning';
                     badgeText = '⚠️ Precisão Boa (70%)';
                 } else {
                     icone = 'info-circle';
-                    cor = '#fd7e14';
+                    _cor = '#fd7e14';
                     cssClass = 'warning';
                     badgeText = 'ℹ️ Precisão Moderada (50%)';
                 }
@@ -1259,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Função para calcular coordenadas usando o endpoint local
-    const calcularCoordenadas = async (enderecoForcado = null) => {
+    const _calcularCoordenadas = async (enderecoForcado = null) => {
         try {
             let enderecoFormatado = enderecoForcado;
             
