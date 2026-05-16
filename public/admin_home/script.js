@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const value = $(this).val().trim();
         
         // Validar caracteres permitidos (letras, números, espaços, hífen)
-        const regex = /^[A-Za-z0-9À-ÿ\s\-\.]+$/;
+        const regex = /^[A-Za-z0-9À-ÿ\s\-.]+$/;
         if (!regex.test(value) && value.length > 0) {
             $(this).removeClass('is-valid').addClass('is-invalid');
             $(this).siblings('.invalid-feedback').text('Caracteres inválidos detectados');
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Validação Logradouro (mais rigorosa)
     $('#logradouroEstacionamento').on('input', function() {
         const value = $(this).val().trim();
-        const regex = /^[A-Za-z0-9À-ÿ\s\-\.]+$/;
+        const regex = /^[A-Za-z0-9À-ÿ\s\-.]+$/;
         
         if (!regex.test(value) && value.length > 0) {
             $(this).removeClass('is-valid').addClass('is-invalid');
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 mensagem = 'Telefone inválido';
                 break;
             case 'aleatoria':
-                valido = /^[a-zA-Z0-9\-]{32}$/.test(chave);
+                valido = /^[a-zA-Z0-9-]{32}$/.test(chave);
                 mensagem = 'Chave aleatória deve ter 32 caracteres alfanuméricos';
                 break;
             default:
