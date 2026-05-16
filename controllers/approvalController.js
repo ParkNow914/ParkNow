@@ -460,8 +460,8 @@ exports.approvePartner = async (req, res) => {
       res.end();
       return res.status(400).json({
         success: false,
-        error: 'Dados Inválidos',
-        message: `Não foi possível processar a solicitação: ${validationError.message}`
+        error: 'REQUEST_TIMEOUT',
+        message: 'Não foi possível processar a solicitação dentro do tempo limite.'
       });
     }
     

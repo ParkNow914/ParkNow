@@ -1280,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             ...camposEndereco,
-                            cep: cep || ''
+                            cep: document.getElementById('cepEstacionamento')?.value.trim() || ''
                         })
                     });
                     
