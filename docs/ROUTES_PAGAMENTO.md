@@ -8,8 +8,8 @@ Este documento inventaria os arquivos em `routes/` que tratam de pagamento, desc
 |---|---|---|---|
 | `reservaPagamentoRoutes.js` | `/api/reservas` e `/api/` | ✅ **CANÔNICO (ASAAS)** | Fluxo principal: cria reserva com pagamento ASAAS, retorna QR PIX, recebe webhook ASAAS, consulta status. Aplica `originCheck`, `auditLog` e `idempotency` (Onda 2). |
 | `paymentRoutes.js` | `/api/payments` | ✅ ativo | Pagamentos genéricos (cartão de crédito tokenizado via gateway). Protegido por `protectUser` + `checkPaymentModule` (ENABLE_PAYMENT_MODULE). |
-| `pixPaymentRoutes.js` | `/api/api` (sic) | ⚠️ legado | Notificação manual de PIX e confirmação de pagamento. Mantido por compatibilidade com clientes antigos; novos clientes devem usar `reservaPagamentoRoutes`. |
-| `pagamentoRoutes.js` | `/api/pix` | ⚠️ legado | Endpoints PIX antigos. Encaminha para `reservaPagamentoController`. Considerar deprecation header. |
+| `pixPaymentRoutes.js` | `/api/api` (sic) | ⚠️ legado (Deprecation: true) | Notificação manual de PIX e confirmação de pagamento. Mantido por compatibilidade com clientes antigos; novos clientes devem usar `reservaPagamentoRoutes`. Onda 4 marcou o router com `middleware/deprecation.js` (Sunset 2027-01-01). |
+| `pagamentoRoutes.js` | `/api/pix` | ⚠️ legado (Deprecation: true) | Endpoints PIX antigos. Encaminha para `reservaPagamentoController`. Onda 4 marcou com `middleware/deprecation.js` (Sunset 2027-01-01). |
 | `estacionamentoPaymentRoutes.js` | `/api/estacionamento-payments` | ✅ ativo | Configuração de pagamento por estacionamento (vista do dono). |
 | `estacionamentoPaymentConfigRoutes.js` | `/api/estacionamento-payment-config` | ⚠️ **duplicado parcial** | Sobreposição parcial com `estacionamentoPaymentRoutes.js`. Candidato a consolidação na Onda 4. |
 | `estacionamentoAsaasRoutes.js` | `/api/admin/estacionamentos` (via `adminApiRoutes`) | ✅ ativo | Conecta/desconecta conta ASAAS do estacionamento. Acesso restrito a admin. |
@@ -30,5 +30,5 @@ Este documento inventaria os arquivos em `routes/` que tratam de pagamento, desc
 Sem mudar URLs públicas:
 
 1. Unificar `estacionamentoPaymentRoutes` + `estacionamentoPaymentConfigRoutes` montando ambos em um único router compartilhado — mantém os dois prefixos.
-2. Marcar handlers em `pixPaymentRoutes` e `pagamentoRoutes` com header de resposta `Deprecation: true` (RFC 8594), expor janela de remoção.
+2. ✅ **Feito na Onda 4**: handlers em `pixPaymentRoutes` e `pagamentoRoutes` agora respondem com header `Deprecation: true` + `Sunset: 2027-01-01` + `Link` apontando ao canônico (RFC 8594 / RFC 8288), via `middleware/deprecation.js`.
 3. Mover toda a documentação OpenAPI para os arquivos canônicos; legados apenas referenciam.

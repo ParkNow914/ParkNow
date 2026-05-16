@@ -9,11 +9,11 @@ A pasta `models/` contém duas linhagens convivendo:
 
 | Entidade | Canônico (use este) | Status do(s) outro(s) | Observação |
 |---|---|---|---|
-| Usuário | `models/userModel.js` | `User.js` (Sequelize): _órfão_; `usuarioModel.js`: helper especializado | Apenas `findDefaultVehicleByUserId` de `usuarioModel.js` é importado (`services/reservaService.js`). Migrar para `userModel` na próxima rodada. |
+| Usuário | `models/userModel.js` (pg-native, helper de auth) | `User.js` (Sequelize): **em uso** via `db.User.findByPk` em `estacionamentoController`; `usuarioModel.js`: helper especializado | Coexistem por design: pg-native em rotas leves, Sequelize em queries com `include`. Apenas `findDefaultVehicleByUserId` de `usuarioModel.js` é importado em `services/reservaService.js`. |
 | Estacionamento | `models/estacionamentoModel.js` (híbrido: usa Sequelize Op internamente) | `Estacionamento.js` (Sequelize puro): usado via `models/index.js` `{Estacionamento}` | Híbrido — `estacionamentoModel` importa o modelo Sequelize via `require('../models')`. Não tocar sem migration plan. |
-| Reserva | `models/reservaModel.js` | `Reserva.js` (Sequelize): _órfão_ | |
-| Vaga | `models/vagaModel.js` | `Vaga.js` (Sequelize): _órfão_ | |
-| Horário Funcionamento | `models/HorarioFuncionamento.js` | `models/HorarioFuncionamentoModel.js`: duplicata literal | Avaliar remoção do `HorarioFuncionamentoModel.js`. |
+| Reserva | `models/reservaModel.js` (pg-native, fluxo principal) | `Reserva.js` (Sequelize): **em uso** via `db.Reserva.findByPk` em `pixPaymentController` | Coexistem por design. |
+| Vaga | `models/vagaModel.js` (pg-native) | `Vaga.js` (Sequelize): **em uso** via `db.Vaga.findByPk`/`count`/`bulkCreate` em `estacionamentoController`, `approvalController`, `pixPaymentController` | Coexistem por design. |
+| Horário Funcionamento | `models/HorarioFuncionamento.js` | `models/HorarioFuncionamentoModel.js`: duplicata divergente | Ambos carregados por `models/index.js` (ambos começam com maiúscula); o segundo a carregar vence em `db`. Avaliar remoção do `HorarioFuncionamentoModel.js`. |
 | Pagamento | `models/pagamentoModel.js` | — | Não há duplicata. |
 | Notificação | `models/notificacaoModel.js` | — | Não há duplicata. |
 | Veículo | `models/veiculoModel.js` | — | |
@@ -30,8 +30,8 @@ Migrar de pg-native para Sequelize (ou vice-versa) requer:
 
 O ganho não compensa o risco numa onda de hardening sem cobertura de teste de integração ao Postgres. As próximas ondas devem:
 
-- **Onda 4** — apagar arquivos órfãos confirmadamente não-importados (`User.js`, `Reserva.js`, `Vaga.js`) após `git grep` exaustivo.
-- **Onda 5** — escolher uma linhagem (recomendo manter pg-native: é o caminho mais simples e já é maioria).
+- **Onda 5+** — escolher uma linhagem para cada entidade onde as duas coexistem (`User`, `Reserva`, `Vaga`) e migrar consumidores de forma incremental, começando pelos paths com cobertura de teste.
+- **Onda 5** — avaliar remoção de `HorarioFuncionamentoModel.js` (duplicata divergente de `HorarioFuncionamento.js`); ambos são carregados, mas apenas um vence em `db`.
 
 ## Convenção temporária (até consolidar)
 
