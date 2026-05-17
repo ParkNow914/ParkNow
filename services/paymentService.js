@@ -79,7 +79,7 @@ class PaymentService {
                     }
                 );
                 
-                // TODO: Enviar e-mail de confirmação
+                // Envia e-mail de confirmação ao usuário
                 try {
                     const usuario = await userModel.findUserById(reserva.usuario_id, client);
                     if (usuario && usuario.email) {
