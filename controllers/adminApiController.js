@@ -20,6 +20,22 @@ const db = require('../config/db'); // Para queries diretas
 // --- Helpers ---
 const getIp = (req) => req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || 'IP N/A';
 
+/**
+ * Garante que o admin autenticado é dono do estacionamento informado.
+ * Lança NotFoundError se o estacionamento não existir,
+ * ou AuthorizationError se pertencer a outro admin.
+ * Retorna o registro carregado para reuso pelo caller.
+ * Defesa contra BOLA (Broken Object Level Authorization) nos endpoints admin.
+ */
+const assertAdminOwnsEstacionamento = async (adminId, estacionamentoId) => {
+    const est = await estacionamentoModel.findByIdAdmin(estacionamentoId);
+    if (!est) throw new NotFoundError('Estacionamento não encontrado.');
+    if (parseInt(est.admin_id) !== parseInt(adminId)) {
+        throw new AuthorizationError('Você não tem permissão sobre este estacionamento.');
+    }
+    return est;
+};
+
 // --- Vagas ---
 /** Busca todas as vagas com detalhes para admin */
 const getAllVagas = async (req, res, next) => {
@@ -146,7 +162,7 @@ const atualizarNumeroDeVagas = async (req, res, next) => {
     const adminId = req.admin.id;
     const ipAddress = getIp(req);
     try {
-        // TODO: Verificar permissão do admin sobre este estacionamento
+        await assertAdminOwnsEstacionamento(adminId, estacionamentoId);
 
         // adjustVagasCount lida com adição/remoção e transação
         const result = await vagaModel.adjustVagasCount(estacionamentoId, parseInt(numeroDeVagas));
@@ -176,11 +192,8 @@ const getAllEstacionamentosAdmin = async (req, res, next) => {
 const getEstacionamentoByIdAdmin = async (req, res, next) => {
     try {
         const { estacionamentoId } = req.params;
-        const estacionamento = await estacionamentoModel.findById(estacionamentoId);
-        
-        if (!estacionamento) throw new NotFoundError('Estacionamento não encontrado.');
-        
-        // TODO: Verificar se o admin autenticado tem permissão a este estacionamento
+        const adminId = req.admin.id;
+        const estacionamento = await assertAdminOwnsEstacionamento(adminId, estacionamentoId);
         res.json(estacionamento);
     } catch (error) { next(error); }
 };
@@ -209,9 +222,8 @@ const createEstacionamentoAdmin = async (req, res, next) => {
     const { nome, endereco, latitude, longitude, numeroVagas, precoHora, precoDia, descricao, admin_id: targetAdminId } = req.body; // Pega admin_id do body
     const fotoFile = req.file; // Do Multer
 
-    // Garante que está criando para o admin logado ou que tem permissão
+    // Garante que está criando para o admin logado
     if (parseInt(targetAdminId) !== adminId) {
-         // TODO: Implementar lógica de permissão mais granular se necessário
          return next(new AuthorizationError('Você não pode criar um estacionamento para outro administrador.'));
     }
 
@@ -295,9 +307,7 @@ const updateEstacionamento = async (req, res, next) => {
     const adminId = req.admin.id;
     const ipAddress = getIp(req);
     try {
-        // TODO: Verificar permissão do admin para editar este estacionamento
-        const estOriginal = await estacionamentoModel.findByIdAdmin(estacionamentoId);
-        if (!estOriginal) throw new NotFoundError('Estacionamento não encontrado.');
+        const estOriginal = await assertAdminOwnsEstacionamento(adminId, estacionamentoId);
         
         // Impedir mudança do admin_id via PUT normal? Ou permitir se for superadmin?
         if (estData.admin_id && parseInt(estData.admin_id) !== estOriginal.admin_id) {
@@ -336,9 +346,7 @@ const deleteEstacionamento = async (req, res, next) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        // TODO: Verificar permissão
-        const est = await estacionamentoModel.findByIdAdmin(estacionamentoId); // Verifica se existe antes
-        if (!est) throw new NotFoundError('Estacionamento não encontrado.');
+        const est = await assertAdminOwnsEstacionamento(adminId, estacionamentoId);
 
         const deleted = await estacionamentoModel.deleteEstacionamentoAdmin(estacionamentoId, client); // Passa client
         if (!deleted) throw new AppError('Falha ao excluir estacionamento.', 500); // Erro inesperado se chegou aqui
