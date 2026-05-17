@@ -3,6 +3,8 @@ const config = require('../config');
 const reservaModel = require('../models/reservaModel');
 const pagamentoModel = require('../models/pagamentoModel');
 const notificationService = require('./notificationService');
+const emailService = require('./emailService');
+const userModel = require('../models/userModel');
 const estacionamentoModel = require('../models/estacionamentoModel');
 const { pool } = require('../utils/dbUtils');
 const { PAGAMENTO_STATUS } = require('../models/pagamentoModel');
@@ -78,6 +80,29 @@ class PaymentService {
                 );
                 
                 // TODO: Enviar e-mail de confirmação
+                try {
+                    const usuario = await userModel.findUserById(reserva.usuario_id, client);
+                    if (usuario && usuario.email) {
+                        await emailService.enviarEmailStatusPagamento({
+                            to: usuario.email,
+                            status: 'approved',
+                            pagamento: { valor: valor / 100, dataPagamento, txid },
+                            reserva,
+                            usuario
+                        });
+                    } else {
+                        logger.warn('E-mail de confirmação de pagamento não enviado: usuário sem e-mail', {
+                            reserva_id: reserva.id,
+                            usuario_id: reserva.usuario_id
+                        });
+                    }
+                } catch (emailErr) {
+                    // Falha no envio de e-mail não deve abortar o processamento do pagamento
+                    logger.error('Falha ao enviar e-mail de confirmação de pagamento', {
+                        reserva_id: reserva.id,
+                        erro: emailErr.message
+                    });
+                }
             } else if (status === 'ESTORNADO' || status === 'DEVOLVIDO') {
                 await reservaModel.atualizarStatus(reserva.id, 'cancelada', client);
                 
