@@ -463,7 +463,7 @@ class AsaasMarketplaceService {
             email_pagador,
             nome_pagador,
             cpf_pagador,
-            estacionamento_id,
+            _estacionamento_id,
             estacionamento_asaas_account_id, // Pode ser null/undefined
             reserva_id,
             success_url,

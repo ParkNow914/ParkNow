@@ -1,4 +1,4 @@
-const { AppError, BadRequestError, NotFoundError, ForbiddenError } = require('../utils/AppError');
+const { AppError: _AppError, BadRequestError, NotFoundError, ForbiddenError } = require('../utils/AppError');
 const logger = require('../utils/logger');
 const reservaModel = require('../models/reservaModel');
 const estacionamentoModel = require('../models/estacionamentoModel');
@@ -304,7 +304,7 @@ class PaymentController {
      * @route POST /api/payments/webhook/:provedor
      * @access Public (protegido por assinatura)
      */
-    async webhookPagamento(req, res, next) {
+    async webhookPagamento(req, res, _next) {
         const { provedor } = req.params;
         const payload = req.body;
         const signature = req.headers['x-signature'] || req.headers['x-webhook-signature'];

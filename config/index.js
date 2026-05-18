@@ -77,7 +77,7 @@ const config = {
             user: process.env.EMAIL_USER || 'parknow914@gmail.com',
             pass: process.env.EMAIL_PASS || 'rvnh aryg wube hdsk'
         },
-        from: process.env.EMAIL_FROM || '\"ParkNow\" <parknow914@gmail.com>',
+        from: process.env.EMAIL_FROM || '"ParkNow" <parknow914@gmail.com>',
         support: process.env.EMAIL_SUPPORT || 'parknow914@gmail.com',
         admin: process.env.EMAIL_ADMIN || 'parknow914@gmail.com',
         // Configurações adicionais para melhorar a entrega

@@ -227,7 +227,7 @@ class EstacionamentoAsaasController {
      */
     async desconectarAsaas(req, res, next) {
         const { id: estacionamentoId } = req.params;
-        const userId = req.user.id;
+        const _userId = req.user.id;
         const userRole = req.user.role;
 
         try {

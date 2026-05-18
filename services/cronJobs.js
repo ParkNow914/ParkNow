@@ -7,7 +7,7 @@ const logger = require('../utils/logger');       // Logger Winston
 const reservaModel = require('../models/reservaModel'); // Model de Reservas
 const vagaModel = require('../models/vagaModel');    // Model de Vagas
 const config = require('../config');             // Configurações (schedules)
-const socketService = require('./socketService'); // Para emitir eventos após expirar
+const _socketService = require('./socketService'); // Para emitir eventos após expirar
 const PixExpirationService = require('./pixExpirationService'); // Serviço para expiração de PIX
 
 function initCronJobs() {

@@ -4,6 +4,7 @@ const { PAYMENT_STATUS } = require('../config/constants');
 const pagamentoModel = require('../models/pagamentoModel');
 const reservaModel = require('../models/reservaModel');
 const notificationService = require('./notificationService');
+const pool = require('../models/db'); // Pool pg para transações em processWebhookEvent
 
 class WebhookService {
     constructor() {

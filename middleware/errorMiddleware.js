@@ -2,7 +2,7 @@
 // Middleware para tratamento global de erros na aplicação Express.
 
 const logger = require('../utils/logger'); // Importa o logger Winston
-const { AppError } = require('../utils/AppError'); // Importa a classe base de erro customizado
+const { AppError: _AppError } = require('../utils/AppError'); // Importa a classe base de erro customizado
 
 /**
  * Middleware de tratamento de erros. Captura erros passados por next(error).
@@ -11,7 +11,7 @@ const { AppError } = require('../utils/AppError'); // Importa a classe base de e
  * @param {object} res - Objeto da resposta Express.
  * @param {function} next - Função next (geralmente não usada aqui).
  */
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, _next) => {
     // Define statusCode e status padrão
     err.statusCode = err.statusCode || 500;
     err.status = err.status || (err.statusCode >= 500 ? 'error' : 'fail');

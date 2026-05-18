@@ -4,7 +4,7 @@
 const express = require('express');
 const userController = require('../controllers/userController');
 const { protectUser } = require('../middleware/authMiddleware'); // Middleware de proteção
-const { body, query } = require('express-validator'); // Validação do corpo e query
+const { body, query: _query } = require('express-validator'); // Validação do corpo e query
 const { handleValidationErrors } = require('../middleware/validationMiddleware'); // Handler
 const multer = require('multer'); // Para upload de arquivos
 const path = require('path'); // Para manipulação de caminhos

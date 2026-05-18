@@ -56,7 +56,7 @@ module.exports = {
     await queryInterface.addIndex('reservas', ['data_expiracao_pix']);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.removeColumn('reservas', 'id_pagamento');
     await queryInterface.removeColumn('reservas', 'qr_code');
     await queryInterface.removeColumn('reservas', 'qr_code_base64');

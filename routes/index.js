@@ -91,31 +91,22 @@ router.use('/api/horarios', horarioFuncionamentoRoutes);
 router.use('/pix', pagamentoRoutes);
 
 // Rotas de pagamento PIX
-console.log('Importing PIX payment routes...');
 const pixPaymentRoutes = require('./pixPaymentRoutes');
-console.log('PIX payment routes imported. Type:', typeof pixPaymentRoutes);
 
 // Mount PIX payment routes
 router.use('/api', pixPaymentRoutes);
-console.log('PIX payment routes mounted successfully at /api');
 
 // Rotas de webhook para notificações de pagamento
-console.log('Importing webhook routes...');
 const webhookRouter = require('./webhookRoutesNew');
-console.log('Webhook routes imported. Type:', typeof webhookRouter);
 
 // Mount webhook routes
 router.use('/webhook', webhookRouter);
-console.log('Webhook routes mounted successfully at /webhook');
 
 // Rotas de tarefas agendadas (cron jobs)
-console.log('Importing cron routes...');
 const cronRoutes = require('./cronRoutes');
-console.log('Cron routes imported. Type:', typeof cronRoutes);
 
 // Mount cron routes
 router.use('/cron', cronRoutes);
-console.log('Cron routes mounted successfully at /cron');
 
 // Exporta o roteador principal configurado
 module.exports = router;

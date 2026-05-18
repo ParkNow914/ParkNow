@@ -15,7 +15,7 @@ const RESERVATION_STATUS = {
 };
 
 // Métodos auxiliares
-const calcularValorReserva = (horarioInicio, horarioFim, valorHora) => {
+const _calcularValorReserva = (horarioInicio, horarioFim, valorHora) => {
   const diffMs = new Date(horarioFim) - new Date(horarioInicio);
   const diffHours = diffMs / (1000 * 60 * 60);
   return (diffHours * valorHora).toFixed(2);
@@ -62,41 +62,6 @@ module.exports = (sequelize) => {
         throw error;
       }
     }
-  static async createReserva(reservaData, transaction) {
-    try {
-      return await this.create({
-        usuario_id: reservaData.usuario_id,
-        vaga_id: reservaData.vaga_id,
-        estacionamento_id: reservaData.estacionamento_id,
-        placa_veiculo: reservaData.placa_veiculo,
-        horario_inicio_reserva: reservaData.horario_inicio_reserva,
-        horario_fim_reserva: reservaData.horario_fim_reserva,
-        status: reservaData.status || 'pendente_pagamento',
-        valor_reserva: reservaData.valor_reserva,
-        metodo_pagamento: reservaData.metodo_pagamento,
-        status_pagamento: reservaData.status_pagamento || 'pending',
-        dados_pagamento: reservaData.dados_pagamento || {}
-      }, { transaction });
-    } catch (error) {
-      logger.error('Erro ao criar reserva:', error);
-      throw error;
-    }
-  }
-
-  static async findActiveReservaByVagaId(vagaId, transaction) {
-    try {
-      return await this.findOne({
-        where: {
-          vaga_id: vagaId,
-          status: [RESERVATION_STATUS.CONFIRMADA, RESERVATION_STATUS.EM_ANDAMENTO, RESERVATION_STATUS.PENDENTE_PAGAMENTO]
-        },
-        transaction
-      });
-    } catch (error) {
-      logger.error('Erro ao buscar reserva ativa por vaga:', error);
-      throw error;
-    }
-  }
 
   static async findActiveReservaByUsuarioAndEstacionamento(usuarioId, estacionamentoId, transaction) {
     try {
@@ -278,186 +243,6 @@ module.exports = (sequelize) => {
 
   }
 
-  Reserva.init(
-    {
-      id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-        comment: 'ID único da reserva'
-      },
-      codigo_reserva: {
-        type: DataTypes.STRING(12),
-        unique: true,
-        allowNull: false,
-        comment: 'Código único da reserva para identificação'
-      },
-      usuario_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        comment: 'ID do usuário que fez a reserva',
-        references: {
-          model: 'usuarios',
-          key: 'id'
-        }
-      },
-      vaga_id: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        allowNull: false,
-        comment: 'ID da vaga reservada',
-        references: {
-          model: 'vagas',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT'
-      },
-      estacionamento_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        comment: 'ID do estacionamento onde está a vaga',
-        references: {
-          model: 'estacionamentos',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT'
-      },
-      placa_veiculo: {
-        type: DataTypes.STRING(8),
-        allowNull: false,
-        comment: 'Placa do veículo que ocupará a vaga'
-      },
-      horario_inicio_reserva: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        comment: 'Data e hora de início da reserva'
-      },
-      horario_fim_reserva: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        comment: 'Data e hora de término da reserva'
-      },
-      status: {
-        type: DataTypes.ENUM(
-          'pendente',
-          'confirmada',
-          'em_andamento',
-          'finalizada',
-          'cancelada',
-          'expirada',
-          'pendente_pagamento',
-          'pagamento_aprovado',
-          'pagamento_recusado'
-        ),
-        allowNull: false,
-        defaultValue: 'pendente_pagamento',
-        comment: 'Status atual da reserva'
-      },
-      valor_reserva: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        comment: 'Valor total da reserva'
-      },
-      metodo_pagamento: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
-        comment: 'Método de pagamento utilizado (pix, cartao_credito, cartao_debito, dinheiro)'
-      },
-      status_pagamento: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
-        comment: 'Status do pagamento (pending, approved, in_process, in_mediation, rejected, cancelled, refunded, charged_back)'
-      },
-      dados_pagamento: {
-        type: DataTypes.JSONB,
-        allowNull: true,
-        comment: 'Dados adicionais do pagamento (ID do pagamento, dados do cartão, etc)'
-      },
-      codigo_reserva: {
-        type: DataTypes.STRING(10),
-        allowNull: true,
-        unique: true,
-        comment: 'Código único para identificação da reserva'
-      },
-      check_in: {
-        type: DataTypes.DATE,
-        allowNull: true,
-        comment: 'Data e hora em que o usuário fez check-in na vaga'
-      },
-      check_out: {
-        type: DataTypes.DATE,
-        allowNull: true,
-        comment: 'Data e hora em que o usuário fez check-out da vaga'
-      },
-      tempo_estacionado_minutos: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        comment: 'Tempo total que o veículo ficou estacionado em minutos'
-      },
-      valor_pago: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true,
-        comment: 'Valor efetivamente pago pelo usuário'
-      },
-      desconto_aplicado: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true,
-        defaultValue: 0.00,
-        comment: 'Valor de desconto aplicado na reserva'
-      },
-      taxa_servico: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true,
-        defaultValue: 0.00,
-        comment: 'Taxa de serviço aplicada à reserva'
-      },
-      observacoes: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        comment: 'Observações adicionais sobre a reserva'
-      },
-      created_by: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        comment: 'ID do usuário que criou o registro',
-        references: {
-          model: 'usuarios',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
-      },
-      updated_by: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        comment: 'ID do usuário que atualizou o registro',
-        references: {
-          model: 'usuarios',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
-      }
-    },
-    {
-      sequelize,
-      modelName: 'Reserva',
-      tableName: 'reservas',
-      timestamps: true,
-      underscored: true,
-      paranoid: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      deletedAt: 'deleted_at',
-      defaultScope: {
-        attributes: {
-          exclude: ['deleted_at']
-        }
-      }
-    }
-  );
 
   // Associações
   Reserva.associate = function(models) {
@@ -702,7 +487,7 @@ module.exports = (sequelize) => {
   });
 
   // Hooks
-  Reserva.beforeCreate(async (reserva, options) => {
+  Reserva.beforeCreate(async (reserva, _options) => {
     if (!reserva.codigo_reserva) {
       // Gera um código de reserva único
       const timestamp = Date.now().toString(36);

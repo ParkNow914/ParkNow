@@ -8,7 +8,7 @@ const pagamentoModel = require('../models/pagamentoModel');
 const notificationService = require('./notificationService');
 const { formatCurrency } = require('../utils/formatters');
 // PIX manual removido - usar apenas ASAAS
-const QRCode = require('qrcode');
+const _QRCode = require('qrcode');
 
 class EstacionamentoPaymentProcessingService {
     /**
@@ -363,7 +363,7 @@ class EstacionamentoPaymentProcessingService {
      * @private
      * @deprecated Usar ASAAS para gerar PIX automaticamente
      */
-    async gerarQrCodePix({ chavePix, nomeTitular, valor, descricao, cidade, txid }) {
+    async gerarQrCodePix({ chavePix: _chavePix, nomeTitular: _nomeTitular, valor: _valor, descricao: _descricao, cidade: _cidade, txid: _txid }) {
         // Função deprecada - usar ASAAS para pagamentos
         throw new AppError('PIX manual não é mais suportado. Use ASAAS para pagamentos automáticos.', 400);
     }
