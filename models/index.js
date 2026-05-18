@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { Sequelize, DataTypes } = require('sequelize');
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
-const config = require('../config/db.postgres');
+const _env = process.env.NODE_ENV || 'development';
+const _config = require('../config/db.postgres');
 
 // Inicializa o Sequelize com a configuração apropriada
 const sequelize = new Sequelize(

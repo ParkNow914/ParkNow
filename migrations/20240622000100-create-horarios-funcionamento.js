@@ -87,7 +87,7 @@ module.exports = {
     // O Sequelize irá gerenciar o updated_at automaticamente
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     // Remove a tabela e todos os seus índices
     await queryInterface.dropTable('horarios_funcionamento');
   }

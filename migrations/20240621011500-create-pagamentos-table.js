@@ -112,7 +112,7 @@ module.exports = {
     await queryInterface.addIndex('pagamentos', ['data_expiracao']);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.dropTable('pagamentos');
   }
 };

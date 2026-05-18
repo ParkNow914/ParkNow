@@ -5,9 +5,9 @@ const express = require('express');
 const adminApiController = require('../controllers/adminApiController');
 const adminSplitsController = require('../controllers/adminSplitsController');
 const { protectAdmin } = require('../middleware/adminAuthMiddleware'); // Middleware de autenticação admin
-const { param, body, query } = require('express-validator'); // Funções de validação
+const { param, body, query: _query } = require('express-validator'); // Funções de validação
 const { handleValidationErrors } = require('../middleware/validationMiddleware'); // Handler de erros de validação
-const upload = require('../middleware/uploadMiddleware'); // Para upload de foto de estacionamento
+const _upload = require('../middleware/uploadMiddleware'); // Para upload de foto de estacionamento
 
 const router = express.Router();
 
@@ -18,7 +18,7 @@ router.use(protectAdmin);
 // --- Validações Reutilizáveis ---
 const idParamValidation = (paramName = 'id', message = 'ID inválido na URL') => param(paramName, message).isInt({ min: 1 }).toInt();
 const estacionamentoIdParamValidation = param('estacionamentoId', 'ID de Estacionamento inválido na URL').isInt({ min: 1 }).toInt();
-const vagaIdParamValidation = param('vagaId', 'ID de Vaga inválido na URL').isInt({ min: 1 }).toInt();
+const _vagaIdParamValidation = param('vagaId', 'ID de Vaga inválido na URL').isInt({ min: 1 }).toInt();
 const vagaNumParamValidation = param('numero', 'Número de Vaga inválido na URL').isInt({ min: 1 }).toInt();
 const userIdParamValidation = param('userId', 'ID de Usuário inválido na URL').isInt({ min: 1 }).toInt();
 

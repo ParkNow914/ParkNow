@@ -2,14 +2,14 @@
 // Cliente Redis para blacklist de JWT e potencialmente caching.
 // MODIFICADO: Funcionalidade completamente desabilitada conforme solicitado.
 
-const config = require('../config');
+const _config = require('../config');
 const logger = require('./logger');
 
 // const redis = require('redis'); // DESABILITADO
 
-let redisClient = null;
-const redisEnabled = false; // <-- FORÇADO PARA FALSE
-const redisReady = false;   // <-- FORÇADO PARA FALSE
+let _redisClient = null;
+const _redisEnabled = false; // <-- FORÇADO PARA FALSE
+const _redisReady = false;   // <-- FORÇADO PARA FALSE
 
 // Código de conexão comentado/removido
 /*
@@ -34,13 +34,13 @@ const isRedisConnected = () => {
 };
 
 // Adiciona token à blacklist (DESABILITADO)
-const blacklistToken = async (token, expiresIn) => {
+const blacklistToken = async (_token, _expiresIn) => {
     logger.warn('[Redis] Funcionalidade Redis desabilitada.');
     return false;
 };
 
 // Verifica se token está na blacklist (DESABILITADO)
-const isTokenBlacklisted = async (token) => {
+const isTokenBlacklisted = async (_token) => {
     logger.warn('[Redis] Funcionalidade Redis desabilitada.');
     return false;
 };

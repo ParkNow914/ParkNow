@@ -11,7 +11,7 @@ const {
     validarCEP,
     analisarEndereco,
     gerarVariacoesEndereco,
-    buscarPorCEP
+    _buscarPorCEP
 } = require('../utils/addressParser');
 
 require('dotenv').config();

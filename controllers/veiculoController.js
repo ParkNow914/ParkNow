@@ -1,6 +1,6 @@
 const veiculoModel = require('../models/veiculoModel');
-const { AppError, NotFoundError, BadRequestError } = require('../utils/AppError');
-const logger = require('../utils/logger');
+const { AppError: _AppError, NotFoundError, BadRequestError } = require('../utils/AppError');
+const _logger = require('../utils/logger');
 
 /**
  * Obtém todos os veículos do usuário

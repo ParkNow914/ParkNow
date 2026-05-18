@@ -2,6 +2,7 @@ const estacionamentoPaymentConfigService = require('../services/estacionamentoPa
 const { AppError } = require('../utils/AppError');
 const logger = require('../utils/logger');
 const validatePixKey = require('../middleware/validatePixKey');
+const pool = require('../models/db'); // Pool pg para consulta direta em verificarPropriedadeEstacionamento
 
 class EstacionamentoPaymentConfigController {
   /**

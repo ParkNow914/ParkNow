@@ -5,7 +5,7 @@ const config = require('../config');
 
 class WebhookController {
     // Processa notificações de webhook do PIX
-    async handlePixWebhook(req, res, next) {
+    async handlePixWebhook(req, res, _next) {
         try {
             const signature = req.headers['x-webhook-signature'] || req.headers['x-signature'];
             const payload = JSON.stringify(req.body);

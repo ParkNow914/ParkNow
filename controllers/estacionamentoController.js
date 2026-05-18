@@ -1,8 +1,8 @@
 // controllers/estacionamentoController.js
 const db = require('../models');
 const { Estacionamento, HorarioFuncionamento } = db;
-const vagaModel = require('../models/vagaModel');
-const userModel = require('../models/userModel');
+const _vagaModel = require('../models/vagaModel');
+const _userModel = require('../models/userModel');
 const dbUtils = require('../utils/dbUtils'); // Import dbUtils to get the pool
 const { formatarTempo } = require('../utils/helpers');
 const logger = require('../utils/logger');

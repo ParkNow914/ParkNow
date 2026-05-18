@@ -4,19 +4,30 @@ const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');                     // Segurança HTTP Headers
 const detectTimezone = require('./middleware/detectTimezone');  // Timezone detection middleware
-const rateLimit = require('express-rate-limit');     // Limita requisições (Rate Limiting)
+const _rateLimit = require('express-rate-limit');     // Limita requisições (Rate Limiting)
 const cookieParser = require('cookie-parser');         // Para ler/escrever cookies (refresh token)
 const http = require('http');                          // Módulo HTTP nativo do Node.js (para Socket.IO)
 const morgan = require('morgan');                      // Middleware para log HTTP
 const config = require('./config');                  // Carrega configurações da aplicação (inclui .env)
 const logger = require('./utils/logger');              // Logger customizado (Winston)
+const { validateEnv } = require('./utils/envValidator'); // Validação fail-fast das variáveis de ambiente
+const requestId = require('./middleware/requestId');   // Correlation id por requisição
+const errorTracker = require('./utils/errorTracker');  // Error tracking facade (Sentry/Datadog/noop)
+const { metricsMiddleware, metricsHandler } = require('./utils/metrics'); // Prometheus metrics
 const { initSocketIO } = require('./services/socketService'); // Inicializador do Socket.IO
 const { testConnection, closePool } = require('./utils/dbUtils'); // Utilitário de conexão com o banco de dados
+
+// Validate environment early. In production a missing/invalid var aborts startup.
+validateEnv(logger);
+
+// Initialise error tracker (no-op unless SENTRY_DSN is set + @sentry/node installed).
+errorTracker.init();
 
 // Import routes
 const apiRoutes = require('./routes');                 // Main API router (/api/*)
 const approvalRoutes = require('./routes/approvalRoutes'); // Partner approval routes
 const timeRoutes = require('./routes/timeRoutes');     // Time service routes
+const healthRoutes = require('./routes/healthRoutes'); // Liveness / readiness
 const errorHandler = require('./middleware/errorMiddleware'); // Global error handler
 
 // Importa tarefas agendadas após a conexão com o banco ser estabelecida
@@ -25,20 +36,25 @@ const initCronJobs = require('./services/cronJobs'); // Importa a função de in
 // --- Inicialização do Express e Servidor HTTP ---
 const app = express();
 const server = http.createServer(app); // Cria servidor HTTP a partir do Express app
-const io = initSocketIO(server);       // Inicializa e anexa Socket.IO ao servidor HTTP
+const _io = initSocketIO(server);       // Inicializa e anexa Socket.IO ao servidor HTTP
 
 // --- Middlewares Essenciais de Segurança ---
 
 // Configuração do cookie-parser para ler cookies
 app.use(cookieParser());
 
+// Correlation id (deve vir cedo para que todos os middlewares/logs subsequentes o vejam)
+app.use(requestId);
+
 // Configuração das opções de cookie
+// O `path` precisa ser compatível tanto com a rota de refresh quanto com logout
+// para que `res.clearCookie` no logout efetivamente remova o cookie no browser.
 const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Apenas HTTPS em produção
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Para cross-site em produção
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
-    path: '/api/auth/refresh-token' // Apenas acessível pela rota de refresh
+    path: '/api/auth' // Cobre /api/auth/refresh, /api/auth/logout etc.
 };
 
 // Torna as opções de cookie disponíveis globalmente
@@ -53,7 +69,6 @@ app.use(
                 scriptSrc: [
                     "'self'",
                     "'unsafe-inline'",
-                    "'unsafe-eval'",
                     "cdn.socket.io",
                     "https://cdn.socket.io",
                     "code.jquery.com",
@@ -121,13 +136,25 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Body Parsers: Habilita leitura de JSON e dados de formulário
-// Aumentado para 10MB para suportar upload de imagens em base64
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body Parsers: Habilita leitura de JSON e dados de formulário.
+// Limite default 10MB para acomodar imagens em base64 (approvalController).
+// Pode ser reduzido via env `BODY_LIMIT` (ex: `1mb`) em deploys que não
+// recebem imagens via JSON.
+const BODY_LIMIT = process.env.BODY_LIMIT || '10mb';
+app.use(express.json({ limit: BODY_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: BODY_LIMIT }));
 
 // Logger HTTP (Morgan)
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', { stream: logger.stream }));
+// Inclui o request-id em todos os formatos para correlação cross-service.
+morgan.token('id', (req) => req.id || '-');
+const morganFormat =
+    process.env.NODE_ENV === 'production'
+        ? ':id :remote-addr :method :url :status :res[content-length] - :response-time ms'
+        : ':id :method :url :status :response-time ms - :res[content-length]';
+app.use(morgan(morganFormat, { stream: logger.stream }));
+
+// Prometheus metrics collection (must come after morgan so we measure the same scope)
+app.use(metricsMiddleware);
 
 // Timezone Middleware: Detecta e define o timezone do usuário
 app.use(detectTimezone);
@@ -148,13 +175,60 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Rotas públicas (não requerem autenticação)
 app.use('/api/public', approvalRoutes); // Rotas de aprovação de parcerias
 
+// Health checks na raiz para uso por Docker/K8s/uptime monitors (/health, /health/ready)
+app.use('/', healthRoutes);
+
+// Prometheus metrics endpoint. Restrict in production: only accessible from
+// loopback or from a host providing the configured METRICS_TOKEN bearer.
+app.get('/metrics', (req, res, next) => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (!isProduction) return metricsHandler(req, res, next);
+
+    const token = process.env.METRICS_TOKEN;
+    const auth = req.get('Authorization') || '';
+    const provided = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    const loopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip);
+
+    if (loopback || (token && provided && provided === token)) {
+        return metricsHandler(req, res, next);
+    }
+    return res.status(404).end();
+});
+
 // Todas as rotas da API (com prefixo /api)
 app.use('/api', apiRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/time', timeRoutes);
 
-// Rotas de webhooks do ASAAS (configuradas no apiRoutes)
-// app.use('/api/webhooks', webhookRoutes);
+// OpenAPI / Swagger UI — gera a spec a partir dos JSDoc das rotas.
+// `/api/docs.json` retorna o JSON puro (cacheável). `/api/docs` serve a UI.
+// Em produção a UI é desabilitada se DOCS_DISABLED=true.
+if (process.env.DOCS_DISABLED !== 'true') {
+    try {
+        const swaggerUi = require('swagger-ui-express');
+        const { buildSpec } = require('./utils/openapi');
+        const spec = buildSpec();
+        app.get('/api/docs.json', (req, res) => {
+            res.set('Cache-Control', 'public, max-age=300');
+            res.json(spec);
+        });
+        app.use(
+            '/api/docs',
+            swaggerUi.serve,
+            swaggerUi.setup(spec, {
+                explorer: true,
+                customSiteTitle: 'ParkNow API Docs',
+            })
+        );
+        logger.info('[openapi] Swagger UI mounted at /api/docs (spec: /api/docs.json)');
+    } catch (err) {
+        logger.warn('[openapi] failed to mount Swagger UI', { error: err.message });
+    }
+} else {
+    logger.info('[openapi] DOCS_DISABLED=true, skipping Swagger UI mount');
+}
+
+// Rotas de webhooks do ASAAS (mounted via routes/index.js -> reservaPagamentoRoutes)
 
 // Rotas de páginas
 app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
@@ -256,8 +330,13 @@ process.on('unhandledRejection', (reason, promise) => {
     logger.error('Rejeição de promessa não tratada:', {
         reason,
         promise,
-        stack: reason.stack
+        stack: reason && reason.stack
     });
+    if (reason instanceof Error) {
+        errorTracker.captureException(reason, { source: 'unhandledRejection' });
+    } else {
+        errorTracker.captureMessage(String(reason), 'error', { source: 'unhandledRejection' });
+    }
     // Não é necessário encerrar o processo aqui, apenas registrar o erro
 });
 
@@ -267,6 +346,7 @@ process.on('uncaughtException', (error) => {
         error: error.message,
         stack: error.stack
     });
+    errorTracker.captureException(error, { source: 'uncaughtException' });
     // Encerrar o processo após registrar o erro
     process.exit(1);
 });

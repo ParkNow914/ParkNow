@@ -1,4 +1,4 @@
-const { format, zonedTimeToUtc, utcToZonedTime, toDate } = require('date-fns-tz');
+const { format, zonedTimeToUtc, utcToZonedTime, toDate: _toDate } = require('date-fns-tz');
 const { parseISO } = require('date-fns');
 
 class DateTimeService {

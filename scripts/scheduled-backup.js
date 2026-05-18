@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { Pool } = require('pg');
+const { Pool: _Pool } = require('pg');
 const { exec } = require('child_process');
 require('dotenv').config();
 

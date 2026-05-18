@@ -61,7 +61,7 @@ router.post(
     // Compressão de resposta
     compressResponse()
   ],
-  async (req, res, next) => {
+  async (req, res, _next) => {
     const requestId = req.headers['x-request-id'] || uuidv4();
     const startTime = process.hrtime();
     
@@ -377,7 +377,7 @@ function sendResponse(res, data) {
 }
 
 // Middleware de tratamento de erros
-router.use((err, req, res, next) => {
+router.use((err, req, res, _next) => {
   const errorId = uuidv4();
   
   logger.error(`[${errorId}] Erro na rota de validação de e-mail`, {
@@ -439,99 +439,5 @@ router.use((err, req, res, next) => {
     } : {})
   });
 });
-
-module.exports = router;
-
-router.post('/validate',
-  [
-    body('email').isEmail().normalizeEmail(),
-    // Adicione mais validações conforme necessário
-  ],
-  async (req, res, next) => {
-    try {
-      // Aplicar rate limiting
-      await rateLimiter.consume(req.ip);
-
-      // Validar entrada
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          valid: false,
-          message: 'Formato de e-mail inválido',
-          errors: errors.array()
-        });
-      }
-
-      const { email } = req.body;
-      const domain = email.split('@')[1].toLowerCase();
-
-      // Verificar domínios bloqueados
-      if (BLOCKED_DOMAINS.some(blocked => domain.includes(blocked))) {
-        return res.json({
-          valid: false,
-          message: 'Domínio de e-mail não permitido',
-          reason: 'blocked_domain',
-          domain
-        });
-      }
-
-      // Verificar se é um e-mail gratuito
-      const isFreeEmail = FREE_EMAIL_DOMAINS.includes(domain);
-
-      // Verificar registros DNS do domínio
-      const hasDns = await hasDnsRecords(domain);
-      if (!hasDns) {
-        return res.json({
-          valid: false,
-          message: 'Domínio de e-mail não encontrado',
-          reason: 'invalid_domain',
-          domain,
-          isFreeEmail
-        });
-      }
-
-      // Verificar registros MX
-      const hasMx = await checkMxRecords(domain);
-      if (!hasMx) {
-        return res.json({
-          valid: false,
-          message: 'Domínio não possui servidores de e-mail configurados',
-          reason: 'no_mx_records',
-          domain,
-          isFreeEmail
-        });
-      }
-
-      // Se chegou até aqui, o e-mail é válido
-      return res.json({
-        valid: true,
-        message: 'E-mail válido',
-        domain,
-        isFreeEmail,
-        isDisposable: false
-      });
-
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('Erro na validação de e-mail:', error);
-      }
-      
-      // Se for erro de rate limiting
-      if (error instanceof Error && error.message === 'Rate limiter error') {
-        return res.status(429).json({
-          valid: false,
-          message: 'Muitas requisições. Por favor, tente novamente mais tarde.'
-        });
-      }
-
-      // Para outros erros, retorna como inválido mas sem bloquear
-      return res.json({
-        valid: false,
-        message: 'Não foi possível validar o e-mail completamente',
-        reason: 'validation_error'
-      });
-    }
-  }
-);
 
 module.exports = router;

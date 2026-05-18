@@ -442,7 +442,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const validateEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e).toLowerCase());
     const validatePhone = (p) => { const d = p.replace(/\D/g, ''); return d.length === 10 || d.length === 11; };
     const validatePlaca = (p) => { if(!p) return false; p = p.toUpperCase().replace(/\s/g, ''); return /^[A-Z]{3}\d{4}$/.test(p) || /^[A-Z]{3}\d[A-Z]\d{2}$/.test(p); };
-    const validateCpfFormat = (c) => /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(c);
+    const _validateCpfFormat = (c) => /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(c);
     const formatPhone = (v) => { if(!v)return v; const d=v.replace(/\D/g,'').slice(0,11); const l=d.length; if(l<=2)return`(${d}`; if(l<=6)return`(${d.slice(0,2)}) ${d.slice(2)}`; if(l<=10)return`(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`; return`(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`};
     const formatCpf = (v) => { if(!v)return v; const d=v.replace(/\D/g,'').slice(0,11); const l=d.length; if(l<=3)return d; if(l<=6)return`${d.slice(0,3)}.${d.slice(3)}`; if(l<=9)return`${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`; return`${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`};
     

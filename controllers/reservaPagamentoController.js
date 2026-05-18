@@ -200,7 +200,7 @@ class ReservaPagamentoController {
    * @param {Object} res - Resposta HTTP
    * @param {Function} next - Próximo middleware
    */
-  async webhookPagamento(req, res, next) {
+  async webhookPagamento(req, res, _next) {
     try {
       const notification = req.body;
 

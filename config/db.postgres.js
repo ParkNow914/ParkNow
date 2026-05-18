@@ -1,5 +1,5 @@
 const { Sequelize } = require('sequelize');
-const config = require('./index');
+const _config = require('./index');
 const logger = require('../utils/logger');
 
 // Configuração da conexão com PostgreSQL

@@ -7,7 +7,7 @@ const path = require('path');
 const handlebars = require('handlebars');
 const config = require('../config');
 const { promisify } = require('util');
-const readFile = promisify(fs.readFile);
+const _readFile = promisify(fs.readFile);
 const pug = require('pug');
 
 class EmailService {
@@ -19,7 +19,7 @@ class EmailService {
    * @param {string} options.template - Nome do template a ser usado
    * @param {Object} options.data - Dados para o template
    */
-  async enviarEmailGenerico({ to, subject, template, data = {} }) {
+  async enviarEmailGenerico({ to, subject, template: _template, data = {} }) {
     try {
       // Implementação básica - pode ser estendida para suportar templates
       const text = data.text || 'Notificação do ParkNow';
@@ -242,165 +242,6 @@ class EmailService {
       throw error;
     }
   }
-
-  /**
-   * Envia um email de notificação de status de pagamento
-   * @param {Object} options - Opções do email
-   * @param {string} options.to - Email do destinatário
-   * @param {string} options.status - Status do pagamento
-   * @param {Object} options.pagamento - Dados do pagamento
-   * @param {Object} options.reserva - Dados da reserva
-   */
-  async enviarEmailStatusPagamento({ to, status, pagamento, reserva, usuario }) {
-    try {
-      const formatarData = (data) => {
-        return format(new Date(data), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR });
-      };
-
-      const formatarMoeda = (valor) => {
-        return new Intl.NumberFormat('pt-BR', {
-          style: 'currency',
-          currency: 'BRL'
-        }).format(valor);
-      };
-
-      const statusMap = {
-        'approved': { title: 'Aprovado', message: 'seu pagamento foi aprovado com sucesso' },
-        'pending': { title: 'Pendente', message: 'seu pagamento está em processamento' },
-        'in_process': { title: 'Em Análise', message: 'seu pagamento está em análise' },
-        'rejected': { title: 'Recusado', message: 'seu pagamento foi recusado' },
-        'cancelled': { title: 'Cancelado', message: 'seu pagamento foi cancelado' },
-        'refunded': { title: 'Reembolsado', message: 'seu pagamento foi reembolsado' },
-        'chargedback': { title: 'Estornado', message: 'seu pagamento foi estornado' },
-        'in_mediation': { title: 'Em Mediação', message: 'seu pagamento está em mediação' },
-        'default': { title: 'Atualização', message: 'houve uma atualização no status do seu pagamento' }
-      };
-
-      const statusInfo = statusMap[status] || statusMap['default'];
-      const assunto = `Pagamento ${statusInfo.title} - ParkNow`;
-      const nomeUsuario = usuario?.nome || 'Cliente';
-      const valorFormatado = formatarMoeda(pagamento.transaction_amount);
-      const dataAtualizacao = formatarData(pagamento.date_last_updated || new Date());
-      
-      let detalhesPagamento = `
-        <p><strong>Valor:</strong> ${valorFormatado}</p>
-        <p><strong>Status:</strong> ${statusInfo.title}</p>
-        <p><strong>Data da atualização:</strong> ${dataAtualizacao}</p>
-        <p><strong>ID da transação:</strong> ${pagamento.id}</p>
-      `;
-
-      if (status === 'rejected') {
-        detalhesPagamento += `
-          <p><strong>Motivo da recusa:</strong> ${pagamento.status_detail || 'Não especificado'}</p>
-          <p>Se você acredita que houve um engano, entre em contato com nossa equipe de suporte.</p>
-        `;
-      }
-
-      let detalhesReserva = '';
-      if (reserva) {
-        detalhesReserva = `
-          <h3>Detalhes da Reserva</h3>
-          <p><strong>Estacionamento:</strong> ${reserva.estacionamento?.nome || 'Não disponível'}</p>
-          <p><strong>Endereço:</strong> ${reserva.estacionamento?.endereco || 'Não disponível'}</p>
-          <p><strong>Vaga:</strong> ${reserva.vaga?.numero || 'Não disponível'}</p>
-          <p><strong>Placa do veículo:</strong> ${reserva.placa_veiculo || 'Não informada'}</p>
-          <p><strong>Entrada:</strong> ${formatarData(reserva.horario_inicio_reserva)}</p>
-          <p><strong>Saída prevista:</strong> ${formatarData(reserva.horario_fim_reserva)}</p>
-        `;
-      }
-
-      const html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>${assunto}</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-            .header { 
-              background-color: ${status === 'approved' ? '#4CAF50' : status === 'rejected' ? '#f44336' : '#2196F3'}; 
-              color: white; 
-              padding: 15px; 
-              text-align: center; 
-              border-radius: 5px 5px 0 0; 
-            }
-            .content { padding: 20px; }
-            .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #eee; font-size: 12px; color: #777; text-align: center; }
-            .button { 
-              display: inline-block; 
-              padding: 10px 20px; 
-              background-color: #4CAF50; 
-              color: white; 
-              text-decoration: none; 
-              border-radius: 5px; 
-              margin: 15px 0;
-            }
-            .details { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 10px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Pagamento ${statusInfo.title.toUpperCase()}</h1>
-            </div>
-            <div class="content">
-              <p>Olá, ${nomeUsuario}!</p>
-              <p>Informamos que ${statusInfo.message}.</p>
-              
-              <div class="details">
-                <h3>Detalhes do Pagamento</h3>
-                ${detalhesPagamento}
-              </div>
-              
-              ${detalhesReserva}
-              
-              <p>Se você tiver alguma dúvida ou precisar de ajuda, entre em contato conosco.</p>
-              
-              <p>Atenciosamente,<br>Equipe ParkNow</p>
-              
-              <div style="text-align: center; margin-top: 20px;">
-                <a href="${process.env.FRONTEND_URL || 'https://parknow.com.br'}" class="button">Acessar Minha Conta</a>
-              </div>
-            </div>
-            <div class="footer">
-              <p>Este é um e-mail automático, por favor não responda a esta mensagem.</p>
-              <p>© ${new Date().getFullYear()} ParkNow. Todos os direitos reservados.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-
-      const text = `Olá ${nomeUsuario},\n\nInformamos que ${statusInfo.message}.\n\n` +
-        `Detalhes do pagamento:\n` +
-        `Valor: ${valorFormatado}\n` +
-        `Status: ${statusInfo.title}\n` +
-        `Data da atualização: ${dataAtualizacao}\n` +
-        `ID da transação: ${pagamento.id}\n\n` +
-        (status === 'rejected' ? `Motivo da recusa: ${pagamento.status_detail || 'Não especificado'}\n\n` : '') +
-        (reserva ? `Detalhes da reserva:\n` +
-        `Estacionamento: ${reserva.estacionamento?.nome || 'Não disponível'}\n` +
-        `Endereço: ${reserva.estacionamento?.endereco || 'Não disponível'}\n` +
-        `Vaga: ${reserva.vaga?.numero || 'Não disponível'}\n` +
-        `Placa do veículo: ${reserva.placa_veiculo || 'Não informada'}\n` +
-        `Entrada: ${formatarData(reserva.horario_inicio_reserva)}\n` +
-        `Saída prevista: ${formatarData(reserva.horario_fim_reserva)}\n\n` : '') +
-        `Atenciosamente,\nEquipe ParkNow`;
-
-      await this.enviarEmailGenerico({
-        to,
-        subject: assunto,
-        data: { html, text }
-      });
-
-      return true;
-    } catch (error) {
-      logger.error('Erro ao enviar email de status de pagamento:', error);
-      throw error;
-    }
-  }
-
   /**
    * Obtém a descrição amigável do método de pagamento
    * @param {string} paymentMethodId - ID do método de pagamento

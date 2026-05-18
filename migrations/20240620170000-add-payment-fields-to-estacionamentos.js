@@ -61,7 +61,7 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.sequelize.transaction(async (transaction) => {
       // Remove as colunas adicionadas
       await queryInterface.removeColumn('estacionamentos', 'chave_pix', { transaction });
