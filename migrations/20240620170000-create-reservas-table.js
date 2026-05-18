@@ -102,7 +102,7 @@ module.exports = {
     await queryInterface.addIndex('reservas', ['horario_inicio_reserva', 'horario_fim_reserva']);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.dropTable('reservas');
   },
 };

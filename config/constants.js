@@ -14,7 +14,7 @@ const PIX_KEY_TYPES = [
  * Tipos de chave PIX suportados (apenas os valores)
  * @type {string[]}
  */
-const PIX_KEY_TYPES_VALUES = PIX_KEY_TYPES;
+const _PIX_KEY_TYPES_VALUES = PIX_KEY_TYPES;
 
 /**
  * Status possíveis para um pagamento
@@ -55,7 +55,7 @@ const BANK_ACCOUNT_TYPES = {
  * Valores dos tipos de conta bancária (para validação)
  * @type {string[]}
  */
-const BANK_ACCOUNT_TYPES_VALUES = Object.values(BANK_ACCOUNT_TYPES);
+const _BANK_ACCOUNT_TYPES_VALUES = Object.values(BANK_ACCOUNT_TYPES);
 
 /**
  * Configurações padrão para pagamentos

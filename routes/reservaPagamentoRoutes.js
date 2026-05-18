@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const reservaPagamentoController = require('../controllers/reservaPagamentoController');
-const { protectUser, protectAdmin } = require('../middleware/authMiddleware');
+const { protectUser, protectAdmin: _protectAdmin } = require('../middleware/authMiddleware');
+const asaasWebhookAuth = require('../middleware/asaasWebhookAuth');
+const idempotency = require('../middleware/idempotency');
+const auditLog = require('../middleware/auditLog');
 
 /**
  * @swagger
@@ -83,6 +86,8 @@ const { protectUser, protectAdmin } = require('../middleware/authMiddleware');
 router.post(
   '/com-pagamento',
   protectUser,
+  idempotency(),
+  auditLog('payment.create_reservation'),
   reservaPagamentoController.criarReservaComPagamento
 );
 
@@ -126,6 +131,8 @@ router.get(
  */
 router.post(
   '/webhooks/asaas',
+  asaasWebhookAuth,
+  auditLog('payment.webhook.asaas'),
   reservaPagamentoController.webhookPagamento
 );
 
@@ -206,6 +213,7 @@ router.get(
 router.post(
   '/pagamentos/:id/novo-qrcode',
   protectUser,
+  idempotency(),
   reservaPagamentoController.gerarNovoQRCode
 );
 

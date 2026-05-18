@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const reservaPagamentoController = require('../controllers/reservaPagamentoController');
 const authMiddleware = require('../middleware/authMiddleware');
+const { deprecate } = require('../middleware/deprecation');
+
+// Endpoints PIX antigos mantidos por compatibilidade — ver docs/ROUTES_PAGAMENTO.md.
+// Novos clientes devem usar `/api/reservas/com-pagamento`.
+router.use(deprecate({
+    replacement: '/api/reservas/com-pagamento',
+    sunset: '2027-01-01',
+    docs: '/api/docs',
+}));
 
 /**
  * @swagger
@@ -128,7 +137,7 @@ router.post(
  *         schema:
  *           type: string
  *         required: true
- *         description: Ação do pagamento (ex: 'payment.updated')
+ *         description: Ação do pagamento (ex. payment.updated)
  *     responses:
  *       200:
  *         description: Webhook processado com sucesso

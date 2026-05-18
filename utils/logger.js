@@ -2,6 +2,7 @@
 // Configuração do logger usando Winston
 
 const winston = require('winston');
+const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
 const fs = require('fs');
 
@@ -54,30 +55,47 @@ const transports = [
   }),
 ];
 
-// Adiciona transporte para arquivos SE o diretório existir
+// Adiciona transporte para arquivos SE o diretório existir.
+// Usa winston-daily-rotate-file para rotação automática + compressão de logs antigos.
 if (fs.existsSync(logDir)) {
-    // 2. Arquivo de Erros
+    const rotateBase = {
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: true,
+        maxSize: '20m',
+        maxFiles: '14d',
+        format: logFormat,
+        handleExceptions: true,
+    };
+
+    // 2. Arquivo de Erros (rotacionado diariamente)
     transports.push(
-        new winston.transports.File({
-            filename: path.join(logDir, 'error.log'), level: 'error', format: logFormat,
-            maxsize: 5 * 1024 * 1024, maxFiles: 5, tailable: true,
-            handleExceptions: true, /* handleRejections: true */
+        new DailyRotateFile({
+            ...rotateBase,
+            level: 'error',
+            filename: path.join(logDir, 'error-%DATE%.log'),
         })
     );
     // 3. Arquivo Combinado
     transports.push(
-        new winston.transports.File({
-            filename: path.join(logDir, 'combined.log'), level: 'info', format: logFormat,
-            maxsize: 10 * 1024 * 1024, maxFiles: 3, tailable: true,
+        new DailyRotateFile({
+            ...rotateBase,
+            level: 'info',
+            filename: path.join(logDir, 'combined-%DATE%.log'),
+            maxSize: '50m',
+            maxFiles: '7d',
+            handleExceptions: false,
         })
     );
     // 4. Arquivo HTTP (Access Log)
-     transports.push(
-        new winston.transports.File({
-            filename: path.join(logDir, 'access.log'), level: 'http',
-            // Formato mais simples, específico para Morgan/HTTP
-            format: winston.format.combine( winston.format.printf(({ message }) => message) ),
-            maxsize: 10 * 1024 * 1024, maxFiles: 3, tailable: true,
+    transports.push(
+        new DailyRotateFile({
+            ...rotateBase,
+            level: 'http',
+            filename: path.join(logDir, 'access-%DATE%.log'),
+            format: winston.format.combine(winston.format.printf(({ message }) => message)),
+            maxSize: '50m',
+            maxFiles: '7d',
+            handleExceptions: false,
         })
     );
 } else {

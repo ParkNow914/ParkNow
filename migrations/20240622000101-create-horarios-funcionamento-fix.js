@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-  up: async (queryInterface, Sequelize) => {
+  up: async (queryInterface, _Sequelize) => {
     await queryInterface.sequelize.query(`
       CREATE TABLE IF NOT EXISTS horarios_funcionamento (
         id SERIAL PRIMARY KEY,
@@ -52,7 +52,7 @@ module.exports = {
     `);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     // Remover trigger e função
     await queryInterface.sequelize.query(`
       DROP TRIGGER IF EXISTS update_horarios_funcionamento_updated_at ON horarios_funcionamento;
