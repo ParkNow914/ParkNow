@@ -3,7 +3,6 @@ const reservaModel = require('../models/reservaModel');
 const vagaModel = require('../models/vagaModel');
 const userModel = require('../models/userModel');
 const _pagamentoModel = require('../models/pagamentoModel');
-const asaasMarketplace = require('../services/asaasMarketplaceService');
 const logger = require('../utils/logger');
 const pool = require('../models/db');
 const { AppError, NotFoundError, BadRequestError, AuthorizationError } = require('../utils/AppError');
@@ -395,74 +394,32 @@ const cancelarMinhaReserva = async (req, res, next) => {
         // Atualiza status da reserva para cancelada e libera a vaga na mesma transação
         await reservaModel.atualizarStatus(reservaId, 'cancelada', client);
 
-        // Se a reserva tinha pagamento PIX pendente ou pago, cancela/estorna no Asaas
+        // PIX manual: marcar pagamentos pendentes/aprovados como cancelados no banco.
+        // Não há gateway externo para estornar — se já foi pago, o estorno é por
+        // fora (admin contata o cliente). Marcamos para registro/auditoria.
         if (['pendente_pagamento', 'confirmada', 'ativa'].includes(reserva.status)) {
             try {
-                // Buscar dados do pagamento (payment_id está em dados_retorno)
-                const sqlBuscaPagamento = `
-                    SELECT p.*, p.dados_retorno->>'payment_id' as payment_id
-                    FROM pagamentos p
-                    WHERE p.reserva_id = $1 
-                    AND p.status IN ('pendente', 'aprovado', 'pago')
-                    LIMIT 1
+                const sqlCancelaPagamentos = `
+                    UPDATE pagamentos
+                    SET status = CASE
+                            WHEN status IN ('aprovado', 'pago') THEN 'estorno_manual_pendente'
+                            ELSE 'cancelado'
+                        END,
+                        updated_at = NOW()
+                    WHERE reserva_id = $1
+                      AND status IN ('pendente', 'aprovado', 'pago')
+                    RETURNING id, status
                 `;
-                const resultPagamento = await client.query(sqlBuscaPagamento, [reservaId]);
-                
-                if (resultPagamento.rows.length > 0) {
-                    const pagamento = resultPagamento.rows[0];
-                    
-                    logger.info('Processando cancelamento de pagamento:', {
-                        pagamento_id: pagamento.id,
-                        payment_id: pagamento.payment_id,
-                        status: pagamento.status,
-                        valor: pagamento.valor
+                const { rows } = await client.query(sqlCancelaPagamentos, [reservaId]);
+                if (rows.length > 0) {
+                    logger.info('Pagamentos atualizados no cancelamento da reserva', {
+                        reservaId,
+                        pagamentos: rows,
                     });
-
-                    // Se tem payment_id do Asaas, tentar cancelar/estornar
-                    if (pagamento.payment_id) {
-                        try {
-                            // Cancelar ou estornar no Asaas
-                            const statusPagamentoAsaas = await asaasMarketplace.consultarPagamento(pagamento.payment_id);
-                            
-                            logger.info('Status do pagamento no Asaas:', {
-                                payment_id: pagamento.payment_id,
-                                status: statusPagamentoAsaas.status
-                            });
-
-                            // Se foi confirmado (CONFIRMED/RECEIVED), fazer estorno
-                            if (['CONFIRMED', 'RECEIVED'].includes(statusPagamentoAsaas.status)) {
-                                await asaasMarketplace.estornarPagamento(pagamento.payment_id);
-                                logger.info(`✅ Estorno solicitado no Asaas para payment ${pagamento.payment_id}`);
-                            } 
-                            // Se ainda está pendente, apenas cancelar
-                            else if (statusPagamentoAsaas.status === 'PENDING') {
-                                await asaasMarketplace.cancelarPagamento(pagamento.payment_id);
-                                logger.info(`✅ Pagamento cancelado no Asaas: ${pagamento.payment_id}`);
-                            }
-                        } catch (asaasError) {
-                            logger.error('Erro ao cancelar/estornar no Asaas:', {
-                                error: asaasError.message,
-                                payment_id: pagamento.payment_id
-                            });
-                            // Não interrompe o cancelamento da reserva
-                        }
-                    }
-
-                    // Atualizar status do pagamento no banco
-                    const sqlCancelaPagamento = `
-                        UPDATE pagamentos
-                        SET status = 'cancelado',
-                            updated_at = NOW()
-                        WHERE id = $1
-                        RETURNING id
-                    `;
-                    await client.query(sqlCancelaPagamento, [pagamento.id]);
-                    logger.info(`Pagamento ${pagamento.id} cancelado no banco de dados`);
                 }
             } catch (pagamentoError) {
-                logger.warn(`Erro ao cancelar pagamento da reserva ${reservaId}:`, {
+                logger.warn(`Erro ao atualizar pagamentos da reserva ${reservaId}:`, {
                     error: pagamentoError.message,
-                    stack: pagamentoError.stack
                 });
                 // Não interrompe o fluxo de cancelamento da reserva
             }
@@ -626,68 +583,19 @@ const limparHistorico = async (req, res, next) => {
             });
         }
 
-        // Verificar pagamentos pendentes no Asaas e cancelar para reservas canceladas
+        // PIX manual: para reservas finalizadas, forçar pagamentos pendentes a 'cancelado'.
+        // Sem consulta a gateway externo — tudo é interno.
         for (const reserva of resultReservas.rows) {
             if (reserva.pagamento_id && reserva.pagamento_status === 'pendente') {
-                try {
-                    const statusAsaas = await asaasMarketplace.consultarPagamento(reserva.payment_id);
-                    if (statusAsaas.status === 'PENDING') {
-                        // Para reservas canceladas, tentar cancelar o pagamento novamente
-                        if (reserva.status === 'cancelada') {
-                            try {
-                                await asaasMarketplace.cancelarPagamento(reserva.payment_id);
-                                logger.info(`Pagamento cancelado no Asaas para reserva cancelada: ${reserva.payment_id}`);
-                                
-                                // Atualizar status do pagamento no banco
-                                await client.query(`
-                                    UPDATE pagamentos 
-                                    SET status = 'cancelado', updated_at = NOW() 
-                                    WHERE id = $1
-                                `, [reserva.pagamento_id]);
-                                
-                                logger.info(`Status do pagamento ${reserva.pagamento_id} atualizado para cancelado`);
-                            } catch (cancelError) {
-                                logger.error('Erro ao cancelar pagamento pendente para reserva cancelada:', {
-                                    reserva_id: reserva.id,
-                                    payment_id: reserva.payment_id,
-                                    error: cancelError.message
-                                });
-                                // Mesmo com erro, marcar como cancelado para permitir limpeza
-                                await client.query(`
-                                    UPDATE pagamentos 
-                                    SET status = 'cancelado', updated_at = NOW() 
-                                    WHERE id = $1
-                                `, [reserva.pagamento_id]);
-                            }
-                        } else {
-                            logger.warn('Reserva com pagamento pendente - não será deletada:', {
-                                reserva_id: reserva.id
-                            });
-                        }
-                    } else {
-                        // Se não está mais pendente no Asaas, atualizar status no banco
-                        const novoStatus = statusAsaas.status === 'CANCELLED' ? 'cancelado' : 
-                                          statusAsaas.status === 'CONFIRMED' || statusAsaas.status === 'RECEIVED' ? 'pago' : 'pendente';
-                        await client.query(`
-                            UPDATE pagamentos 
-                            SET status = $1, updated_at = NOW() 
-                            WHERE id = $2
-                        `, [novoStatus, reserva.pagamento_id]);
-                    }
-                } catch (error) {
-                    logger.error('Erro ao verificar/cancelar pagamento:', {
+                if (reserva.status === 'cancelada') {
+                    await client.query(
+                        `UPDATE pagamentos SET status = 'cancelado', updated_at = NOW() WHERE id = $1`,
+                        [reserva.pagamento_id]
+                    );
+                } else {
+                    logger.warn('Reserva com pagamento pendente — não será deletada:', {
                         reserva_id: reserva.id,
-                        payment_id: reserva.payment_id,
-                        error: error.message
                     });
-                    // Para reservas canceladas, forçar cancelamento no banco mesmo com erro
-                    if (reserva.status === 'cancelada') {
-                        await client.query(`
-                            UPDATE pagamentos 
-                            SET status = 'cancelado', updated_at = NOW() 
-                            WHERE id = $1
-                        `, [reserva.pagamento_id]);
-                    }
                 }
             }
         }

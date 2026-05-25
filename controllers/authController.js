@@ -20,7 +20,6 @@ const config = require('../config');
 const _pool = require('../models/db'); // Para transação no registerAdmin
 const _fs = require('fs'); // Adicionando o módulo fs que faltava
 const jwt = require('jsonwebtoken'); // Necessário para jwt.decode() fallback em logout
-const _asaasMarketplaceService = require('../services/asaasMarketplaceService'); // Para conectar ao ASAAS
 const _db = require('../config/db'); // Para queries diretas
 // Import desabilitado pois Redis foi removido
 // const { isRedisAvailable, blacklistToken, isTokenBlacklisted } = require('../utils/redisClient');

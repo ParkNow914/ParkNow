@@ -7,8 +7,7 @@ const reservaModel = require('../models/reservaModel');
 const pagamentoModel = require('../models/pagamentoModel');
 const notificationService = require('./notificationService');
 const { formatCurrency } = require('../utils/formatters');
-// PIX manual removido - usar apenas ASAAS
-const _QRCode = require('qrcode');
+const { gerarPayloadPix } = require('../utils/pixBrCode');
 
 class EstacionamentoPaymentProcessingService {
     /**
@@ -359,13 +358,30 @@ class EstacionamentoPaymentProcessingService {
     }
 
     /**
-     * Gera dados de QR Code PIX via ASAAS (não mais manual)
+     * Gera o payload BR Code PIX (copia-e-cola) + QR Code em base64,
+     * 100% local. Sem chamadas a gateway externo.
      * @private
-     * @deprecated Usar ASAAS para gerar PIX automaticamente
      */
-    async gerarQrCodePix({ chavePix: _chavePix, nomeTitular: _nomeTitular, valor: _valor, descricao: _descricao, cidade: _cidade, txid: _txid }) {
-        // Função deprecada - usar ASAAS para pagamentos
-        throw new AppError('PIX manual não é mais suportado. Use ASAAS para pagamentos automáticos.', 400);
+    async gerarQrCodePix({ chavePix, nomeTitular, valor, descricao, cidade, txid }) {
+        if (!chavePix) {
+            throw new AppError('Estacionamento sem chave PIX configurada.', 400);
+        }
+        const { payload, qrCodeImageBase64 } = await gerarPayloadPix({
+            chavePix,
+            nomeTitular: nomeTitular || 'ParkNow',
+            cidade: cidade || 'SAO PAULO',
+            valor: Number(valor),
+            txid: txid || `PARKNOW${Date.now()}`,
+            descricao,
+        });
+        return {
+            qr_code: payload,           // copia-e-cola
+            qr_code_text: payload,
+            qr_code_base64: qrCodeImageBase64,
+            chave_pix: chavePix,
+            nome_titular: nomeTitular,
+            txid,
+        };
     }
 
     /**

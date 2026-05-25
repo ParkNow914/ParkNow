@@ -12,6 +12,11 @@
 
 Este projeto representa o backend do sistema de gerenciamento de estacionamento ParkNow, utilizando Node.js, Express.js, PostgreSQL e tecnologias adicionais para segurança, tempo real e robustez.
 
+> **Stack 100% always free.** Sem gateway de pagamento pago. O recebimento é
+> feito direto via PIX na chave do estacionamento, com **confirmação manual**
+> pelo admin a partir do comprovante anexado pelo usuário. Deploy recomendado:
+> [Oracle Cloud Free Tier](docs/DEPLOY_ORACLE_FREE_TIER.md) (R$ 0/mês, sem expirar).
+
 ## Descrição
 
 O ParkNow visa oferecer uma experiência fluida tanto para motoristas que procuram vagas quanto para administradores que gerenciam estacionamentos. Esta versão implementa uma API RESTful completa com as seguintes funcionalidades principais:
@@ -29,8 +34,11 @@ O ParkNow visa oferecer uma experiência fluida tanto para motoristas que procur
     *   Estacionamentos (CRUD - Criar, Listar, Editar, Excluir).
     *   Usuários (Listar, Ativar/Desativar).
 *   **Tarefas Agendadas:** Expiração automática de reservas não utilizadas e atualização periódica de tempo estacionado no banco (`node-cron`).
-*   **Sistema de Pagamento Integrado:** 
-    * **ASAAS:** Gateway de pagamento 100% automatizado com PIX, cartão e boleto com split automático entre plataforma e estacionamento
+*   **Sistema de Pagamento PIX Manual (always free):**
+    * QR Code BR Code gerado **localmente** (padrão EMV/Bacen, sem gateway)
+    * Usuário paga PIX direto na chave do estacionamento e anexa o comprovante
+    * Admin confirma manualmente pelo painel (`/api/admin/reservas/:id/confirmar-pagamento`)
+    * Notificações em tempo real via Socket.IO ao usuário
 *   **Segurança:** Implementa `helmet`, rate limiting (`express-rate-limit`), validação de entrada (`express-validator`), e proteção CSRF implícita via `sameSite` cookies.
 *   **Logging:** Logs estruturados e persistentes com `Winston`.
 *   **Validação de Chave PIX:** Verificação automática de CNPJ para chaves PIX de estacionamentos.
@@ -53,47 +61,34 @@ PG_DATABASE=parknow_db
 JWT_SECRET=seu_segredo_jwt
 JWT_REFRESH_SECRET=seu_segredo_refresh_jwt
 
-# Configurações de E-mail (para recuperação de senha)
-EMAIL_HOST=smtp.seu-provedor.com
+# Configurações de E-mail (para recuperação de senha — Gmail SMTP é grátis até 500/dia)
+EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
-EMAIL_USER=seu_email@provedor.com
-EMAIL_PASS=sua_senha_email
+EMAIL_USER=seu_email@gmail.com
+EMAIL_PASS=sua_senha_de_app
 
-# Configurações do ASAAS (Gateway de Pagamento)
-ASAAS_SANDBOX=true
-ASAAS_SANDBOX_API_KEY=sua_chave_sandbox_asaas
-ASAAS_API_KEY=sua_chave_producao_asaas
-ASAAS_PLATFORM_FEE_PERCENT=15.0
-ASAAS_WEBHOOK_URL=https://seu-dominio.com/api/webhooks/asaas
+# Tempo (min) que uma reserva PIX pendente fica viva antes de ser expirada pelo cron
+PIX_PENDING_TIMEOUT_MIN=30
 ```
 
 > As variáveis de ambiente são validadas no startup com `zod` (`utils/envValidator.js`). Em produção o servidor recusa subir com segredos ausentes ou abaixo de 32 caracteres.
 
-### Configuração do ASAAS
+### Fluxo PIX manual (always free)
 
-Para habilitar pagamentos com split (marketplace), você precisa configurar o ASAAS:
+Sem gateway de pagamento. O QR Code é gerado **localmente** seguindo o padrão
+EMV/Bacen (`utils/pixBrCode.js`). O fluxo end-to-end:
 
-1. **Criar conta ASAAS** (gratuito para começar):
-   - Acesse https://www.asaas.com/
-   - Cadastre-se e ative sua conta
-   - Ative modo "Sandbox" para desenvolvimento
+1. Estacionamento cadastra sua **chave PIX** (CPF/CNPJ/email/telefone/aleatória) no painel.
+2. Usuário cria reserva via `POST /api/reservas/com-pagamento` → recebe QR Code + copia-e-cola.
+3. Usuário paga pelo app do banco e envia o comprovante:
+   `POST /api/reservas/:id/comprovante` (multipart `comprovante=foto.jpg`).
+4. Admin vê a fila em `GET /api/admin/pagamentos/aguardando-confirmacao` e
+   confirma via `POST /api/admin/reservas/:id/confirmar-pagamento` (ou rejeita
+   informando motivo). Vaga é ocupada automaticamente após confirmação.
 
-2. **Obter chaves de API**:
-   - No painel: https://www.asaas.com/config/api
-   - Copie a chave de API do ambiente Sandbox
-   - Cole no arquivo `.env` como `ASAAS_SANDBOX_API_KEY`
+Detalhes em [`docs/FLUXO_PIX_MANUAL.md`](docs/FLUXO_PIX_MANUAL.md).
 
-3. **Configurar webhook**:
-   - No painel: Configurações > Webhooks
-   - Adicione a URL: `https://seu-dominio.com/api/webhooks/asaas`
-   - Selecione os eventos de pagamento
-
-4. **Executar migrações do banco**:
-   ```bash
-   psql -U seu_usuario -d parknow_db -f migrations/create_tables.sql
-   ```
-
-Execute os scripts de migração para criar as tabelas necessárias:
+Execute os scripts de migração para criar a estrutura do banco:
 
 ```bash
 # Acesse o container do banco de dados (se estiver usando Docker)
@@ -176,7 +171,6 @@ Isso criará:
 *   **Health checks:** `GET /health` (liveness) e `GET /health/ready` (readiness incluindo banco).
 *   **Métricas:** `GET /metrics` em formato Prometheus (em produção requer loopback ou `Authorization: Bearer $METRICS_TOKEN`).
 *   **Error tracking:** defina `SENTRY_DSN` e instale `@sentry/node` para enviar erros ao Sentry; sem isso, erros caem no Winston (sem deps extras).
-*   **Webhook ASAAS:** o endpoint `POST /api/webhooks/asaas` valida `asaas-access-token` contra `ASAAS_WEBHOOK_SECRET`.
 *   **Idempotência:** envie header `Idempotency-Key: <opaco>` em `POST /api/reservas/com-pagamento` para garantir que retries não produzam duplicatas.
 
 ## Qualidade e Testes
@@ -217,11 +211,21 @@ GET /api/pagamentos/{id_pagamento}/status
 Authorization: Bearer SEU_JWT_TOKEN
 ```
 
-### 3. Configurando o Webhook (Produção)
+### 3. Anexando o comprovante (PIX manual)
 
-Configure o webhook para apontar para:
+```http
+POST /api/reservas/{reservaId}/comprovante
+Content-Type: multipart/form-data
+Authorization: Bearer SEU_JWT_TOKEN
+
+comprovante=<arquivo imagem/PDF>
 ```
-https://seu-dominio.com/api/webhooks/asaas
+
+### 4. Admin confirma o pagamento
+
+```http
+POST /api/admin/reservas/{reservaId}/confirmar-pagamento
+Authorization: Bearer SEU_JWT_ADMIN
 ```
 
 ## Estrutura do Projeto
@@ -278,12 +282,12 @@ Consulte o arquivo `.env.example` para ver a lista completa de variáveis necess
     *   `POST /`: Cria uma nova reserva.
     *   `GET /minhas`: Lista reservas do usuário logado.
     *   `DELETE /:reservaId/cancelar`: Cancela uma reserva ativa.
-*   **Pagamentos ASAAS (`/api/pagamentos`)**: _(Pagamentos com Split/Marketplace)_
-    *   `POST /reservas/com-pagamento`: Cria reserva com pagamento via ASAAS (PIX, Cartão, Boleto)
-    *   `GET /pagamentos/:id/status`: Verifica status de um pagamento
-    *   `POST /pagamentos/:id/cancelar`: Cancela um pagamento
-    *   `POST /pagamentos/:id/reembolsar`: Processa reembolso
-    *   `POST /webhooks/asaas`: Recebe notificações do ASAAS (público com validação)
+*   **Pagamentos PIX (`/api`)**: _(PIX manual, always free)_
+    *   `POST /reservas/com-pagamento`: Cria reserva + gera QR Code PIX local
+    *   `GET /reservas/:id/pix`: Reexibe o PIX salvo (copia-e-cola + base64)
+    *   `POST /reservas/:id/comprovante`: Usuário anexa comprovante (multipart)
+    *   `GET /pagamentos/:id/status`: Verifica status atual
+    *   `POST /pagamentos/:id/novo-qrcode`: Regenera PIX expirado
 *   **Admin API (`/api/admin`)**: _(Requer Auth Admin)_
     *   `GET /vagas`, `GET /vagas/ocupadas`, `GET /vagas/:id/tempo-db`: Visualização de vagas.
     *   `POST /vagas/:numero/entrada`, `POST /vagas/:id/saida`: Gerenciamento manual de vagas.
@@ -291,12 +295,15 @@ Consulte o arquivo `.env.example` para ver a lista completa de variáveis necess
     *   `GET /estacionamentos`, `POST /estacionamentos`, `GET /estacionamentos/:id`, `PUT /estacionamentos/:id`, `DELETE /estacionamentos/:id`: CRUD de Estacionamentos.
     *   `PUT /config/vagas`: Ajusta número total de vagas.
     *   `GET /users`, `PATCH /users/:userId/status`: Gerenciamento de Usuários.
+    *   `GET /pagamentos/aguardando-confirmacao`: Fila de pagamentos PIX aguardando confirmação manual.
+    *   `POST /reservas/:id/confirmar-pagamento`: Confirma manualmente o PIX (ocupa vaga).
+    *   `POST /reservas/:id/rejeitar-pagamento`: Rejeita pagamento (body: `{ motivo }`).
 
 ## Tecnologias Utilizadas
 
 *   **Backend:** Node.js, Express.js
 *   **Banco de Dados:** PostgreSQL (`pg`)
-*   **Pagamentos:** ASAAS (100% automatizado com split de pagamento)
+*   **Pagamentos:** PIX manual (BR Code gerado local com `utils/pixBrCode.js`, sem gateway pago)
 *   **Autenticação:** JWT (`jsonwebtoken`), Cookies (`cookie-parser`), Argon2 (`argon2`), Bcrypt (`bcrypt` para hash de refresh token)
 *   **Validação:** `express-validator`
 *   **Segurança:** `helmet`, `express-rate-limit`, `cors`
@@ -312,27 +319,25 @@ Consulte o arquivo `.env.example` para ver a lista completa de variáveis necess
 
 Para uma análise completa do sistema de pagamentos de reservas, consulte:
 
-*   **[📄 Guia Rápido de Pagamentos](docs/GUIA_RAPIDO_PAGAMENTOS.md)** - Referência rápida para desenvolvedores
-*   **[📊 Análise Completa do Sistema](docs/PAYMENT_SYSTEM_ANALYSIS.md)** - Documentação detalhada da arquitetura
-*   **[🔄 Diagramas de Fluxo](docs/PAYMENT_FLOW_DIAGRAM.md)** - Fluxos completos de pagamento
+*   **[📄 Fluxo PIX Manual (Always Free)](docs/FLUXO_PIX_MANUAL.md)** - Fluxo completo end-to-end
+*   **[🚀 Deploy Oracle Cloud Free Tier](docs/DEPLOY_ORACLE_FREE_TIER.md)** - Guia de deploy R$ 0/mês
 
-### Características do Sistema de Pagamento ASAAS:
+### Características do Sistema PIX Manual:
 
-✅ **100% Automatizado**: Todas as transações processadas pelo gateway ASAAS  
-✅ **PIX Instantâneo**: Pagamentos PIX confirmados automaticamente  
-✅ **Cartão de Crédito/Débito**: Processamento seguro via ASAAS  
-✅ **Split Automático**: Divisão de valores entre plataforma (15%) e estacionamento (85%)  
-✅ **Webhooks**: Notificações em tempo real de mudanças de status  
-✅ **Segurança**: Transações ACID, criptografia, logs de auditoria  
+✅ **Sem gateway pago**: BR Code gerado localmente (padrão EMV/Bacen)
+✅ **Zero custo de transação**: usuário paga direto na chave do estacionamento
+✅ **Confirmação por admin**: validação manual do comprovante anexado
+✅ **Tempo real via Socket.IO**: usuário recebe confirmação instantânea no app
+✅ **Segurança**: transações ACID, logs de auditoria, RBAC ownership
 
 ### Tipos de Usuário:
 
-✅ **Donos de Estacionamento**: Cadastram-se como **ADMINS** e gerenciam seus estacionamentos  
-✅ **Motoristas**: Cadastram-se como **USUÁRIOS** e fazem reservas com pagamento automático  
+✅ **Donos de Estacionamento**: Cadastram-se como **ADMINS**, recebem PIX direto e confirmam pagamentos pelo painel
+✅ **Motoristas**: Cadastram-se como **USUÁRIOS**, reservam vagas e anexam comprovante PIX
 
 ## TODO / Próximos Passos (Pós-Implementação)
 
-*   **Configuração de Ambiente:** Definir corretamente TODAS as variáveis no `.env` (DB, JWT, Email, ASAAS).
+*   **Configuração de Ambiente:** Definir corretamente TODAS as variáveis no `.env` (DB, JWT, Email).
 *   **Testes Automatizados:** Implementar testes unitários, de integração e E2E.
 *   **Refinamento da UI/UX:** Melhorar a interface do admin e o feedback visual geral.
 *   **HTTPS:** Configurar proxy reverso (Nginx) e SSL (Let's Encrypt) para produção.

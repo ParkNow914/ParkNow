@@ -178,13 +178,13 @@ class PaymentService {
                 dataPagamento: pix.horario ? new Date(pix.horario) : new Date()
             };
         } else if (paymentData.data && paymentData.data.id) {
-            // Formato ASAAS ou outro gateway
+            // Formato genérico de gateway externo (compatibilidade caso futuro)
             return {
                 txid: paymentData.data.id,
                 status: paymentData.data.status.toUpperCase(),
                 valor: paymentData.data.transaction_amount * 100, // Converte para centavos
-                dataPagamento: paymentData.data.date_approved 
-                    ? new Date(paymentData.data.date_approved) 
+                dataPagamento: paymentData.data.date_approved
+                    ? new Date(paymentData.data.date_approved)
                     : new Date()
             };
         } else {

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ParkNow Admin — Confirmar Pagamentos PIX</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family:'Open Sans', sans-serif; background:#f4f6f9; min-height:100vh; }
+    .header { background:#004080; color:#fff; padding:14px 24px; box-shadow:0 2px 4px rgba(0,0,0,.15); }
+    .header h1 { margin:0; font-size:1.4rem; }
+    .header .subtitle { font-size:.85rem; opacity:.85; }
+    .container-fluid { padding:24px; max-width:1200px; }
+    .card-pagamento { background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px; }
+    .card-pagamento .row > div { padding:14px; }
+    .label { font-size:.75rem; color:#888; text-transform:uppercase; letter-spacing:.5px; }
+    .value { font-size:.95rem; color:#222; font-weight:600; }
+    .comprovante-img { max-width:100%; border-radius:6px; border:1px solid #ddd; cursor:pointer; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .empty-state { text-align:center; padding:60px 20px; color:#888; }
+    .empty-state i { font-size:3rem; margin-bottom:12px; }
+    .auto-refresh { font-size:.75rem; color:#666; margin-left:12px; }
+    #flashToast { position:fixed; bottom:20px; right:20px; z-index:9999; min-width:280px; }
+  </style>
+</head>
+<body>
+  <header class="header d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="fas fa-check-double me-2"></i>Confirmação de Pagamentos PIX</h1>
+      <div class="subtitle">
+        Fila de comprovantes aguardando aprovação
+        <span class="auto-refresh">
+          <i class="fas fa-sync me-1"></i>
+          Atualização automática a cada 30s
+        </span>
+      </div>
+    </div>
+    <div>
+      <a href="/admin_home/admin/home.html" class="btn btn-sm btn-light">
+        <i class="fas fa-arrow-left me-1"></i>Painel
+      </a>
+    </div>
+  </header>
+
+  <div class="container-fluid">
+    <div id="listaPagamentos">
+      <div class="empty-state">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Carregando...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="flashToast" class="alert" style="display:none;"></div>
+
+  <!-- Modal de visualização do comprovante -->
+  <div class="modal fade" id="viewComprovanteModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Comprovante de Pagamento</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body text-center" id="viewComprovanteBody">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de rejeição (motivo) -->
+  <div class="modal fade" id="rejeitarModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Rejeitar pagamento</h5>
+          <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">
+            Informe ao cliente o que houve com o comprovante (valor errado, ilegível, sem PIX recebido…).
+          </p>
+          <label class="form-label small">Motivo (obrigatório)</label>
+          <textarea id="motivoRejeicao" class="form-control" rows="3" maxlength="500"
+                    placeholder="Ex: Valor pago abaixo do total da reserva."></textarea>
+          <small class="text-muted"><span id="motivoCount">0</span>/500</small>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+          <button class="btn btn-danger btn-sm" id="confirmarRejeicaoBtn">
+            <i class="fas fa-times me-1"></i>Rejeitar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API = '/api';
+    let refreshInterval = null;
+    let reservaIdRejeicao = null;
+
+    function getToken() {
+      return localStorage.getItem('adminAccessToken')
+          || localStorage.getItem('accessToken')
+          || sessionStorage.getItem('accessToken')
+          || '';
+    }
+
+    async function api(path, opts = {}) {
+      const resp = await fetch(API + path, {
+        ...opts,
+        credentials: 'include',
+        headers: {
+          'Authorization': 'Bearer ' + getToken(),
+          'Content-Type': 'application/json',
+          ...(opts.headers || {})
+        }
+      });
+      if (resp.status === 401) {
+        flash('Sessão expirada. Faça login novamente.', 'danger');
+        setTimeout(() => window.location.href = '/admin_home/admin-home.html', 1500);
+        throw new Error('unauthorized');
+      }
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.message || 'Erro na requisição');
+      return data;
+    }
+
+    function flash(msg, kind = 'success') {
+      const $t = $('#flashToast');
+      $t.attr('class', 'alert alert-' + kind).text(msg).fadeIn();
+      setTimeout(() => $t.fadeOut(), 4000);
+    }
+
+    function fmtDataHora(iso) {
+      if (!iso) return '—';
+      try { return new Date(iso).toLocaleString('pt-BR'); }
+      catch (_e) { return iso; }
+    }
+
+    function renderLista(pagamentos) {
+      const $c = $('#listaPagamentos');
+      if (!pagamentos || pagamentos.length === 0) {
+        $c.html(`
+          <div class="empty-state">
+            <i class="fas fa-check-circle text-success"></i>
+            <p>Nenhum pagamento aguardando confirmação.</p>
+          </div>
+        `);
+        return;
+      }
+      const html = pagamentos.map(p => {
+        const compUrl = p.comprovante_url || '';
+        const isPdf = compUrl.toLowerCase().endsWith('.pdf');
+        const preview = isPdf
+          ? `<a href="${compUrl}" target="_blank" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-file-pdf me-1"></i>Abrir PDF
+             </a>`
+          : `<img src="${compUrl}" class="comprovante-img" alt="comprovante"
+                 onclick="abrirComprovante('${compUrl}')">`;
+        return `
+          <div class="card-pagamento">
+            <div class="row g-0">
+              <div class="col-md-3 border-end p-3">
+                <div class="label">Reserva</div>
+                <div class="value">#${p.reserva_id}</div>
+                <div class="mt-2 label">Estacionamento</div>
+                <div class="value">${escapeHtml(p.estacionamento_nome || '')}</div>
+                <div class="mt-2 label">Cliente</div>
+                <div class="value">${escapeHtml(p.cliente_nome || '')}</div>
+                <div class="small text-muted">${escapeHtml(p.cliente_email || '')}</div>
+              </div>
+              <div class="col-md-4 border-end p-3">
+                <div class="label">Valor</div>
+                <div class="value text-success">R$ ${Number(p.valor).toFixed(2)}</div>
+                <div class="mt-2 label">Placa</div>
+                <div class="value">${escapeHtml(p.placa_veiculo || '—')}</div>
+                <div class="mt-2 label">Entrada / Saída</div>
+                <div class="small">${fmtDataHora(p.data_entrada_prevista)} →<br>
+                                    ${fmtDataHora(p.data_saida_prevista)}</div>
+                <div class="mt-2 label">Comprovante enviado em</div>
+                <div class="small">${fmtDataHora(p.comprovante_enviado_em)}</div>
+              </div>
+              <div class="col-md-3 border-end p-3 text-center">
+                <div class="label mb-2">Comprovante</div>
+                ${preview}
+              </div>
+              <div class="col-md-2 p-3 d-flex flex-column justify-content-center actions">
+                <button class="btn btn-success btn-sm mb-2" onclick="confirmar(${p.reserva_id})">
+                  <i class="fas fa-check me-1"></i>Confirmar
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="abrirRejeicao(${p.reserva_id})">
+                  <i class="fas fa-times me-1"></i>Rejeitar
+                </button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+      $c.html(html);
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+
+    async function carregar() {
+      try {
+        const data = await api('/admin/pagamentos/aguardando-confirmacao');
+        renderLista(data.data || []);
+      } catch (err) {
+        if (err.message !== 'unauthorized') {
+          $('#listaPagamentos').html(`
+            <div class="empty-state text-danger">
+              <i class="fas fa-exclamation-triangle"></i>
+              <p>${escapeHtml(err.message)}</p>
+            </div>`);
+        }
+      }
+    }
+
+    window.confirmar = async function(reservaId) {
+      if (!confirm('Confirmar este pagamento? A reserva ficará ativa e a vaga ocupada.')) return;
+      try {
+        await api(`/admin/reservas/${reservaId}/confirmar-pagamento`, { method: 'POST' });
+        flash('Pagamento confirmado com sucesso.', 'success');
+        carregar();
+      } catch (err) {
+        flash('Erro: ' + err.message, 'danger');
+      }
+    };
+
+    window.abrirRejeicao = function(reservaId) {
+      reservaIdRejeicao = reservaId;
+      $('#motivoRejeicao').val('');
+      $('#motivoCount').text('0');
+      $('#rejeitarModal').modal('show');
+    };
+
+    $('#motivoRejeicao').on('input', function() {
+      $('#motivoCount').text(this.value.length);
+    });
+
+    $('#confirmarRejeicaoBtn').on('click', async function() {
+      const motivo = ($('#motivoRejeicao').val() || '').trim();
+      if (motivo.length < 3) {
+        alert('Informe um motivo (mínimo 3 caracteres).');
+        return;
+      }
+      try {
+        await api(`/admin/reservas/${reservaIdRejeicao}/rejeitar-pagamento`, {
+          method: 'POST',
+          body: JSON.stringify({ motivo })
+        });
+        $('#rejeitarModal').modal('hide');
+        flash('Pagamento rejeitado.', 'warning');
+        carregar();
+      } catch (err) {
+        flash('Erro: ' + err.message, 'danger');
+      }
+    });
+
+    window.abrirComprovante = function(url) {
+      $('#viewComprovanteBody').html(`<img src="${url}" class="img-fluid">`);
+      $('#viewComprovanteModal').modal('show');
+    };
+
+    // Inicialização
+    carregar();
+    refreshInterval = setInterval(carregar, 30000);
+
+    // Limpeza ao sair
+    window.addEventListener('beforeunload', () => {
+      if (refreshInterval) clearInterval(refreshInterval);
+    });
+  </script>
+</body>
+</html>
