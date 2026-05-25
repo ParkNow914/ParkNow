@@ -74,12 +74,14 @@ const config = {
         rateDelta: 1000, // Intervalo entre envios em ms
         rateLimit: 5, // Número máximo de mensagens por rateDelta
         auth: {
-            user: process.env.EMAIL_USER || 'parknow914@gmail.com',
-            pass: process.env.EMAIL_PASS || 'rvnh aryg wube hdsk'
+            // Sem defaults com credenciais reais. Configure EMAIL_USER e EMAIL_PASS
+            // no .env — em produção o envValidator aborta o startup se faltar.
+            user: process.env.EMAIL_USER || '',
+            pass: process.env.EMAIL_PASS || ''
         },
-        from: process.env.EMAIL_FROM || '"ParkNow" <parknow914@gmail.com>',
-        support: process.env.EMAIL_SUPPORT || 'parknow914@gmail.com',
-        admin: process.env.EMAIL_ADMIN || 'parknow914@gmail.com',
+        from: process.env.EMAIL_FROM || '"ParkNow" <no-reply@example.com>',
+        support: process.env.EMAIL_SUPPORT || '',
+        admin: process.env.EMAIL_ADMIN || '',
         // Configurações adicionais para melhorar a entrega
         dkim: {
             domainName: 'parknow.com.br', // Substitua pelo seu domínio
@@ -111,7 +113,7 @@ const config = {
         forceUTC: (process.env.FORCE_UTC === 'true') || false // Se true, força todos os timestamps para UTC
     },
     cron: { expireReservasSchedule: process.env.CRON_EXPIRE_RESERVAS || '*/5 * * * *', updateTempoSchedule: process.env.CRON_UPDATE_TEMPO || '*/1 * * * *' }, // Removido cron blacklist
-    uploads: { path: path.resolve(__dirname, '..', 'uploads'), maxFileSize: parseInt(process.env.UPLOAD_MAX_SIZE_MB || '5') * 1024 * 1024, allowedMimes: ['image/jpeg', 'image/png', 'image/gif'] },
+    uploads: { path: path.resolve(__dirname, '..', 'uploads'), maxFileSize: parseInt(process.env.UPLOAD_MAX_SIZE_MB || '5') * 1024 * 1024, allowedMimes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'] },
     reserva: { bufferOcupadaHoras: parseFloat(process.env.RESERVA_BUFFER_OCUPADA_H || '2') },
     // Configurações do PIX
     pix: {
@@ -135,7 +137,7 @@ const config = {
         
         // Configurações de notificação
         notifyCustomer: process.env.PIX_NOTIFY_CUSTOMER === 'true' || true,
-        notifyEmail: process.env.PIX_NOTIFY_EMAIL || 'parknow914@gmail.com',
+        notifyEmail: process.env.PIX_NOTIFY_EMAIL || process.env.EMAIL_ADMIN || '',
         
         // Configurações de segurança
         validateWebhookSignature: process.env.PIX_VALIDATE_WEBHOOK === 'true' || true,

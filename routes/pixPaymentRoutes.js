@@ -4,8 +4,9 @@ const pixPaymentController = require('../controllers/pixPaymentController');
 const { protectUser } = require('../middleware/authMiddleware');
 const { deprecate } = require('../middleware/deprecation');
 
-// Marca todo o router como legado (RFC 8594). Clientes devem migrar para
-// `/api/reservas/com-pagamento` (fluxo ASAAS canônico — ver docs/ROUTES_PAGAMENTO.md).
+// Estas rotas usam tokens enviados por email — mantidas como fluxo alternativo
+// ao painel admin. Recomendamos `/api/reservas/com-pagamento` + confirmação via
+// painel (`POST /api/admin/reservas/:id/confirmar-pagamento`).
 router.use(deprecate({
     replacement: '/api/reservas/com-pagamento',
     sunset: '2027-01-01',

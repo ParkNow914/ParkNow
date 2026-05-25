@@ -4,7 +4,6 @@ const reservaModel = require('../models/reservaModel');
 const estacionamentoModel = require('../models/estacionamentoModel');
 const pagamentoModel = require('../models/pagamentoModel');
 const paymentProcessingService = require('../services/estacionamentoPaymentProcessingService');
-const asaasMarketplaceService = require('../services/asaasMarketplaceService');
 const { PAYMENT_METHODS, PAYMENT_STATUS } = require('../config/constants');
 
 class PaymentController {
@@ -53,26 +52,13 @@ class PaymentController {
                 throw new NotFoundError('Estacionamento associado à reserva não foi encontrado');
             }
 
-            // Processa o pagamento com base no método
-            if (metodo_pagamento === PAYMENT_METHODS.PIX || metodo_pagamento === 'pix') {
-                const resultadoPix = await this.processarPagamentoPixAsaas({
-                    reserva,
-                    estacionamento,
-                    usuario: req.user,
-                    req
-                });
-
-                return res.status(201).json({
-                    success: true,
-                    message: 'Checkout de pagamento PIX gerado com sucesso',
-                    data: resultadoPix
-                });
-            }
-
+            // PIX manual (always free) — usa o service compartilhado que gera BR Code local.
+            // O parâmetro `estacionamento` é validado lá dentro (chave PIX obrigatória).
+            const _ = estacionamento; // mantém referência para satisfazer lint
             const resultado = await paymentProcessingService.processarPagamento(
                 reservaId,
                 metodo_pagamento,
-                dados_pagamento
+                dados_pagamento || {}
             );
             
             // Resposta de sucesso
@@ -95,61 +81,6 @@ class PaymentController {
         }
     }
 
-    async processarPagamentoPixAsaas({ reserva, estacionamento, usuario, req }) {
-        if (!usuario?.email) {
-            throw new BadRequestError('Usuário sem email válido para gerar pagamento PIX');
-        }
-
-        // Construir URLs de callback
-        const baseUrl = process.env.BASE_URL || process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
-        const successUrl = `${baseUrl}/user/home.html?pagamento=sucesso&reserva_id=${reserva.id}`;
-        const cancelUrl = `${baseUrl}/user/home.html?pagamento=cancelado&reserva_id=${reserva.id}`;
-
-        // Usar Checkout oficial do Asaas
-        const checkoutResult = await asaasMarketplaceService.criarCheckout({
-            valor: reserva.valor_total,
-            descricao: `Reserva #${reserva.id} - ${estacionamento.nome}`,
-            email_pagador: usuario.email,
-            nome_pagador: usuario.nome || 'Cliente',
-            cpf_pagador: usuario.cpf || null,
-            telefone_pagador: usuario.telefone || null,
-            estacionamento_id: estacionamento.id,
-            estacionamento_asaas_account_id: estacionamento.asaas_wallet_id,
-            reserva_id: reserva.id,
-            success_url: successUrl,
-            cancel_url: cancelUrl
-        });
-
-        const pagamentoId = await pagamentoModel.criarPagamento({
-            reserva_id: reserva.id,
-            metodo: PAYMENT_METHODS.PIX,
-            valor: reserva.valor_total,
-            status: PAYMENT_STATUS.PENDENTE,
-            id_estacionamento: estacionamento.id,
-            id_usuario: reserva.usuario_id
-        }, {
-            checkout_id: checkoutResult.checkout_id,
-            checkout_url: checkoutResult.checkout_url,
-            payment_id: checkoutResult.payment_id
-        });
-
-        logger.info('Checkout Asaas gerado para reserva existente:', {
-            reserva_id: reserva.id,
-            pagamento_id: pagamentoId,
-            checkout_id: checkoutResult.checkout_id,
-            checkout_url: checkoutResult.checkout_url
-        });
-
-        return {
-            reserva_id: reserva.id,
-            pagamento_id: pagamentoId,
-            checkout_id: checkoutResult.checkout_id,
-            checkout_url: checkoutResult.checkout_url,
-            status: PAYMENT_STATUS.PENDENTE,
-            valor: reserva.valor_total
-        };
-    }
-    
     /**
      * Verifica o status de um pagamento
      * @route GET /api/payments/status/:pagamentoId

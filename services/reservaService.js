@@ -3,7 +3,6 @@ const { v4: _uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/AppError');
 const { findDefaultVehicleByUserId } = require('../models/usuarioModel');
-const _pagamentoModel = require('../models/pagamentoModel');
 
 class ReservaService {
   /**

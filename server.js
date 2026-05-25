@@ -228,14 +228,12 @@ if (process.env.DOCS_DISABLED !== 'true') {
     logger.info('[openapi] DOCS_DISABLED=true, skipping Swagger UI mount');
 }
 
-// Rotas de webhooks do ASAAS (mounted via routes/index.js -> reservaPagamentoRoutes)
-
 // Rotas de páginas
 app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 app.get('/reset-password/:token', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'reset-password.html')); });
 app.get('/admin_home/admin-home.html', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'admin_home', 'admin-home.html')); });
 
-// Rotas de retorno do pagamento ASAAS
+// Páginas estáticas de retorno do pagamento (sucesso/cancelamento)
 app.get('/pagamento-sucesso.html', (req, res) => { res.sendFile(path.join(__dirname, 'views', 'pagamento-sucesso.html')); });
 app.get('/pagamento-cancelado.html', (req, res) => { res.sendFile(path.join(__dirname, 'views', 'pagamento-cancelado.html')); });
 
