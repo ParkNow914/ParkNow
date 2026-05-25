@@ -1,0 +1,26 @@
+# Estado do Terraform — contém referências a recursos e às vezes outputs sensíveis.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Arquivos com VALORES REAIS — NUNCA commitar (contém credenciais OCI + senha de email).
+*.tfvars
+!terraform.tfvars.example
+
+# Plan files podem conter dados sensíveis.
+*.tfplan
+*.plan
+
+# Diretórios do Terraform.
+.terraform/
+.terraform.lock.hcl
+
+# Logs e crash reports.
+crash.log
+crash.*.log
+
+# Override files são normalmente locais.
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
