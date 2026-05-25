@@ -478,14 +478,28 @@
                   <div id="pixCopyFeedback" class="alert alert-success py-2" style="display: none; font-size: 0.9rem;">
                     <i class="fas fa-check-circle me-1"></i> Código copiado com sucesso!
                   </div>
+
+                  <hr class="my-3">
+                  <div class="text-start">
+                    <p class="small text-muted mb-2">
+                      <i class="fas fa-info-circle me-1"></i>
+                      Depois de pagar pelo seu banco, <strong>anexe o comprovante</strong> abaixo.
+                      O estacionamento confirmará seu pagamento e sua vaga ficará reservada.
+                    </p>
+                    <input type="file"
+                           id="comprovantePixFile"
+                           accept="image/jpeg,image/png,image/webp,application/pdf"
+                           class="form-control form-control-sm">
+                    <div id="comprovanteFeedback" class="mt-2" style="display: none;"></div>
+                  </div>
                 </div>
               </div>
               <div class="modal-footer d-flex justify-content-between flex-wrap">
                 <button type="button" class="btn btn-secondary btn-sm mb-1" data-dismiss="modal">
                   <i class="fas fa-times me-1"></i>Fechar
                 </button>
-                <button type="button" class="btn btn-success btn-sm mb-1" id="confirmarPagamento">
-                  <i class="fas fa-check me-1"></i>Já efetuei o pagamento
+                <button type="button" class="btn btn-success btn-sm mb-1" id="enviarComprovanteBtn">
+                  <i class="fas fa-upload me-1"></i>Enviar comprovante
                 </button>
               </div>
             </div>
@@ -555,9 +569,66 @@
           }, 2000);
         });
 
-        $(`#${modalId} #confirmarPagamento`).on('click', function() {
-          $(`#${modalId}`).modal('hide');
-          showUserAlert('Aguardando confirmação do pagamento. Você pode acompanhar na aba "Minhas Reservas".', 'info');
+        $(`#${modalId} #enviarComprovanteBtn`).on('click', async function() {
+          const fileInput = document.getElementById('comprovantePixFile');
+          const feedback = $('#comprovanteFeedback');
+          const reservaIdEnvio = modalPixData.reserva_id;
+
+          if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            feedback.removeClass('alert-success').addClass('alert alert-danger')
+              .html('<i class="fas fa-exclamation-triangle me-1"></i>Selecione um arquivo (JPG/PNG/WEBP/PDF).')
+              .show();
+            return;
+          }
+
+          const file = fileInput.files[0];
+          if (file.size > 5 * 1024 * 1024) {
+            feedback.removeClass('alert-success').addClass('alert alert-danger')
+              .html('<i class="fas fa-exclamation-triangle me-1"></i>Arquivo muito grande (máx 5MB).')
+              .show();
+            return;
+          }
+
+          const btn = $(this);
+          const originalLabel = btn.html();
+          btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status"></span> Enviando...');
+
+          try {
+            const formData = new FormData();
+            formData.append('comprovante', file);
+
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            const resp = await fetch(`/api/reservas/${reservaIdEnvio}/comprovante`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` },
+              credentials: 'include',
+              body: formData,
+            });
+
+            if (!resp.ok) {
+              const err = await resp.json().catch(() => ({}));
+              throw new Error(err.message || 'Falha ao enviar comprovante.');
+            }
+
+            feedback.removeClass('alert-danger').addClass('alert alert-success')
+              .html('<i class="fas fa-check-circle me-1"></i>Comprovante enviado. Aguardando confirmação do estacionamento.')
+              .show();
+
+            setTimeout(() => {
+              $(`#${modalId}`).modal('hide');
+              showUserAlert('Comprovante enviado! O estacionamento confirmará em breve. Acompanhe em "Minhas Reservas".', 'success');
+              if (typeof loadMinhasReservas === 'function' &&
+                  document.getElementById('reservasSection')?.style.display === 'block') {
+                loadMinhasReservas();
+              }
+            }, 1800);
+          } catch (err) {
+            console.error('[Comprovante] Erro:', err);
+            feedback.removeClass('alert-success').addClass('alert alert-danger')
+              .html(`<i class="fas fa-exclamation-triangle me-1"></i>${err.message}`)
+              .show();
+            btn.prop('disabled', false).html(originalLabel);
+          }
         });
 
         let checkPaymentStatus = null;
@@ -6155,41 +6226,20 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
             // Fechar o modal de agendamento
             $('#agendamentoModal').modal('hide');
 
-            // Extrair dados da resposta
+            // Extrair dados da resposta (PIX manual — always free)
             const reservaId = parseInt(result.reserva?.id || result.data?.reserva?.id) || 0;
             const pagamentoInfo = result.pagamento || result.data?.pagamento || {};
-            const checkoutUrl = pagamentoInfo.checkout_url || result.checkout_url;
+            const pixInfo = result.pix || result.data?.pix || {};
 
-            // Se houver checkout_url, redirecionar para interface do Asaas
-            if (checkoutUrl) {
-                console.log('🔗 Redirecionando para Checkout Asaas:', checkoutUrl);
-                
-                showAlertModal('agendamentoModal', 
-                    '✅ Reserva criada com sucesso! Redirecionando para pagamento...', 
-                    'success'
-                );
-                
-                // Aguarda 1.5 segundo e redireciona
-                setTimeout(() => {
-                    window.location.href = checkoutUrl;
-                }, 1500);
-                
-                return;
-            }
-
-            // Caso contrário, usar o modal antigo (fallback para QR Code direto)
-            // Extrair informações de split (se disponíveis)
-      const split = result.split || result.data?.split || null;
-
-      const pixData = preparePixModalData(reservaId, {
-        qr_code_base64: pagamentoInfo.qr_code_base64,
-        qr_code_text: pagamentoInfo.qr_code,
-        pagamento_id: pagamentoInfo.id,
-        gateway_payment_id: pagamentoInfo.payment_id,
-        valor: result.reserva?.valor_total || reservaData.valor,
-        split,
-        expira_em: pagamentoInfo.expira_em
-      });
+            const pixData = preparePixModalData(reservaId, {
+              qr_code_base64: pixInfo.qr_code_base64 || pagamentoInfo.qr_code_base64,
+              qr_code_text: pixInfo.qr_code_text || pixInfo.qr_code || pagamentoInfo.qr_code,
+              pagamento_id: pagamentoInfo.id,
+              valor: result.reserva?.valor_total || reservaData.valor,
+              chave_pix: pixInfo.chave_pix,
+              nome_titular: pixInfo.nome_titular,
+              expira_em: pixInfo.expira_em || pagamentoInfo.expira_em,
+            });
 
       showPixPaymentModal(pixData);
 
@@ -6611,65 +6661,23 @@ async function handleEfetuarPagamento(reservaId, event) {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
     try {
-        // Buscar informações da reserva
-        const reserva = await fetchWithAuth(`/api/reservas/${reservaId}`);
-
-        // Verificar se já existe checkout_url salvo
-        if (reserva.checkout_url || reserva.pagamento?.checkout_url) {
-            const checkoutUrl = reserva.checkout_url || reserva.pagamento?.checkout_url;
-            console.log('🔗 Redirecionando para Checkout Asaas existente:', checkoutUrl);
-            
-            showUserAlert('Redirecionando para pagamento...', 'info');
-            setTimeout(() => {
-                window.location.href = checkoutUrl;
-            }, 1000);
-            return;
+        // PIX manual (always free): busca o PIX já gerado da reserva e abre o modal.
+        const pixResp = await fetchWithAuth(`/api/reservas/${reservaId}/pix`);
+        if (!pixResp.success || !pixResp.data) {
+            throw new Error('PIX não encontrado para esta reserva.');
         }
-
-        // Se não tem checkout, gerar novo checkout PIX
-        const response = await fetchWithAuth(`/api/payments/processar-pagamento/${reservaId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                metodo_pagamento: 'pix',
-                dados_pagamento: {}
-            })
+        const data = pixResp.data;
+        const pixData = preparePixModalData(reservaId, {
+            qr_code_base64: data.qr_code_base64,
+            qr_code_text: data.qr_code_text || data.qr_code,
+            pagamento_id: data.pagamento_id,
+            valor: data.valor,
+            chave_pix: data.chave_pix,
+            nome_titular: data.nome_titular,
+            expira_em: data.expira_em,
         });
-
-        if (response.success && response.data) {
-            const data = response.data;
-            
-            // Se retornou checkout_url, redirecionar para o Asaas
-            if (data.checkout_url) {
-                console.log('🔗 Redirecionando para Checkout Asaas:', data.checkout_url);
-                
-                showUserAlert('Redirecionando para pagamento...', 'info');
-                setTimeout(() => {
-                    window.location.href = data.checkout_url;
-                }, 1000);
-                return;
-            }
-            
-            // Fallback: se não tem checkout_url mas tem QR Code (para casos legados)
-            if (data.qr_code_base64 || data.qr_code_text || data.qr_code) {
-                const pixData = preparePixModalData(reservaId, {
-                    qr_code_base64: data.qr_code_base64,
-                    qr_code_text: data.qr_code_text || data.qr_code,
-                    pagamento_id: data.pagamento_id,
-                    gateway_payment_id: data.gateway_payment_id || data.gatewayPaymentId,
-                    valor: data.valor,
-                    chave_pix: data.chave_pix,
-                    nome_titular: data.nome_titular,
-                    expira_em: data.expira_em,
-                    split: data.split
-                });
-                showPixPaymentModal(pixData);
-                return;
-            }
-        }
-        
-        throw new Error('Erro ao gerar pagamento PIX. Tente novamente.');
-
+        showPixPaymentModal(pixData);
+        return;
     } catch (e) {
         console.error('Erro:', e);
         showUserAlert('Erro ao gerar pagamento PIX. Tente novamente.', 'danger');

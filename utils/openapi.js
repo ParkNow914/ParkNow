@@ -49,12 +49,6 @@ const definition = {
                 name: 'refreshToken',
                 description: 'Cookie httpOnly contendo o refresh token; usado por /api/auth/refresh-token.',
             },
-            asaasWebhookToken: {
-                type: 'apiKey',
-                in: 'header',
-                name: 'asaas-access-token',
-                description: 'Token estático configurado em `ASAAS_WEBHOOK_SECRET` (somente endpoint de webhook).',
-            },
         },
         parameters: {
             IdempotencyKey: {
@@ -112,7 +106,7 @@ const definition = {
         { name: 'Auth', description: 'Autenticação de usuários e administradores' },
         { name: 'Reservas', description: 'Criação e gestão de reservas' },
         { name: 'Reservas com Pagamento', description: 'Fluxo de reserva integrado a pagamentos' },
-        { name: 'Pagamentos', description: 'Operações financeiras (PIX, cartão, webhook ASAAS)' },
+        { name: 'Pagamentos', description: 'Operações financeiras (PIX manual, sem gateway pago)' },
         { name: 'Pagamento PIX', description: 'Operações específicas do PIX' },
         { name: 'Estacionamentos', description: 'Listagem e gestão de estacionamentos' },
         { name: 'Health', description: 'Endpoints de liveness/readiness' },

@@ -15,15 +15,12 @@ describe('OpenAPI spec', () => {
         expect(spec.openapi).toMatch(/^3\./);
     });
 
-    test('defines bearerAuth, cookieAuth and asaasWebhookToken security schemes', () => {
+    test('defines bearerAuth and cookieAuth security schemes', () => {
         const schemes = spec.components?.securitySchemes || {};
         expect(schemes.bearerAuth).toMatchObject({ type: 'http', scheme: 'bearer' });
         expect(schemes.cookieAuth).toMatchObject({ type: 'apiKey', in: 'cookie' });
-        expect(schemes.asaasWebhookToken).toMatchObject({
-            type: 'apiKey',
-            in: 'header',
-            name: 'asaas-access-token',
-        });
+        // No external gateway webhook security scheme in the always-free build.
+        expect(schemes.asaasWebhookToken).toBeUndefined();
     });
 
     test('declares the canonical tag groups', () => {

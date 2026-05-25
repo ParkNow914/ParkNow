@@ -220,7 +220,7 @@ class WebhookService {
             }
         });
 
-        // Adicione outros provedores conforme necessário (ASAAS, Pagar.me, etc.)
+        // Adicione outros provedores conforme necessário (Pagar.me, etc.) — sem custo recorrente.
     }
 }
 

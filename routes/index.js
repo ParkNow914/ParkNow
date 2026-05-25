@@ -20,7 +20,6 @@ const estacionamentoPaymentRoutes = require('./estacionamentoPaymentRoutes'); //
 const estacionamentoPaymentConfigRoutes = require('./estacionamentoPaymentConfigRoutes'); // Rotas de configuração de pagamento
 const reservaPagamentoRoutes = require('./reservaPagamentoRoutes'); // Rotas de reserva com pagamento
 const pagamentoRoutes = require('./pagamentoRoutes'); // Rotas de pagamento PIX
-// Rotas de confirmação manual de PIX removidas - usar apenas ASAAS
 const cnpjRoutes = require('./cnpjRoutes'); // Rotas de validação de CNPJ
 const emailValidationRoutes = require('./emailValidationRoutes'); // Rotas de validação de e-mail
 const horarioFuncionamentoRoutes = require('./horarioFuncionamentoRoutes'); // Rotas de horários de funcionamento
@@ -72,11 +71,14 @@ router.use('/estacionamento-payments', estacionamentoPaymentRoutes);
 // Rotas de configuração de pagamento
 router.use('/estacionamento-payment-config', estacionamentoPaymentConfigRoutes);
 
-// Rotas de reserva com pagamento
-router.use('/reservas', reservaPagamentoRoutes);  // Para /api/reservas/com-pagamento
-router.use('/', reservaPagamentoRoutes);           // Para /api/pagamentos/:id/status e /api/webhooks/asaas
+// Rotas de reserva com pagamento (PIX manual, always free)
+router.use('/reservas', reservaPagamentoRoutes);  // Para /api/reservas/com-pagamento e /api/reservas/:id/pix
+router.use('/', reservaPagamentoRoutes);           // Para /api/pagamentos/:id/status
 
-// Rotas de confirmação manual de PIX removidas - usar apenas ASAAS
+// Upload de comprovante PIX pelo USUÁRIO (protectUser aplicado via authMiddleware no controller-level)
+const { protectUser } = require('../middleware/authMiddleware');
+const { userRouter: pixUserUploadRouter } = require('./pixManualConfirmacaoRoutes');
+router.use('/', protectUser, pixUserUploadRouter);
 
 // Rotas de validação de CNPJ
 router.use('/cnpj', cnpjRoutes);

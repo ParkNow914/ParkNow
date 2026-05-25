@@ -1,6 +1,11 @@
 /**
- * Admin Splits Controller
- * Gerencia estatísticas e visualização de splits para administradores
+ * Admin Transactions Controller
+ *
+ * Histórico de pagamentos no modelo always-free (PIX manual): não há split
+ * automático nem comissão de plataforma. Mantemos as rotas existentes
+ * (`/admin/splits/...`) para compatibilidade com o frontend já deployado,
+ * mas o conteúdo passa a refletir apenas o histórico de transações PIX
+ * confirmadas / pendentes pelo admin.
  */
 
 const { sequelize, QueryTypes } = require('../config/db');
@@ -9,278 +14,184 @@ const { AppError } = require('../utils/AppError');
 
 class AdminSplitsController {
     /**
-     * Retorna estatísticas gerais de splits
-     * @route GET /api/admin/splits/estatisticas
-     * @access Private (Admin plataforma)
+     * Estatísticas gerais de pagamentos (sem split — plataforma always free).
      */
     async obterEstatisticas(req, res, next) {
         try {
-            // Receita total (todos os tempos)
-            const receitaTotal = await sequelize.query(`
-                SELECT COALESCE(SUM(comissao_plataforma), 0) as total
-                FROM pagamentos
-                WHERE status = 'approved'
-                  AND comissao_plataforma > 0
-            `, {
-                type: QueryTypes.SELECT,
-                plain: true
-            });
+            const valorTotal = await sequelize.query(
+                `SELECT COALESCE(SUM(valor), 0) AS total
+                   FROM pagamentos
+                  WHERE status IN ('aprovado', 'pago')`,
+                { type: QueryTypes.SELECT, plain: true }
+            );
 
-            // Total de transações com split
-            const totalTransacoes = await sequelize.query(`
-                SELECT COUNT(*) as total
-                FROM pagamentos
-                WHERE comissao_plataforma > 0
-            `, {
-                type: QueryTypes.SELECT,
-                plain: true
-            });
+            const totalTransacoes = await sequelize.query(
+                `SELECT COUNT(*) AS total FROM pagamentos`,
+                { type: QueryTypes.SELECT, plain: true }
+            );
 
-            // Receita hoje
-            const receitaHoje = await sequelize.query(`
-                SELECT COALESCE(SUM(comissao_plataforma), 0) as total
-                FROM pagamentos
-                WHERE status = 'approved'
-                  AND comissao_plataforma > 0
-                  AND DATE(created_at) = CURRENT_DATE
-            `, {
-                type: QueryTypes.SELECT,
-                plain: true
-            });
+            const totalHoje = await sequelize.query(
+                `SELECT COALESCE(SUM(valor), 0) AS total
+                   FROM pagamentos
+                  WHERE status IN ('aprovado', 'pago')
+                    AND DATE(created_at) = CURRENT_DATE`,
+                { type: QueryTypes.SELECT, plain: true }
+            );
 
-            // Receita mês atual
-            const receitaMes = await sequelize.query(`
-                SELECT COALESCE(SUM(comissao_plataforma), 0) as total
-                FROM pagamentos
-                WHERE status = 'approved'
-                  AND comissao_plataforma > 0
-                  AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
-                  AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
-            `, {
-                type: QueryTypes.SELECT,
-                plain: true
-            });
+            const totalMes = await sequelize.query(
+                `SELECT COALESCE(SUM(valor), 0) AS total
+                   FROM pagamentos
+                  WHERE status IN ('aprovado', 'pago')
+                    AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+                    AND EXTRACT(YEAR FROM created_at)  = EXTRACT(YEAR FROM CURRENT_DATE)`,
+                { type: QueryTypes.SELECT, plain: true }
+            );
 
-            // Top 5 estacionamentos por receita
-            const topEstacionamentos = await sequelize.query(`
-                SELECT 
-                    e.id,
-                    e.nome,
-                    COUNT(p.id) as total_transacoes,
-                    SUM(p.comissao_plataforma) as receita_gerada
-                FROM pagamentos p
-                JOIN estacionamentos e ON e.id = p.id_estacionamento
-                WHERE p.status = 'approved'
-                  AND p.comissao_plataforma > 0
-                GROUP BY e.id, e.nome
-                ORDER BY receita_gerada DESC
-                LIMIT 5
-            `, {
-                type: QueryTypes.SELECT
-            });
+            const topEstacionamentos = await sequelize.query(
+                `SELECT e.id, e.nome,
+                        COUNT(p.id)                  AS total_transacoes,
+                        COALESCE(SUM(p.valor), 0)    AS volume
+                   FROM pagamentos p
+                   JOIN estacionamentos e ON e.id = p.id_estacionamento
+                  WHERE p.status IN ('aprovado', 'pago')
+                  GROUP BY e.id, e.nome
+                  ORDER BY volume DESC
+                  LIMIT 5`,
+                { type: QueryTypes.SELECT }
+            );
 
             res.json({
                 success: true,
                 data: {
-                    receita_total: parseFloat(receitaTotal.total),
-                    total_transacoes: parseInt(totalTransacoes.total),
-                    receita_hoje: parseFloat(receitaHoje.total),
-                    receita_mes: parseFloat(receitaMes.total),
-                    top_estacionamentos: topEstacionamentos
-                }
+                    receita_total: parseFloat(valorTotal.total),
+                    total_transacoes: parseInt(totalTransacoes.total, 10),
+                    receita_hoje: parseFloat(totalHoje.total),
+                    receita_mes: parseFloat(totalMes.total),
+                    top_estacionamentos: topEstacionamentos,
+                    // Sempre 0 — modelo always free, sem comissão da plataforma.
+                    comissao_total: 0,
+                },
             });
-
         } catch (error) {
-            logger.error('Erro ao obter estatísticas de splits:', {
-                error: error.message
-            });
+            logger.error('Erro ao obter estatísticas de transações:', { error: error.message });
             next(error);
         }
     }
 
     /**
-     * Lista todas as transações com split
-     * @route GET /api/admin/splits/transacoes
-     * @access Private (Admin plataforma)
+     * Lista as transações confirmadas/pendentes.
      */
     async listarTransacoes(req, res, next) {
         try {
-            const {
-                data_inicio,
-                data_fim,
-                estacionamento_id,
-                limite = 100
-            } = req.query;
+            const { data_inicio, data_fim, estacionamento_id, limite = 100 } = req.query;
 
-            let whereConditions = ['p.comissao_plataforma > 0'];
+            const where = ['1=1'];
             const replacements = [];
 
-            if (data_inicio) {
-                whereConditions.push('p.created_at >= ?');
-                replacements.push(data_inicio);
-            }
-
-            if (data_fim) {
-                whereConditions.push('p.created_at <= ?');
-                replacements.push(data_fim);
-            }
-
+            if (data_inicio) { where.push('p.created_at >= ?'); replacements.push(data_inicio); }
+            if (data_fim)    { where.push('p.created_at <= ?'); replacements.push(data_fim); }
             if (estacionamento_id) {
-                whereConditions.push('p.id_estacionamento = ?');
+                where.push('p.id_estacionamento = ?');
                 replacements.push(estacionamento_id);
             }
 
-            const whereClause = whereConditions.join(' AND ');
+            const transacoes = await sequelize.query(
+                `SELECT p.id,
+                        p.created_at,
+                        p.valor          AS valor_total,
+                        p.status,
+                        p.metodo_pagamento AS metodo,
+                        e.nome           AS estacionamento_nome,
+                        u.nome           AS cliente_nome,
+                        u.email          AS cliente_email,
+                        r.id             AS reserva_id
+                   FROM pagamentos p
+                   JOIN estacionamentos e ON e.id = p.id_estacionamento
+                   JOIN usuarios u        ON u.id = p.id_usuario
+                   LEFT JOIN reservas r   ON r.id = p.reserva_id
+                  WHERE ${where.join(' AND ')}
+                  ORDER BY p.created_at DESC
+                  LIMIT ?`,
+                {
+                    replacements: [...replacements, parseInt(limite, 10)],
+                    type: QueryTypes.SELECT,
+                }
+            );
 
-            const transacoes = await sequelize.query(`
-                SELECT 
-                    p.id,
-                    p.created_at,
-                    p.valor as valor_total,
-                    p.comissao_plataforma,
-                    p.valor_estacionamento,
-                    p.status,
-                    p.metodo,
-                    e.nome as estacionamento_nome,
-                    u.nome as cliente_nome,
-                    u.email as cliente_email,
-                    r.id as reserva_id
-                FROM pagamentos p
-                JOIN estacionamentos e ON e.id = p.id_estacionamento
-                JOIN usuarios u ON u.id = p.id_usuario
-                LEFT JOIN reservas r ON r.id = p.reserva_id
-                WHERE ${whereClause}
-                ORDER BY p.created_at DESC
-                LIMIT ?
-            `, {
-                replacements: [...replacements, parseInt(limite)],
-                type: QueryTypes.SELECT
-            });
-
-            res.json({
-                success: true,
-                data: transacoes
-            });
-
+            res.json({ success: true, data: transacoes });
         } catch (error) {
-            logger.error('Erro ao listar transações:', {
-                error: error.message,
-                query: req.query
-            });
+            logger.error('Erro ao listar transações:', { error: error.message, query: req.query });
             next(error);
         }
     }
 
-    /**
-     * Obter detalhes de uma transação específica
-     * @route GET /api/admin/splits/transacoes/:id
-     * @access Private (Admin plataforma)
-     */
     async obterDetalheTransacao(req, res, next) {
         try {
             const { id } = req.params;
+            const transacao = await sequelize.query(
+                `SELECT p.*,
+                        e.nome     AS estacionamento_nome,
+                        e.endereco AS estacionamento_endereco,
+                        u.nome     AS cliente_nome,
+                        u.email    AS cliente_email,
+                        u.telefone AS cliente_telefone,
+                        r.data_entrada_prevista,
+                        r.data_saida_prevista,
+                        r.placa_veiculo,
+                        r.status   AS reserva_status
+                   FROM pagamentos p
+                   JOIN estacionamentos e ON e.id = p.id_estacionamento
+                   JOIN usuarios u        ON u.id = p.id_usuario
+                   LEFT JOIN reservas r   ON r.id = p.reserva_id
+                  WHERE p.id = ?`,
+                { replacements: [id], type: QueryTypes.SELECT, plain: true }
+            );
 
-            const transacao = await sequelize.query(`
-                SELECT 
-                    p.*,
-                    e.nome as estacionamento_nome,
-                    e.endereco as estacionamento_endereco,
-                    e.asaas_wallet_id,
-                    u.nome as cliente_nome,
-                    u.email as cliente_email,
-                    u.telefone as cliente_telefone,
-                    r.data_entrada_prevista,
-                    r.data_saida_prevista,
-                    r.placa_veiculo,
-                    r.status as reserva_status
-                FROM pagamentos p
-                JOIN estacionamentos e ON e.id = p.id_estacionamento
-                JOIN usuarios u ON u.id = p.id_usuario
-                LEFT JOIN reservas r ON r.id = p.reserva_id
-                WHERE p.id = ?
-            `, {
-                replacements: [id],
-                type: QueryTypes.SELECT,
-                plain: true
-            });
-
-            if (!transacao) {
-                throw new AppError('Transação não encontrada', 404);
-            }
-
-            res.json({
-                success: true,
-                data: transacao
-            });
-
+            if (!transacao) throw new AppError('Transação não encontrada', 404);
+            res.json({ success: true, data: transacao });
         } catch (error) {
             logger.error('Erro ao obter detalhes da transação:', {
                 error: error.message,
-                id: req.params.id
+                id: req.params.id,
             });
             next(error);
         }
     }
 
-    /**
-     * Exportar relatório de splits (CSV)
-     * @route GET /api/admin/splits/exportar
-     * @access Private (Admin plataforma)
-     */
     async exportarRelatorio(req, res, next) {
         try {
             const { data_inicio, data_fim } = req.query;
 
-            let whereConditions = ['p.comissao_plataforma > 0', 'p.status = ?'];
-            const replacements = ['approved'];
+            const where = [`p.status IN ('aprovado', 'pago')`];
+            const replacements = [];
 
-            if (data_inicio) {
-                whereConditions.push('p.created_at >= ?');
-                replacements.push(data_inicio);
-            }
+            if (data_inicio) { where.push('p.created_at >= ?'); replacements.push(data_inicio); }
+            if (data_fim)    { where.push('p.created_at <= ?'); replacements.push(data_fim); }
 
-            if (data_fim) {
-                whereConditions.push('p.created_at <= ?');
-                replacements.push(data_fim);
-            }
+            const transacoes = await sequelize.query(
+                `SELECT p.id, p.created_at,
+                        e.nome AS estacionamento,
+                        u.nome AS cliente,
+                        p.valor AS valor_total,
+                        p.metodo_pagamento AS metodo
+                   FROM pagamentos p
+                   JOIN estacionamentos e ON e.id = p.id_estacionamento
+                   JOIN usuarios u        ON u.id = p.id_usuario
+                  WHERE ${where.join(' AND ')}
+                  ORDER BY p.created_at DESC`,
+                { replacements, type: QueryTypes.SELECT }
+            );
 
-            const whereClause = whereConditions.join(' AND ');
-
-            const transacoes = await sequelize.query(`
-                SELECT 
-                    p.id,
-                    p.created_at,
-                    e.nome as estacionamento,
-                    u.nome as cliente,
-                    p.valor as valor_total,
-                    p.comissao_plataforma,
-                    p.valor_estacionamento,
-                    p.metodo
-                FROM pagamentos p
-                JOIN estacionamentos e ON e.id = p.id_estacionamento
-                JOIN usuarios u ON u.id = p.id_usuario
-                WHERE ${whereClause}
-                ORDER BY p.created_at DESC
-            `, {
-                replacements,
-                type: QueryTypes.SELECT
-            });
-
-            // Gerar CSV
-            let csv = 'ID,Data,Estacionamento,Cliente,Valor Total,Comissão ParkNow,Valor Estacionamento,Método\n';
-            
-            transacoes.forEach(t => {
-                csv += `${t.id},"${new Date(t.created_at).toLocaleString('pt-BR')}","${t.estacionamento}","${t.cliente}",${t.valor_total},${t.comissao_plataforma},${t.valor_estacionamento},"${t.metodo}"\n`;
+            let csv = 'ID,Data,Estacionamento,Cliente,Valor,Método\n';
+            transacoes.forEach((t) => {
+                csv += `${t.id},"${new Date(t.created_at).toLocaleString('pt-BR')}","${t.estacionamento}","${t.cliente}",${t.valor_total},"${t.metodo}"\n`;
             });
 
             res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-            res.setHeader('Content-Disposition', `attachment; filename=splits_${Date.now()}.csv`);
+            res.setHeader('Content-Disposition', `attachment; filename=transacoes_${Date.now()}.csv`);
             res.send(csv);
-
         } catch (error) {
-            logger.error('Erro ao exportar relatório:', {
-                error: error.message
-            });
+            logger.error('Erro ao exportar relatório:', { error: error.message });
             next(error);
         }
     }
