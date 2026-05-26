@@ -2,6 +2,13 @@ const { Sequelize } = require('sequelize');
 const _config = require('./index');
 const logger = require('../utils/logger');
 
+function resolveSequelizeSsl() {
+  const explicit = String(process.env.PG_SSL || '').toLowerCase();
+  if (explicit === 'false' || explicit === '0') return false;
+  if (explicit === 'true' || explicit === '1') return { require: true, rejectUnauthorized: false };
+  return process.env.NODE_ENV === 'production' ? { require: true, rejectUnauthorized: false } : false;
+}
+
 // Configuração da conexão com PostgreSQL
 const sequelize = new Sequelize({
   dialect: 'postgres',
@@ -9,7 +16,7 @@ const sequelize = new Sequelize({
   port: parseInt(process.env.PG_PORT) || 5432,
   database: process.env.PG_DATABASE || 'parknow_db',
   username: process.env.PG_USER || 'postgres',
-  password: process.env.PG_PASSWORD || '91827364Now#',
+  password: process.env.PG_PASSWORD || '',
   logging: process.env.NODE_ENV === 'development' ? msg => logger.debug(msg) : false,
   define: {
     timestamps: true,
@@ -18,10 +25,13 @@ const sequelize = new Sequelize({
     updatedAt: 'updated_at'
   },
   pool: {
-    max: 5,
+    max: parseInt(process.env.PG_MAX_CONNECTIONS) || 5,
     min: 0,
     acquire: 30000,
     idle: 10000
+  },
+  dialectOptions: {
+    ssl: resolveSequelizeSsl()
   }
 });
 

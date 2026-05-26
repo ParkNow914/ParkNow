@@ -48,3 +48,12 @@ Thumbs.db
 
 node_modules
 npm-debug.log*
+
+# Infra (não vai na imagem)
+terraform
+monitoring
+bd
+scripts/install-service.bat
+scripts/uninstall-service.bat
+scripts/bootstrap-oracle.sh
+fly.toml

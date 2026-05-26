@@ -6,10 +6,17 @@ const _env = process.env.NODE_ENV || 'development';
 const _config = require('../config/db.postgres');
 
 // Inicializa o Sequelize com a configuração apropriada
+function resolveSequelizeSsl() {
+  const explicit = String(process.env.PG_SSL || '').toLowerCase();
+  if (explicit === 'false' || explicit === '0') return false;
+  if (explicit === 'true' || explicit === '1') return { require: true, rejectUnauthorized: false };
+  return process.env.NODE_ENV === 'production' ? { require: true, rejectUnauthorized: false } : false;
+}
+
 const sequelize = new Sequelize(
   process.env.PG_DATABASE || 'parknow_db',
   process.env.PG_USER || 'postgres',
-  process.env.PG_PASSWORD || '91827364Now#',
+  process.env.PG_PASSWORD || '',
   {
     host: process.env.PG_HOST || 'localhost',
     port: parseInt(process.env.PG_PORT) || 5432,
@@ -28,10 +35,7 @@ const sequelize = new Sequelize(
       updatedAt: 'updated_at'
     },
     dialectOptions: {
-      ssl: process.env.NODE_ENV === 'production' ? {
-        require: true,
-        rejectUnauthorized: false
-      } : false
+      ssl: resolveSequelizeSsl()
     }
   }
 );

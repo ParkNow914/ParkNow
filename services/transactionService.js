@@ -43,12 +43,19 @@ class TransactionService {
    * @private
    */
   static async _executeWithPg(callback) {
+    const explicit = String(process.env.PG_SSL || '').toLowerCase();
+    const sslOpt = explicit === 'false' || explicit === '0'
+      ? false
+      : explicit === 'true' || explicit === '1'
+        ? { rejectUnauthorized: false }
+        : (process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false);
     const pool = new Pool({
       user: process.env.PG_USER || 'postgres',
       host: process.env.PG_HOST || 'localhost',
       database: process.env.PG_DATABASE || 'parknow_db',
-      password: process.env.PG_PASSWORD || '91827364Now#',
+      password: process.env.PG_PASSWORD || '',
       port: parseInt(process.env.PG_PORT) || 5432,
+      ssl: sslOpt,
     });
 
     const client = await pool.connect();
