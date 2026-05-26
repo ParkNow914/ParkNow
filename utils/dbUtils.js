@@ -6,7 +6,7 @@ const poolConfig = {
     user: process.env.PG_USER || 'postgres',
     host: process.env.PG_HOST || 'localhost',
     database: process.env.PG_DATABASE || 'parknow_db',
-    password: process.env.PG_PASSWORD || '91827364Now#',
+    password: process.env.PG_PASSWORD || '',
     port: parseInt(process.env.PG_PORT) || 5432,
     max: parseInt(process.env.PG_MAX_CONNECTIONS) || 20,
     idleTimeoutMillis: parseInt(process.env.PG_IDLE_TIMEOUT_MS) || 30000,
@@ -14,7 +14,14 @@ const poolConfig = {
     maxUses: 7500,
     allowExitOnIdle: true,
     application_name: 'parknow_api',
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    // SSL: respeita PG_SSL explicitamente; senão liga em produção por padrão.
+    // Use PG_SSL=false para Fly Postgres interno (.flycast / .internal).
+    ssl: (function() {
+        const explicit = String(process.env.PG_SSL || '').toLowerCase();
+        if (explicit === 'false' || explicit === '0') return false;
+        if (explicit === 'true' || explicit === '1') return { rejectUnauthorized: false };
+        return process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+    })()
 };
 
 // Log the database configuration (without password)
