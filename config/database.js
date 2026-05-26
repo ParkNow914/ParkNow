@@ -12,9 +12,15 @@ const pool = new Pool({
     idleTimeoutMillis: parseInt(process.env.PG_IDLE_TIMEOUT_MS || '30000'),
     connectionTimeoutMillis: parseInt(process.env.PG_CONNECTION_TIMEOUT_MS || '2000'),
     application_name: 'parknow-api',
-    ssl: process.env.NODE_ENV === 'production' 
-        ? { rejectUnauthorized: false } 
-        : false
+    // SSL: respeita PG_SSL explicitamente; senão liga em produção por padrão.
+    // Use PG_SSL=false em ambientes onde o servidor recusa TLS (Fly Postgres
+    // interno via .flycast/.internal, por exemplo).
+    ssl: (function() {
+        const explicit = String(process.env.PG_SSL || '').toLowerCase();
+        if (explicit === 'false' || explicit === '0') return false;
+        if (explicit === 'true' || explicit === '1') return { rejectUnauthorized: false };
+        return process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+    })()
 });
 
 // Log de conexão bem-sucedida
