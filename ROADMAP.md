@@ -12,13 +12,21 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 
 ## 📌 Sessões concluídas
 
-### Sessão 1 — Fundação confiável _(em progresso)_
-- [~] Sistema de migrations real (`schema_migrations` + runner idempotente)
-- [~] Persistir aprovações de parceria no Postgres (não perder em restart)
-- [~] `console.log` de runtime → logger Winston
-- [~] Sentry ativável (error tracking)
-- [~] CI com Postgres real + coverage threshold + deploy automático Fly
-- [~] Testes do migrate runner + pixBrCode
+### Sessão 1 — Fundação confiável ✅ _(commit d934067, deploy OK)_
+- [x] Sistema de migrations real (`schema_migrations` + runner idempotente, denylist de obsoletas)
+- [x] `console.log` crítico de runtime → limpo (paymentRoutes, responseDateFormatter) + regra ESLint no-console
+- [x] Sentry ativável (errorTracker já pronto; basta `SENTRY_DSN` + `@sentry/node`)
+- [x] CI com Postgres real + migrate + coverage (Node 20)
+- [x] Deploy automático Fly (`deploy.yml` — requer secret `FLY_API_TOKEN`)
+- [~] Persistir aprovações de parceria no Postgres → **movido para Sessão 2** (precisa refatorar callers async com cuidado)
+- [~] Limpeza completa dos 113 `console.log` restantes → contínuo (warnings no lint)
+
+### Sessão 2 — Segurança & persistência _(planejada)_
+- [ ] tempStorage (aprovações) → Postgres
+- [ ] Idempotency → Postgres
+- [ ] Rate limiting → Postgres
+- [ ] Verificação de email no cadastro
+- [ ] Testes de integração do fluxo PIX completo
 
 ---
 
@@ -167,4 +175,4 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 ## Histórico de deploys
 | Sessão | Commit | Data | Foco |
 |---|---|---|---|
-| 1 | _(em progresso)_ | 2026-05-26 | Fundação: migrations, persistência, observabilidade, CI/CD |
+| 1 | d934067 | 2026-05-28 | Fundação: migrations reais, CI com Postgres, deploy automático, higiene de logs |
