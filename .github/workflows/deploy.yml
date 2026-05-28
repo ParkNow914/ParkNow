@@ -22,7 +22,7 @@ jobs:
     # Só roda se o token estiver configurado (não falha forks/PRs sem o secret).
     if: ${{ github.repository_owner == 'ParkNow914' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
