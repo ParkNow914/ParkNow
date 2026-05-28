@@ -12,7 +12,7 @@
     },
     "rules": {
         "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
-        "no-console": "off",
+        "no-console": ["warn", { "allow": ["error", "warn"] }],
         "no-process-exit": "off",
         "no-empty": ["error", { "allowEmptyCatch": true }],
         "no-prototype-builtins": "off",
@@ -29,6 +29,10 @@
         {
             "files": ["tests/**/*.js", "**/*.test.js"],
             "env": { "jest": true }
+        },
+        {
+            "files": ["scripts/**/*.js"],
+            "rules": { "no-console": "off" }
         },
         {
             "files": ["public/**/*.js"],
