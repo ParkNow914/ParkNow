@@ -60,9 +60,8 @@ function processObject(obj, timezone) {
                         result[key] = formatDate(date, timezone);
                         continue;
                     }
-                } catch (error) {
-                    // If parsing fails, keep the original value
-                    console.warn(`Failed to parse date for field ${key}:`, value);
+                } catch (_error) {
+                    // If parsing fails, keep the original value (silencioso — roda em toda resposta)
                 }
             }
             

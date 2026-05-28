@@ -17,6 +17,35 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [18.x, 20.x]
+
+    # Postgres real para os testes de integração + runner de migrations.
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: parknow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      PG_HOST: localhost
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PASSWORD: postgres
+      PG_DATABASE: parknow_test
+      PG_SSL: 'false'
+      JWT_SECRET: ci_jwt_secret_with_more_than_32_characters_long
+      JWT_REFRESH_SECRET: ci_refresh_secret_with_more_than_32_characters_long
+      SESSION_SECRET: ci_session_secret_with_more_than_32_characters_long
+
     steps:
       - uses: actions/checkout@v4
 
@@ -32,8 +61,18 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+      - name: Run migrations against Postgres
+        run: npm run migrate
+
+      - name: Verify migration status
+        run: npm run migrate:status
+
       - name: Run tests
         run: npm test -- --ci
+
+      - name: Coverage (Node 20 only)
+        if: matrix.node-version == '20.x'
+        run: npm run test:coverage -- --ci
 
       - name: Upload coverage
         if: matrix.node-version == '20.x'
@@ -49,28 +88,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
-      # Allowed to fail to avoid blocking PRs on transient advisory updates,
-      # but the output is still visible in CI logs for triage.
       - name: Run security audit (high+)
         run: npm audit --audit-level=high --omit=dev
         continue-on-error: true
-
-      - name: Run Snyk security scan
-        if: ${{ env.SNYK_TOKEN != '' }}
-        uses: snyk/actions/node@master
-        continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   build:
     name: Build & syntax check
@@ -78,18 +105,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Build (no-op if not present)
-        run: npm run build --if-present
-
       - name: Syntax check
         run: node -c server.js

@@ -17,7 +17,9 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --passWithNoTests",
-    "migrate": "node scripts/run-migration.js",
+    "migrate": "node scripts/migrate.js",
+    "migrate:status": "node scripts/migrate.js --status",
+    "migrate:strict": "node scripts/migrate.js --strict",
     "syntax-check": "node -c server.js"
   },
   "dependencies": {

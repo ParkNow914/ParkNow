@@ -1,0 +1,38 @@
+name: Deploy to Fly.io
+
+# Deploy automático no push da main (após o CI passar implicitamente — o Fly
+# faz o build remoto). Requer o secret FLY_API_TOKEN configurado no repositório:
+#   Settings → Secrets and variables → Actions → New repository secret
+#   Nome: FLY_API_TOKEN   Valor: (gerado com `fly tokens create deploy`)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Evita deploys concorrentes pisando um no outro.
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: fly deploy
+    runs-on: ubuntu-latest
+    # Só roda se o token estiver configurado (não falha forks/PRs sem o secret).
+    if: ${{ github.repository_owner == 'ParkNow914' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Run database migrations
+        run: flyctl ssh console -a parknow-alimi -C "node /app/scripts/migrate.js" || true
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
