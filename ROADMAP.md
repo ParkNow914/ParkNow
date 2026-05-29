@@ -21,12 +21,19 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 - [~] Persistir aprovações de parceria no Postgres → **movido para Sessão 2** (precisa refatorar callers async com cuidado)
 - [~] Limpeza completa dos 113 `console.log` restantes → contínuo (warnings no lint)
 
-### Sessão 2 — Segurança & persistência _(planejada)_
-- [ ] tempStorage (aprovações) → Postgres
-- [ ] Idempotency → Postgres
+### Sessão 2 — Segurança & persistência ✅ _(commit 3bc8c88, deploy OK)_
+- [x] tempStorage (aprovações) → Postgres (async + fallback memória)
+- [x] Idempotency → Postgres (`PostgresIdempotencyStore`, seleção automática)
+- [x] Verificação de email no cadastro (token 24h + `/api/auth/verify-email/:token`)
+- [x] Testes da persistência S2 (idempotency store + validação) — rodam no CI com Postgres
+- [~] Rate limiting → Postgres → **movido para Sessão 3** (in-memory ok para 1 instância Fly hoje)
+- [x] Bug fix: validação de `numeroVagas` (range 1..1000) — regressão pega por teste
+
+### Sessão 3 — Frontend/UX & rate limit _(planejada)_
 - [ ] Rate limiting → Postgres
-- [ ] Verificação de email no cadastro
-- [ ] Testes de integração do fluxo PIX completo
+- [ ] Eliminar `notificationService.new.js` (duplicado)
+- [ ] Modo escuro · Filtros no mapa · Páginas 404/500 · Preview de comprovante
+- [ ] Feedback visual de `?email_verificado=` na landing
 
 ---
 
@@ -40,10 +47,10 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 - [ ] Teste do BR Code contra apps de banco reais
 
 ### Segurança
-- [ ] Verificação de email no cadastro (coluna `email_verified_at` existe, não usada)
-- [~] `tempStorage` (aprovações) → Postgres _(Sessão 1)_
-- [ ] Idempotency → Postgres (hoje em memória)
-- [ ] Rate limiting → Postgres (hoje em memória)
+- [x] Verificação de email no cadastro _(Sessão 2)_
+- [x] `tempStorage` (aprovações) → Postgres _(Sessão 2)_
+- [x] Idempotency → Postgres _(Sessão 2)_
+- [ ] Rate limiting → Postgres (hoje em memória) _(Sessão 3)_
 - [ ] Remover `unsafe-inline` da CSP (nonce nos scripts)
 - [ ] Validar magic bytes + stripar EXIF no upload de comprovante
 - [ ] 2FA opcional para admins (TOTP)
@@ -176,3 +183,4 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 | Sessão | Commit | Data | Foco |
 |---|---|---|---|
 | 1 | d934067 | 2026-05-28 | Fundação: migrations reais, CI com Postgres, deploy automático, higiene de logs |
+| 2 | 3bc8c88 | 2026-05-29 | Segurança & persistência: tempStorage/idempotency no Postgres, verificação de email |
