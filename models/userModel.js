@@ -210,11 +210,51 @@ const findUserByValidResetToken = async (hashedToken) => {
 /** Atualiza senha e limpa tokens */
 const updateUserPassword = async (userId, newPasswordHash) => {
     const sql = 'UPDATE usuarios SET senha = $1, reset_token = NULL, reset_token_expira = NULL WHERE id = $2';
-    try { 
-        await pool.query(sql, [newPasswordHash, userId]); 
-    } catch (error) { 
-        logger.error('Erro ao atualizar senha:', error); 
-        throw error; 
+    try {
+        await pool.query(sql, [newPasswordHash, userId]);
+    } catch (error) {
+        logger.error('Erro ao atualizar senha:', error);
+        throw error;
+    }
+};
+
+/** Salva token de verificação de email (hash) com expiração */
+const saveEmailVerificationToken = async (userId, hashedToken, expiresAt) => {
+    const sql = 'UPDATE usuarios SET email_verification_token = $1, email_verification_expires = $2 WHERE id = $3';
+    try {
+        await pool.query(sql, [hashedToken, expiresAt, userId]);
+    } catch (error) {
+        logger.error('Erro ao salvar token de verificação de email:', error);
+        throw error;
+    }
+};
+
+/** Busca usuário por token de verificação de email válido (não expirado) */
+const findUserByEmailVerificationToken = async (hashedToken) => {
+    const sql = 'SELECT * FROM usuarios WHERE email_verification_token = $1 AND email_verification_expires > NOW()';
+    try {
+        const { rows } = await pool.query(sql, [hashedToken]);
+        return rows[0];
+    } catch (error) {
+        logger.error('Erro ao buscar usuário por token de verificação de email:', error);
+        throw error;
+    }
+};
+
+/** Marca email como verificado e limpa o token */
+const markEmailVerified = async (userId) => {
+    const sql = `UPDATE usuarios
+                 SET email_verified_at = NOW(),
+                     email_verification_token = NULL,
+                     email_verification_expires = NULL
+                 WHERE id = $1
+                 RETURNING id`;
+    try {
+        const { rowCount } = await pool.query(sql, [userId]);
+        return rowCount > 0;
+    } catch (error) {
+        logger.error('Erro ao marcar email como verificado:', error);
+        throw error;
     }
 };
 
@@ -311,10 +351,13 @@ module.exports = {
     findUserById, 
     createUser, 
     updateUser, 
-    savePasswordResetToken, 
-    findUserByValidResetToken, 
-    updateUserPassword, 
-    findAllUsersAdmin, 
+    savePasswordResetToken,
+    findUserByValidResetToken,
+    updateUserPassword,
+    saveEmailVerificationToken,
+    findUserByEmailVerificationToken,
+    markEmailVerified,
+    findAllUsersAdmin,
     setUserStatusAdmin, 
     saveRefreshTokenHash, 
     verifyRefreshTokenHash, 

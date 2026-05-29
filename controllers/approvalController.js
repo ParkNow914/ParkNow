@@ -461,8 +461,8 @@ exports.approvePartner = async (req, res) => {
   }, TIMEOUTS.REQUEST);
 
   try {
-    // 1. Obter os dados da solicitação do armazenamento temporário
-    const solicitacaoData = tempStorage.get(storageKey);
+    // 1. Obter os dados da solicitação do armazenamento (Postgres)
+    const solicitacaoData = await tempStorage.get(storageKey);
     if (!solicitacaoData) {
       clearTimeout(requestTimeout);
       return res.status(404).json({
@@ -739,9 +739,9 @@ exports.approvePartner = async (req, res) => {
       // 9. Criar horários padrão de funcionamento usando o controlador
       await HorarioFuncionamentoController.criarPadroes(estacionamento.id, { transaction });
       
-      // 10. Remover os dados do armazenamento temporário
-      tempStorage.del(storageKey);
-      
+      // 10. Remover os dados do armazenamento (Postgres)
+      await tempStorage.del(storageKey);
+
       // 11. Confirmar a transação
       await transaction.commit();
       
@@ -834,12 +834,12 @@ exports.rejectPartner = async (req, res) => {
     let solicitacaoData = null;
     
     try {
-      // Tenta obter os dados do armazenamento temporário
-      solicitacaoData = tempStorage.get(storageKey);
-      
+      // Tenta obter os dados do armazenamento (Postgres)
+      solicitacaoData = await tempStorage.get(storageKey);
+
       // Se encontrou, remove do armazenamento (uso único)
       if (solicitacaoData) {
-        tempStorage.del(storageKey);
+        await tempStorage.del(storageKey);
         console.log('Dados da solicitação recuperados para rejeição');
       } else {
         console.log('Solicitação não encontrada ou expirada para o token (rejeição):', token);
