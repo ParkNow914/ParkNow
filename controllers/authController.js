@@ -76,15 +76,31 @@ const registerUser = async (req, res, next) => {
         const senhaHash = await passwordUtils.hashPassword(senha);
         const userId = await userModel.createUser({ nome, email, senhaHash, telefone, tipo_veiculo, placa_veiculo: placa_veiculo.toUpperCase(), cpf: cpf || null });
 
-        // Opcional: Enviar email de boas-vindas
-        await emailUtils.sendEmail({
-            to: email, subject: 'Bem-vindo ao ParkNow!',
-            text: `Olá ${nome},\n\nSua conta ParkNow foi criada!\n\nAcesse: ${config.frontendUrl}`,
-            html: `<p>Olá ${nome},</p><p>Sua conta ParkNow foi criada com sucesso!</p><p><a href="${config.frontendUrl}">Acesse agora</a>.</p>`
-        }).catch(e => logger.error("Falha ao enviar email de boas-vindas:", { email: email, error: e.message }));
+        // Gera token de verificação de email (válido por 24h) e envia link.
+        try {
+            const verifyToken = tokenUtils.generateSecureToken();
+            const hashedVerify = tokenUtils.hashToken(verifyToken);
+            const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            await userModel.saveEmailVerificationToken(userId, hashedVerify, verifyExpires);
+
+            const verifyUrl = `${config.frontendUrl}/api/auth/verify-email/${verifyToken}`;
+            await emailUtils.sendEmail({
+                to: email,
+                subject: 'Bem-vindo ao ParkNow — confirme seu email',
+                text: `Olá ${nome},\n\nSua conta ParkNow foi criada! Confirme seu email (válido por 24h):\n${verifyUrl}\n\nSe não foi você, ignore.`,
+                html: `<p>Olá ${nome},</p><p>Sua conta ParkNow foi criada com sucesso!</p>
+                       <p>Confirme seu email clicando <a href="${verifyUrl}" target="_blank">aqui</a> (link válido por 24 horas).</p>
+                       <p>Se não foi você, ignore este email.</p>`,
+            });
+        } catch (e) {
+            logger.error('Falha ao enviar email de verificação (cadastro segue válido):', { email, error: e.message });
+        }
 
         logger.info(`Usuário registrado: ${email} (ID: ${userId})`);
-        res.status(201).json({ status: "success", message: "Cadastro realizado com sucesso! Você já pode fazer o login." });
+        res.status(201).json({
+            status: 'success',
+            message: 'Cadastro realizado! Enviamos um link de confirmação para o seu email. Você já pode fazer login.',
+        });
     } catch (error) {
         handleRegisterError(error, next, 'Usuário'); // Usa helper para tratar erro
     }
@@ -390,8 +406,8 @@ const registerAdmin = async (req, res, next) => {
             ip: ipAddress
         };
         
-        // Armazenar com expiração de 7 dias (604800000 ms)
-        tempStorage.set(storageKey, solicitacaoData, 604800000);
+        // Armazenar com expiração de 7 dias (604800000 ms) — persistido no Postgres
+        await tempStorage.set(storageKey, solicitacaoData, 604800000);
         
         logger.info('[Auth] Solicitação de parceria armazenada para aprovação', {
             email,
@@ -653,4 +669,29 @@ const loginAdmin = async (req, res, next) => {
     }
 };
 
-module.exports = { registerUser, loginUser, refreshToken, logout, requestPasswordReset, resetPassword, registerAdmin, loginAdmin };
+// --- Verificação de Email ---
+// GET /api/auth/verify-email/:token — clicado no link enviado por email.
+// Redireciona para a landing com um query param (sucesso/erro) para feedback visual.
+const verifyEmail = async (req, res, _next) => {
+    const { token } = req.params;
+    const base = config.frontendUrl || '';
+    try {
+        if (!token || !/^[a-f0-9]{64}$/i.test(token)) {
+            return res.redirect(`${base}/?email_verificado=invalido`);
+        }
+        const hashedToken = tokenUtils.hashToken(token);
+        const account = await userModel.findUserByEmailVerificationToken(hashedToken);
+        if (!account) {
+            logger.warn('[Auth] Token de verificação de email inválido/expirado');
+            return res.redirect(`${base}/?email_verificado=expirado`);
+        }
+        await userModel.markEmailVerified(account.id);
+        logger.info(`[Auth] Email verificado com sucesso para usuário ID ${account.id} (${account.email})`);
+        return res.redirect(`${base}/?email_verificado=sucesso`);
+    } catch (error) {
+        logger.error('[Auth] Erro ao verificar email:', error);
+        return res.redirect(`${base}/?email_verificado=erro`);
+    }
+};
+
+module.exports = { registerUser, loginUser, refreshToken, logout, requestPasswordReset, resetPassword, registerAdmin, loginAdmin, verifyEmail };

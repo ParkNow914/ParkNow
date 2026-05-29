@@ -1,284 +1,179 @@
 /**
- * Serviço de armazenamento temporário em memória
- * Armazena dados de solicitações de parceria até a aprovação
+ * Armazenamento de solicitações de parceria pendentes de aprovação.
+ *
+ * Sessão 2: migrado de Map em memória → Postgres (tabela parceria_solicitacoes).
+ * Mantém um cache/fallback em memória para o caso do banco estar indisponível,
+ * de modo que a aplicação degrada graciosamente em vez de quebrar o cadastro.
+ *
+ * API agora é ASSÍNCRONA (set/get/del/has retornam Promise). Os callers são
+ * handlers Express async e usam await.
  */
 
-const storage = new Map();
-const DEFAULT_TTL = 24 * 60 * 60 * 1000; // 24 horas
-const CLEANUP_INTERVAL = 60 * 60 * 1000; // Limpar a cada hora
-let cleanupInterval;
+const logger = require('./logger');
 
-// Iniciar limpeza periódica
-function startCleanup() {
-  if (cleanupInterval) clearInterval(cleanupInterval);
-  cleanupInterval = setInterval(cleanupExpired, CLEANUP_INTERVAL);
-  // Garantir que o intervalo seja limpo ao encerrar o processo
-  process.on('exit', () => {
-    if (cleanupInterval) clearInterval(cleanupInterval);
-  });
-}
+const DEFAULT_TTL = 7 * 24 * 60 * 60 * 1000; // 7 dias
+const memoryFallback = new Map(); // usado só se o DB falhar
 
-// Limpar itens expirados
-function cleanupExpired() {
-  const now = Date.now();
-  let count = 0;
-  
-  for (const [key, { expiresAt }] of storage.entries()) {
-    if (expiresAt <= now) {
-      storage.delete(key);
-      count++;
+// Carrega o pool de forma tolerante (evita ciclo de require em testes).
+let pool = null;
+function getPool() {
+    if (pool) return pool;
+    try {
+        pool = require('./dbUtils').pool;
+    } catch (_e) {
+        pool = null;
     }
-  }
-  
-  if (count > 0) {
-    console.log(`[TempStorage] Limpeza automática: ${count} itens expirados removidos`);
-  }
+    return pool;
 }
-
-// Iniciar a limpeza automaticamente
-startCleanup();
 
 /**
- * Valida os dados do estacionamento
- * @param {object} data - Dados do estacionamento
- * @throws {Error} Se os dados forem inválidos
+ * Valida os dados obrigatórios do estacionamento antes de armazenar.
+ * (Inalterado da versão anterior — garante integridade mínima.)
  */
 const validateParkingData = (data) => {
-  if (!data || typeof data !== 'object') {
-    throw new Error('Dados inválidos: objeto esperado');
-  }
-
-  // Validar campos obrigatórios
-  const requiredFields = [
-    { field: 'nome', type: 'string', min: 3, max: 100 },
-    { field: 'email', type: 'string', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
-    { field: 'senha', type: 'string', min: 8 },
-    { field: 'nomeEstacionamento', type: 'string', min: 3, max: 200 },
-    { field: 'enderecoEstacionamento', type: 'string', min: 10, max: 500 },
-    { field: 'cnpj', type: 'string', pattern: /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/ },
-    { field: 'numeroVagas', type: 'number', min: 1, max: 1000 }
-  ];
-
-  const errors = [];
-  const validatedData = {};
-
-  for (const { field, type, min, max, pattern } of requiredFields) {
-    const value = data[field];
-    
-    // Verificar se o campo existe
-    if (value === undefined || value === null || value === '') {
-      errors.push(`O campo '${field}' é obrigatório`);
-      continue;
+    if (!data || typeof data !== 'object') {
+        throw new Error('Dados inválidos: objeto esperado');
     }
-
-    // Validar tipo
-    if (type === 'number') {
-      const numValue = Number(value);
-      if (isNaN(numValue)) {
-        errors.push(`O campo '${field}' deve ser um número`);
-        continue;
-      }
-      validatedData[field] = numValue;
-    } else {
-      if (typeof value !== type) {
-        errors.push(`O campo '${field}' deve ser do tipo ${type}`);
-        continue;
-      }
-      validatedData[field] = value;
+    const requiredFields = [
+        { field: 'nome', type: 'string', min: 3, max: 100 },
+        { field: 'email', type: 'string', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
+        { field: 'senha', type: 'string', min: 8 },
+        { field: 'nomeEstacionamento', type: 'string', min: 3, max: 200 },
+        { field: 'enderecoEstacionamento', type: 'string', min: 10, max: 500 },
+        { field: 'cnpj', type: 'string', pattern: /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/ },
+        { field: 'numeroVagas', type: 'number', min: 1, max: 1000 },
+    ];
+    const errors = [];
+    for (const { field, type, min, max, pattern } of requiredFields) {
+        const value = data[field];
+        if (value === undefined || value === null || value === '') {
+            errors.push(`O campo '${field}' é obrigatório`);
+            continue;
+        }
+        if (type === 'number') {
+            const n = Number(value);
+            if (isNaN(n)) {
+                errors.push(`O campo '${field}' deve ser um número`);
+            } else {
+                if (min !== undefined && n < min) errors.push(`'${field}' deve ser >= ${min}`);
+                if (max !== undefined && n > max) errors.push(`'${field}' deve ser <= ${max}`);
+            }
+        } else {
+            if (typeof value !== type) { errors.push(`O campo '${field}' deve ser ${type}`); continue; }
+            if (min !== undefined && value.length < min) errors.push(`'${field}' mín ${min} caracteres`);
+            if (max !== undefined && value.length > max) errors.push(`'${field}' máx ${max} caracteres`);
+            if (pattern && !pattern.test(value)) errors.push(`'${field}' em formato inválido`);
+        }
     }
-
-    // Validar tamanho mínimo/máximo para strings
-    if (type === 'string' && (min !== undefined || max !== undefined)) {
-      const length = value.length;
-      if (min !== undefined && length < min) {
-        errors.push(`O campo '${field}' deve ter no mínimo ${min} caracteres`);
-      }
-      if (max !== undefined && length > max) {
-        errors.push(`O campo '${field}' deve ter no máximo ${max} caracteres`);
-      }
-    }
-
-    // Validar padrão (regex)
-    if (pattern && !pattern.test(value)) {
-      errors.push(`O campo '${field}' está em um formato inválido`);
-    }
-  }
-
-  // Validar número de vagas (se for número)
-  if (validatedData.numeroVagas !== undefined) {
-    const vagas = Number(validatedData.numeroVagas);
-    if (vagas < 1 || vagas > 1000) {
-      errors.push('Número de vagas deve estar entre 1 e 1000');
-    }
-  }
-
-  if (errors.length > 0) {
-    throw new Error(`Erros de validação: ${errors.join('; ')}`);
-  }
-
-  return validatedData;
+    if (errors.length > 0) throw new Error(`Erros de validação: ${errors.join('; ')}`);
 };
 
 /**
- * Armazena os dados de um estacionamento para aprovação
- * @param {string} key - Chave única para identificação
- * @param {object} value - Dados do estacionamento
- * @param {number} [ttl] - Tempo de vida em milissegundos (padrão: 7 dias)
- * @returns {boolean} true se armazenado com sucesso
- * @throws {Error} Se os dados forem inválidos
+ * Armazena uma solicitação. @returns {Promise<boolean>}
  */
-const set = (key, value, ttl = DEFAULT_TTL) => {
-  if (!key || typeof key !== 'string') {
-    throw new Error('Chave inválida: deve ser uma string não vazia');
-  }
+const set = async (key, value, ttl = DEFAULT_TTL) => {
+    if (!key || typeof key !== 'string') throw new Error('Chave inválida');
+    if (ttl <= 0) throw new Error('TTL deve ser maior que zero');
+    validateParkingData(value);
 
-  if (ttl <= 0) {
-    throw new Error('TTL deve ser maior que zero');
-  }
-  
-  try {
-    // Validar os dados antes de armazenar (apenas campos obrigatórios)
-    const _validatedData = validateParkingData(value);
-    
-    const now = Date.now();
-    const expiresAt = now + ttl;
-    
-    // Limitar o número de itens armazenados para evitar vazamento de memória
-    if (storage.size >= 1000) {
-      // Remover os 10% mais antigos
-      const entries = Array.from(storage.entries())
-        .sort((a, b) => a[1].expiresAt - b[1].expiresAt)
-        .slice(0, Math.max(1, Math.floor(storage.size * 0.1)));
-      
-      for (const [oldKey] of entries) {
-        storage.delete(oldKey);
-      }
-      console.log(`[TempStorage] Limpeza de itens antigos: ${entries.length} itens removidos`);
+    const expiresAt = new Date(Date.now() + ttl);
+    const payload = { ...value, _createdAt: new Date().toISOString(), _expiresAt: expiresAt.toISOString() };
+
+    const p = getPool();
+    if (p) {
+        try {
+            await p.query(
+                `INSERT INTO parceria_solicitacoes (chave, dados, expires_at)
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT (chave) DO UPDATE SET dados = $2, expires_at = $3`,
+                [key, JSON.stringify(payload), expiresAt]
+            );
+            // limpeza oportunista de expirados
+            p.query('DELETE FROM parceria_solicitacoes WHERE expires_at < NOW()').catch(() => {});
+            return true;
+        } catch (err) {
+            logger.error('[tempStorage] falha ao gravar no Postgres, usando fallback em memória', { error: err.message });
+        }
     }
-    
-    // Armazenar TODOS os dados originais, não apenas os validados
-    // A validação garante que os campos obrigatórios estão corretos
-    storage.set(key, { 
-      value: { 
-        ...value, // Usar dados originais completos
-        _createdAt: new Date().toISOString(),
-        _expiresAt: new Date(expiresAt).toISOString()
-      }, 
-      expiresAt,
-      accessCount: 0,
-      lastAccessed: now
-    });
-    
+    memoryFallback.set(key, { value: payload, expiresAt: expiresAt.getTime() });
     return true;
-  } catch (error) {
-    const errorMsg = `Erro ao armazenar dados temporários: ${error.message}`;
-    console.error(`[TempStorage] ${errorMsg}`, { key, error: error.stack });
-    throw new Error(errorMsg);
-  }
 };
 
 /**
- * Obtém um valor do armazenamento
- * @param {string} key - Chave para buscar
- * @returns {any|null} - Valor armazenado ou null se não existir ou tiver expirado
+ * Recupera uma solicitação. @returns {Promise<object|null>}
  */
-const get = (key) => {
-  if (!storage.has(key)) {
-    return null;
-  }
-  
-  const entry = storage.get(key);
-  const now = Date.now();
-  
-  // Verificar se expirou
-  if (entry.expiresAt <= now) {
-    storage.delete(key);
-    return null;
-  }
-  
-  // Atualizar contador de acesso e último acesso
-  entry.accessCount = (entry.accessCount || 0) + 1;
-  entry.lastAccessed = now;
-  
-  return entry.value;
-};
-
-/**
- * Remove um valor do armazenamento
- * @param {string} key - Chave para remover
- * @returns {boolean} - True se a chave existia e foi removida
- */
-const del = (key) => {
-  const exists = storage.has(key);
-  storage.delete(key);
-  return exists;
-};
-
-/**
- * Limpa todo o armazenamento
- */
-const clear = () => {
-  storage.clear();
-};
-
-/**
- * Verifica se uma chave existe e não expirou
- * @param {string} key - Chave para verificar
- * @returns {boolean} - True se a chave existe e não expirou
- */
-const has = (key) => {
-  if (!key || typeof key !== 'string') {
-    return false;
-  }
-  
-  if (!storage.has(key)) {
-    return false;
-  }
-  
-  const entry = storage.get(key);
-  const now = Date.now();
-  
-  if (entry.expiresAt <= now) {
-    storage.delete(key);
-    return false;
-  }
-  
-  return true;
-};
-
-/**
- * Método interno para depuração - retorna dados brutos do armazenamento
- * @param {string} key - Chave para buscar
- * @returns {object|null} - Dados brutos ou null se não existir
- */
-const _getRaw = (key) => {
-  return storage.get(key) || null;
-};
-
-// Método para estatísticas (usado apenas para monitoramento)
-const getStats = () => ({
-  totalItems: storage.size,
-  oldestItem: storage.size > 0 
-    ? new Date(Math.min(...Array.from(storage.values()).map(e => e.expiresAt)))
-    : null,
-  nextCleanup: cleanupInterval ? new Date(Date.now() + CLEANUP_INTERVAL) : null
-});
-
-module.exports = {
-  set,
-  get,
-  del,
-  clear,
-  has,
-  getStats,
-  _getRaw, // Exportado apenas para depuração
-  // Exportar para testes
-  _test: {
-    cleanupExpired,
-    startCleanup,
-    stopCleanup: () => {
-      if (cleanupInterval) clearInterval(cleanupInterval);
-      cleanupInterval = null;
+const get = async (key) => {
+    const p = getPool();
+    if (p) {
+        try {
+            const { rows } = await p.query(
+                'SELECT dados, expires_at FROM parceria_solicitacoes WHERE chave = $1',
+                [key]
+            );
+            if (rows.length > 0) {
+                if (new Date(rows[0].expires_at).getTime() <= Date.now()) {
+                    await del(key);
+                    return null;
+                }
+                return typeof rows[0].dados === 'string' ? JSON.parse(rows[0].dados) : rows[0].dados;
+            }
+            // não achou no DB — tenta fallback
+        } catch (err) {
+            logger.error('[tempStorage] falha ao ler do Postgres, tentando memória', { error: err.message });
+        }
     }
-  }
+    const entry = memoryFallback.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt <= Date.now()) { memoryFallback.delete(key); return null; }
+    return entry.value;
 };
+
+/**
+ * Remove uma solicitação. @returns {Promise<boolean>}
+ */
+const del = async (key) => {
+    let existed = false;
+    const p = getPool();
+    if (p) {
+        try {
+            const { rowCount } = await p.query('DELETE FROM parceria_solicitacoes WHERE chave = $1', [key]);
+            existed = rowCount > 0;
+        } catch (err) {
+            logger.error('[tempStorage] falha ao deletar no Postgres', { error: err.message });
+        }
+    }
+    if (memoryFallback.delete(key)) existed = true;
+    return existed;
+};
+
+/**
+ * Verifica existência não expirada. @returns {Promise<boolean>}
+ */
+const has = async (key) => {
+    if (!key || typeof key !== 'string') return false;
+    return (await get(key)) !== null;
+};
+
+/**
+ * Estatísticas (monitoramento). @returns {Promise<object>}
+ */
+const getStats = async () => {
+    const p = getPool();
+    if (p) {
+        try {
+            const { rows } = await p.query('SELECT COUNT(*)::int AS total FROM parceria_solicitacoes WHERE expires_at > NOW()');
+            return { totalItems: rows[0].total, backend: 'postgres' };
+        } catch (_e) { /* cai pro fallback */ }
+    }
+    return { totalItems: memoryFallback.size, backend: 'memory-fallback' };
+};
+
+const clear = async () => {
+    const p = getPool();
+    if (p) {
+        try { await p.query('DELETE FROM parceria_solicitacoes'); } catch (_e) { /* ignore */ }
+    }
+    memoryFallback.clear();
+};
+
+module.exports = { set, get, del, has, getStats, clear, _validateParkingData: validateParkingData };

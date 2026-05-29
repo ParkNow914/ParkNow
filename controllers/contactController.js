@@ -242,7 +242,7 @@ exports.solicitarParceria = async (req, res, _next) => {
     // Armazenar no sistema de armazenamento temporário
     try {
       const storageKey = `${TOKEN_PREFIX}${approvalToken}`;
-      tempStorage.set(storageKey, dadosSolicitacao, TOKEN_EXPIRATION);
+      await tempStorage.set(storageKey, dadosSolicitacao, TOKEN_EXPIRATION);
       console.log(`Solicitação de parceria armazenada com token: ${approvalToken}`);
     } catch (error) {
       console.error('Erro ao armazenar solicitação de parceria:', error);
