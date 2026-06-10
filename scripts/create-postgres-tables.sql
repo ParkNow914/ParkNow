@@ -14,6 +14,11 @@ CREATE TABLE IF NOT EXISTS usuarios (
     senha VARCHAR(255) NOT NULL,
     tipo_usuario VARCHAR(20) NOT NULL DEFAULT 'cliente',
     status VARCHAR(20) NOT NULL DEFAULT 'ativo',
+    -- tipo_veiculo/placa_veiculo fazem parte do schema atual; precisam existir
+    -- no baseline porque migrations timestampadas (2024xxxx_*) que ordenam antes
+    -- das add_*.sql leem essas colunas em bancos recém-criados.
+    tipo_veiculo VARCHAR(50),
+    placa_veiculo VARCHAR(10),
     data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ultimo_acesso TIMESTAMP,
     reset_token VARCHAR(255),
