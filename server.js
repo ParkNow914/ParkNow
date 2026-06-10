@@ -254,6 +254,14 @@ app.get('/admin_home/admin-home.html', (req, res) => { res.sendFile(path.join(__
 app.get('/pagamento-sucesso.html', (req, res) => { res.sendFile(path.join(__dirname, 'views', 'pagamento-sucesso.html')); });
 app.get('/pagamento-cancelado.html', (req, res) => { res.sendFile(path.join(__dirname, 'views', 'pagamento-cancelado.html')); });
 
+// 404: JSON para chamadas de API, página customizada para navegação
+app.use((req, res) => {
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ success: false, message: 'Endpoint não encontrado.' });
+    }
+    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
 // --- Tratamento de Erros (Último) ---
 app.use(errorHandler);
 
