@@ -6789,11 +6789,10 @@ async function limparHistoricoCompleto() {
             $('#userPlaca').val(d.placa_veiculo||'');
             $('#userCpf').val(formatCpfOnLoad(d.cpf||''));
 
-            // Atualizar a imagem de perfil se existir
+            // Atualizar a imagem de perfil se existir (carregada via endpoint
+            // autenticado — fotos de perfil não são servidas estaticamente)
             if (d.foto_perfil) {
-                $('#userProfileImage').attr('src', d.foto_perfil);
-                // Também atualizar o ícone na barra lateral
-                $('.sidebar-header img').attr('src', d.foto_perfil);
+                loadProfileImage();
             } else {
                 $('#userProfileImage').attr('src', '/user/img/user.png');
                 $('.sidebar-header img').attr('src', '/user/img/user.png');
@@ -7115,6 +7114,9 @@ async function limparHistoricoCompleto() {
                     userData.foto_perfil = response.imageUrl;
                     showUserAlert('Imagem de perfil atualizada com sucesso!', 'success');
 
+                    // Recarrega a foto a partir do endpoint autenticado
+                    loadProfileImage();
+
                     // Atualizar a visibilidade dos botões de gerenciamento
                     updateProfileImageButtonsVisibility();
                 } else {
@@ -7126,8 +7128,7 @@ async function limparHistoricoCompleto() {
 
                 // Reverter para a imagem anterior ou padrão
                 if (userData?.foto_perfil) {
-                    $('#userProfileImage').attr('src', userData.foto_perfil);
-                    $('.sidebar-header img').attr('src', userData.foto_perfil);
+                    loadProfileImage();
                 } else {
                     $('#userProfileImage').attr('src', '/user/img/user.png');
                     $('.sidebar-header img').attr('src', '/user/img/user.png');
@@ -7170,6 +7171,29 @@ async function limparHistoricoCompleto() {
         } catch (error) {
             console.error('Erro ao remover foto de perfil:', error);
             showUserAlert(`Erro ao remover foto: ${error.message}`, 'danger');
+        }
+    }
+
+    // Carrega a foto de perfil pelo endpoint autenticado e aplica via blob URL.
+    // Necessário porque fotos de perfil não são servidas estaticamente (PII):
+    // <img src> puro não envia o header Authorization.
+    let profileImageObjectUrl = null;
+    async function loadProfileImage() {
+        try {
+            const token = localStorage.getItem('authToken');
+            if (!token) return;
+            const resp = await fetch('/api/user/profile/foto', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const blob = await resp.blob();
+            if (profileImageObjectUrl) URL.revokeObjectURL(profileImageObjectUrl);
+            profileImageObjectUrl = URL.createObjectURL(blob);
+            $('#userProfileImage').attr('src', profileImageObjectUrl);
+            $('.sidebar-header img').attr('src', profileImageObjectUrl);
+        } catch (e) {
+            $('#userProfileImage').attr('src', '/user/img/user.png');
+            $('.sidebar-header img').attr('src', '/user/img/user.png');
         }
     }
 

@@ -41,64 +41,6 @@ class EmailService {
   }
 
   /**
-   * Envia um email de notificação quando o cliente solicita pagamento via PIX
-   * @param {Object} options - Opções do email
-   * @param {string} options.to - Email do destinatário (estacionamento)
-   * @param {string} options.estacionamentoNome - Nome do estacionamento
-   * @param {string} options.clienteNome - Nome do cliente
-   * @param {string} options.veiculoPlaca - Placa do veículo
-   * @param {string} options.reservaId - ID da reserva
-   * @param {string} options.valor - Valor da reserva formatado
-   * @param {string} options.dataHora - Data e hora da reserva formatada
-   * @param {string} options.codigoPix - Chave PIX para pagamento
-   * @param {string} options.tokenConfirmacao - Token para confirmação do pagamento
-   * @param {string} options.tokenCancelamento - Token para cancelamento da reserva
-   * @param {string} options.urlBase - URL base da API
-   */
-  async enviarEmailPixCopiado({ 
-    to, 
-    estacionamentoNome, 
-    clienteNome, 
-    veiculoPlaca, 
-    reservaId, 
-    valor, 
-    dataHora, 
-    codigoPix,
-    tokenConfirmacao,
-    tokenCancelamento,
-    urlBase = process.env.API_URL || 'http://localhost:3000'
-  }) {
-    try {
-      const templatePath = path.join(__dirname, '../views/emails/pixCopiado.pug');
-      const html = pug.renderFile(templatePath, {
-        estacionamentoNome,
-        clienteNome,
-        veiculoPlaca,
-        reservaId,
-        valor,
-        dataHora,
-        codigoPix,
-        tokenConfirmacao,
-        tokenCancelamento,
-        urlBase
-      });
-
-      await sendEmail({
-        to,
-        subject: `Solicitação de Pagamento PIX - Reserva #${reservaId} - ParkNow`,
-        html,
-        text: `Um cliente solicitou o pagamento via PIX para a reserva #${reservaId}. Valor: ${valor}. Chave PIX: ${codigoPix}`
-      });
-
-      logger.info(`Notificação de pagamento PIX enviada para ${to} para a reserva #${reservaId}`);
-      return true;
-    } catch (error) {
-      logger.error('Erro ao enviar notificação de pagamento PIX:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Envia um email de confirmação de pagamento
    * @param {Object} options - Opções do email
    * @param {string} options.to - Email do destinatário

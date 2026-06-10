@@ -92,18 +92,6 @@ router.use('/api/horarios', horarioFuncionamentoRoutes);
 // Rotas de pagamento PIX
 router.use('/pix', pagamentoRoutes);
 
-// Rotas de pagamento PIX
-const pixPaymentRoutes = require('./pixPaymentRoutes');
-
-// Mount PIX payment routes
-router.use('/api', pixPaymentRoutes);
-
-// Rotas de webhook para notificações de pagamento
-const webhookRouter = require('./webhookRoutesNew');
-
-// Mount webhook routes
-router.use('/webhook', webhookRouter);
-
 // Rotas de tarefas agendadas (cron jobs)
 const cronRoutes = require('./cronRoutes');
 

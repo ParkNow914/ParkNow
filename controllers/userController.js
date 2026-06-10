@@ -2,12 +2,38 @@
 const userModel = require('../models/userModel');
 const { AppError, NotFoundError, BadRequestError } = require('../utils/AppError');
 const logger = require('../utils/logger');
+const config = require('../config');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 
 // Configurações para a imagem de perfil
 const PROFILE_IMAGE_SIZE = 300; // Tamanho padrão para imagens de perfil (300x300 pixels)
+
+// Fotos de perfil são dados pessoais: ficam FORA de public/ (não são servidas
+// estaticamente) e são entregues apenas pelo endpoint autenticado
+// GET /api/user/profile/foto. Em produção (Fly.io) uploads/ é volume
+// persistente — public/ não é, então salvar lá também perdia as fotos a cada deploy.
+const PROFILE_UPLOAD_DIR = path.join(config.uploads.path, 'profile');
+// Diretório legado (fotos antigas salvas dentro de public/), mantido apenas
+// para leitura/remoção de arquivos pré-existentes em disco.
+const LEGACY_PROFILE_DIR = path.join(__dirname, '../public/user/img/profile');
+
+/**
+ * Resolve o caminho físico da foto de perfil a partir do valor salvo no banco,
+ * restringindo a busca aos diretórios de perfil (anti path-traversal).
+ * @returns {string|null} Caminho absoluto do arquivo ou null se não existir.
+ */
+function resolveProfileImagePath(fotoPerfil) {
+    if (!fotoPerfil) return null;
+    const filename = path.basename(fotoPerfil);
+    if (!filename || filename === '.' || filename === '..') return null;
+    for (const dir of [PROFILE_UPLOAD_DIR, LEGACY_PROFILE_DIR]) {
+        const fullPath = path.join(dir, filename);
+        if (fs.existsSync(fullPath)) return fullPath;
+    }
+    return null;
+}
 
 const getUserProfile = async (req, res, next) => {
     try {
@@ -79,11 +105,10 @@ const updateUserProfile = async (req, res, next) => {
         }
 
         // Criar o diretório de uploads se não existir
-        const uploadDir = path.join(__dirname, '../public/user/img/profile');
-        if (!fs.existsSync(uploadDir)) {
+        if (!fs.existsSync(PROFILE_UPLOAD_DIR)) {
             try {
-                fs.mkdirSync(uploadDir, { recursive: true });
-                logger.info(`Diretório de uploads criado: ${uploadDir}`);
+                fs.mkdirSync(PROFILE_UPLOAD_DIR, { recursive: true });
+                logger.info(`Diretório de uploads criado: ${PROFILE_UPLOAD_DIR}`);
             } catch (err) {
                 logger.error(`Erro ao criar diretório de uploads: ${err.message}`);
                 throw new AppError('Erro ao criar diretório de uploads.', 500);
@@ -93,16 +118,10 @@ const updateUserProfile = async (req, res, next) => {
         // Se o usuário já tinha uma imagem, remover a antiga
         if (currentUserData.foto_perfil) {
             try {
-                // Extrair o nome do arquivo da URL
-                const oldImagePath = currentUserData.foto_perfil.split('/').pop();
+                const oldImagePath = resolveProfileImagePath(currentUserData.foto_perfil);
                 if (oldImagePath) {
-                    const fullPath = path.join(__dirname, '../public/user/img/profile', oldImagePath);
-                    
-                    // Verificar se o arquivo existe antes de tentar excluir
-                    if (fs.existsSync(fullPath)) {
-                        fs.unlinkSync(fullPath);
-                        logger.info(`Imagem antiga removida: ${oldImagePath}`);
-                    }
+                    fs.unlinkSync(oldImagePath);
+                    logger.info(`Imagem antiga removida: ${path.basename(oldImagePath)}`);
                 }
             } catch (err) {
                 // Apenas logar o erro, não interromper o fluxo
@@ -112,19 +131,14 @@ const updateUserProfile = async (req, res, next) => {
 
         // Gerar um nome único para a imagem processada
         const filename = `profile-${userId}-${Date.now()}.jpg`;
-        const outputPath = path.join(uploadDir, filename);
-        
+        const outputPath = path.join(PROFILE_UPLOAD_DIR, filename);
+
         // Processar e redimensionar a imagem usando Sharp
         try {
-            // Verificar se o arquivo existe antes de tentar processá-lo
             if (!fs.existsSync(req.file.path)) {
                 throw new Error(`Arquivo de upload não encontrado: ${req.file.path}`);
             }
-            
-            console.log(`Processando imagem de: ${req.file.path} para: ${outputPath}`);
-            
-            // Gerar um nome de arquivo diferente para a imagem processada para evitar conflitos
-            // Redimensionar a imagem para um quadrado de tamanho padrão
+
             await sharp(req.file.path)
                 .rotate()               // Corrige automaticamente a rotação com base nos metadados EXIF
                 .resize({
@@ -133,28 +147,26 @@ const updateUserProfile = async (req, res, next) => {
                     fit: 'cover',      // Corta a imagem para preencher o tamanho especificado
                     position: 'centre'  // Centraliza o corte
                 })
-                .withMetadata({ orientation: 1 })  // Normaliza a orientação
+                .withMetadata({ orientation: 1 })  // Normaliza a orientação (descarta demais EXIF)
                 .jpeg({ quality: 90 })  // Converte para JPEG com 90% de qualidade
                 .toFile(outputPath);    // Salva no caminho de destino
-                
-            // Não vamos tentar remover o arquivo original para evitar erros de permissão
-            // O sistema operacional ou o garbage collector cuidarão disso eventualmente
-            console.log(`Imagem processada com sucesso: ${filename}`);
-            
-            // No Windows, às vezes há problemas de permissão ao tentar excluir arquivos recém-criados
-            
-            console.log(`Imagem processada e salva: ${filename}`);
+
+            // Remove o arquivo original do upload (best-effort)
+            try { fs.unlinkSync(req.file.path); } catch (_e) { /* não crítico */ }
+
+            logger.info(`Imagem de perfil processada: ${filename}`);
         } catch (err) {
-            console.error(`Erro detalhado ao processar imagem: ${err.message}`);
-            console.error(err.stack);
+            logger.error(`Erro ao processar imagem de perfil: ${err.message}`, { stack: err.stack });
             throw new AppError(`Erro ao processar a imagem: ${err.message}`, 500);
         }
 
-        // Construir a URL da nova imagem (usando caminho relativo à raiz do site)
-        const imageUrl = `/user/img/profile/${filename}`;
+        // URL autenticada por onde o frontend busca a foto (cache-bust por timestamp).
+        const imageUrl = `/api/user/profile/foto?v=${Date.now()}`;
+        // No banco guardamos a referência do arquivo para resolução interna.
+        const fotoPerfilRef = `/uploads/profile/${filename}`;
 
-        // Atualizar o perfil do usuário com a nova URL da imagem
-        const updated = await userModel.updateUser(userId, { foto_perfil: imageUrl });
+        // Atualizar o perfil do usuário com a referência da nova imagem
+        const updated = await userModel.updateUser(userId, { foto_perfil: fotoPerfilRef });
 
         if (!updated) {
             // Se falhar ao atualizar o perfil, remover a imagem processada
@@ -172,20 +184,37 @@ const updateUserProfile = async (req, res, next) => {
             imageUrl: imageUrl
         });
     } catch (error) {
-        // Não vamos tentar remover o arquivo original para evitar erros de permissão adicionais
-        // Apenas registrar o erro para depuração
-        
-        // Melhorar a mensagem de erro para o cliente
         const errorMessage = error.message || 'Erro interno ao processar o upload da imagem';
         const statusCode = error.statusCode || 500;
-        
-        console.error(`Erro no upload de imagem: ${errorMessage}`);
-        console.error(error.stack);
-        
+
+        logger.error(`Erro no upload de imagem: ${errorMessage}`, { stack: error.stack });
+
         res.status(statusCode).json({
             success: false,
             message: errorMessage
         });
+    }
+};
+
+/**
+ * Entrega a foto de perfil do PRÓPRIO usuário autenticado.
+ * As fotos não são servidas estaticamente por conterem dados pessoais.
+ *
+ * GET /api/user/profile/foto
+ */
+const getProfileImage = async (req, res, next) => {
+    try {
+        const user = await userModel.findUserById(req.user.id);
+        if (!user) throw new NotFoundError('Usuário não encontrado.');
+        if (!user.foto_perfil) throw new NotFoundError('Usuário não possui foto de perfil.');
+
+        const imagePath = resolveProfileImagePath(user.foto_perfil);
+        if (!imagePath) throw new NotFoundError('Arquivo da foto de perfil não encontrado.');
+
+        res.set('Cache-Control', 'private, max-age=300');
+        res.sendFile(imagePath);
+    } catch (error) {
+        next(error);
     }
 };
 
@@ -216,37 +245,14 @@ const removeProfileImage = async (req, res, _next) => {
 
         // Tentativa de remover o arquivo físico, mas não é crítico se falhar
         try {
-            // Extrair o nome do arquivo da URL
-            const oldImagePath = currentUserData.foto_perfil.split('/').pop();
+            const oldImagePath = resolveProfileImagePath(currentUserData.foto_perfil);
             if (oldImagePath) {
-                const fullPath = path.join(__dirname, '../public/user/img/profile', oldImagePath);
-                
-                // Verificar se o arquivo existe antes de tentar excluir
-                if (fs.existsSync(fullPath)) {
-                    try {
-                        // Tentar excluir o arquivo, mas não bloquear se falhar
-                        fs.unlinkSync(fullPath);
-                        console.log(`Imagem removida: ${oldImagePath}`);
-                    } catch (unlinkErr) {
-                        // Se falhar ao excluir, apenas registrar o erro
-                        console.warn(`Não foi possível excluir o arquivo: ${unlinkErr.message}`);
-                        // Programar uma tentativa de exclusão posterior
-                        setTimeout(() => {
-                            try {
-                                if (fs.existsSync(fullPath)) {
-                                    fs.unlinkSync(fullPath);
-                                    console.log(`Imagem removida posteriormente: ${oldImagePath}`);
-                                }
-                            } catch (e) {
-                                console.warn(`Falha na segunda tentativa de exclusão: ${e.message}`);
-                            }
-                        }, 1000); // Tentar novamente após 1 segundo
-                    }
-                }
+                fs.unlinkSync(oldImagePath);
+                logger.info(`Imagem removida: ${path.basename(oldImagePath)}`);
             }
         } catch (err) {
             // Apenas logar o erro, não interromper o fluxo
-            console.warn(`Erro ao processar remoção de imagem: ${err.message}`);
+            logger.warn(`Erro ao processar remoção de imagem: ${err.message}`);
         }
 
         // Atualizar o perfil do usuário para remover a referência à foto
@@ -275,4 +281,4 @@ const removeProfileImage = async (req, res, _next) => {
     }
 };
 
-module.exports = { getUserProfile, updateUserProfile, uploadProfileImage, removeProfileImage };
+module.exports = { getUserProfile, updateUserProfile, uploadProfileImage, getProfileImage, removeProfileImage };

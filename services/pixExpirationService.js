@@ -2,6 +2,7 @@ const db = require('../utils/dbUtils');
 const logger = require('../utils/logger');
 const { RESERVATION_STATUS } = require('../models/reservaModel');
 const emailService = require('./emailService');
+const { liberarVagasDasReservas } = require('./reservaMaintenanceService');
 
 class PixExpirationService {
     /**
@@ -14,8 +15,10 @@ class PixExpirationService {
         try {
             await client.query('BEGIN');
 
-            // Busca reservas PIX pendentes de pagamento que já expiraram
-            const minutosExpiracao = parseInt(process.env.PIX_CONFIRMATION_TIMEOUT_MINUTES || '30');
+            // Busca reservas PIX pendentes de pagamento que já expiraram.
+            // O intervalo é validado numericamente antes de entrar na query.
+            const parsedTimeout = parseInt(process.env.PIX_CONFIRMATION_TIMEOUT_MINUTES || '30', 10);
+            const minutosExpiracao = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 30;
             const sql = `
                 UPDATE reservas r
                 SET
@@ -26,12 +29,16 @@ class PixExpirationService {
                     r.id = p.reserva_id
                     AND p.metodo_pagamento = 'pix'
                     AND p.status = 'pendente'
-                    AND r.created_at < NOW() - INTERVAL '${minutosExpiracao} minutes'
-                    AND r.status = '${RESERVATION_STATUS.PENDING}'
+                    AND r.created_at < NOW() - ($2 * INTERVAL '1 minute')
+                    AND r.status = $3
                 RETURNING r.*
             `;
 
-            const result = await client.query(sql, [RESERVATION_STATUS.CANCELLED]);
+            const result = await client.query(sql, [
+                RESERVATION_STATUS.CANCELLED,
+                minutosExpiracao,
+                RESERVATION_STATUS.PENDING,
+            ]);
 
             if (result.rowCount > 0) {
                 // Atualiza também os pagamentos PIX para status 'cancelado'
@@ -45,7 +52,11 @@ class PixExpirationService {
                     [reservaIds]
                 );
 
-                logger.info(`Canceladas ${result.rowCount} reservas PIX expiradas`);
+                // Libera as vagas que ficaram presas em 'reservada' — sem isso
+                // cada reserva PIX expirada deixava uma vaga indisponível para sempre.
+                const vagasLiberadas = await liberarVagasDasReservas(client, reservaIds);
+
+                logger.info(`Canceladas ${result.rowCount} reservas PIX expiradas; ${vagasLiberadas} vaga(s) liberada(s)`);
 
                 // Notifica os usuários sobre o cancelamento
                 await this.notificarCancelamentos(result.rows, client);

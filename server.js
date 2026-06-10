@@ -52,7 +52,10 @@ app.use(requestId);
 const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Apenas HTTPS em produção
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Para cross-site em produção
+    // 'lax' em todos os ambientes: o frontend é servido pela própria aplicação
+    // (mesma origem), então não há necessidade de 'none' — e 'lax' protege o
+    // refresh token contra CSRF cross-site. Mantido alinhado com config/index.js.
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
     path: '/api/auth' // Cobre /api/auth/refresh, /api/auth/logout etc.
 };
@@ -161,6 +164,12 @@ app.use(detectTimezone);
 
 // Response Date Formatter: Formata datas nas respostas da API para o timezone do usuário
 app.use(require('./middleware/responseDateFormatter'));
+// Fotos de perfil legadas eram salvas dentro de public/ — bloqueia o caminho
+// para que dados pessoais nunca sejam servidos estaticamente (o endpoint
+// autenticado GET /api/user/profile/foto cobre a entrega).
+app.use('/user/img/profile', (req, res) => {
+    res.status(404).json({ success: false, message: 'Não encontrado.' });
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Add time service to all requests
@@ -170,7 +179,18 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Uploads: fotos de estacionamento são públicas (aparecem nas listagens),
+// mas comprovantes PIX e fotos de perfil contêm dados pessoais/financeiros e
+// NÃO são servidos estaticamente. Eles são entregues apenas por endpoints
+// autenticados: GET /api/user/profile/foto (dono) e
+// GET /api/admin/pagamentos/:id/comprovante (admin do estacionamento).
+const SENSITIVE_UPLOAD_PATTERN = /^\/(comprovante-|profile\/|profile_images\/)/i;
+app.use('/uploads', (req, res, next) => {
+    if (SENSITIVE_UPLOAD_PATTERN.test(req.path)) {
+        return res.status(404).json({ success: false, message: 'Não encontrado.' });
+    }
+    next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Rotas públicas (não requerem autenticação)
 app.use('/api/public', approvalRoutes); // Rotas de aprovação de parcerias

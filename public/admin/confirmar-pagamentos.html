@@ -154,14 +154,18 @@
         return;
       }
       const html = pagamentos.map(p => {
+        // O comprovante é PII financeira e não é servido estaticamente: é
+        // baixado via endpoint autenticado e exibido como blob.
         const compUrl = p.comprovante_url || '';
         const isPdf = compUrl.toLowerCase().endsWith('.pdf');
+        const pagamentoId = Number(p.pagamento_id);
         const preview = isPdf
-          ? `<a href="${compUrl}" target="_blank" class="btn btn-sm btn-outline-primary">
+          ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="abrirComprovantePdf(${pagamentoId})">
                 <i class="fas fa-file-pdf me-1"></i>Abrir PDF
-             </a>`
-          : `<img src="${compUrl}" class="comprovante-img" alt="comprovante"
-                 onclick="abrirComprovante('${compUrl}')">`;
+             </button>`
+          : `<img class="comprovante-img comprovante-blob" alt="comprovante"
+                 data-pagamento-id="${pagamentoId}"
+                 onclick="abrirComprovante(${pagamentoId})">`;
         return `
           <div class="card-pagamento">
             <div class="row g-0">
@@ -201,6 +205,15 @@
           </div>`;
       }).join('');
       $c.html(html);
+
+      // Carrega as miniaturas dos comprovantes via endpoint autenticado
+      $c.find('img.comprovante-blob').each(function () {
+        const $img = $(this);
+        const id = $img.data('pagamento-id');
+        fetchComprovanteBlob(id)
+          .then(url => { if (url) $img.attr('src', url); })
+          .catch(() => { /* mantém placeholder sem src */ });
+      });
     }
 
     function escapeHtml(s) {
@@ -265,9 +278,40 @@
       }
     });
 
-    window.abrirComprovante = function(url) {
-      $('#viewComprovanteBody').html(`<img src="${url}" class="img-fluid">`);
-      $('#viewComprovanteModal').modal('show');
+    // Busca o comprovante pelo endpoint autenticado e devolve um blob URL.
+    const comprovanteBlobCache = new Map();
+    async function fetchComprovanteBlob(pagamentoId) {
+      if (comprovanteBlobCache.has(pagamentoId)) return comprovanteBlobCache.get(pagamentoId);
+      const resp = await fetch(`${API}/admin/pagamentos/${pagamentoId}/comprovante`, {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      if (!resp.ok) throw new Error('Falha ao carregar comprovante');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      comprovanteBlobCache.set(pagamentoId, url);
+      return url;
+    }
+
+    window.abrirComprovante = async function(pagamentoId) {
+      try {
+        const url = await fetchComprovanteBlob(pagamentoId);
+        const img = document.createElement('img');
+        img.src = url;
+        img.className = 'img-fluid';
+        $('#viewComprovanteBody').empty().append(img);
+        $('#viewComprovanteModal').modal('show');
+      } catch (err) {
+        flash('Erro ao abrir comprovante: ' + err.message, 'danger');
+      }
+    };
+
+    window.abrirComprovantePdf = async function(pagamentoId) {
+      try {
+        const url = await fetchComprovanteBlob(pagamentoId);
+        window.open(url, '_blank');
+      } catch (err) {
+        flash('Erro ao abrir comprovante: ' + err.message, 'danger');
+      }
     };
 
     // Inicialização

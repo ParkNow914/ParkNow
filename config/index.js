@@ -7,25 +7,27 @@ const logger = require('../utils/logger'); // Importa APÓS dotenv
 const isProduction = process.env.NODE_ENV === 'production';
 const port = process.env.PORT || 3000;
 
-// --- Geração Automática de Segredos JWT (se não definidos no .env) ---
+// --- Segredos JWT ---
+// Em produção a ausência é erro fatal (defesa em profundidade: o envValidator
+// também aborta o startup). Em desenvolvimento gera um segredo temporário por
+// processo — útil localmente, mas invalida tokens a cada restart.
 let jwtSecret = process.env.JWT_SECRET;
 let jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
 
-if (!jwtSecret) {
-    jwtSecret = crypto.randomBytes(32).toString('hex');
-    logger.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    logger.warn("AVISO: JWT_SECRET não definido no .env! Gerando segredo temporário.");
-    logger.warn("       Defina um JWT_SECRET permanente no .env para produção!");
-    logger.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+if (!jwtSecret || !jwtRefreshSecret) {
+    if (isProduction) {
+        throw new Error('FATAL: JWT_SECRET e JWT_REFRESH_SECRET são obrigatórios em produção.');
+    }
+    if (!jwtSecret) {
+        jwtSecret = crypto.randomBytes(32).toString('hex');
+        logger.warn('AVISO: JWT_SECRET não definido no .env! Gerando segredo temporário (somente dev).');
+    }
+    if (!jwtRefreshSecret) {
+        jwtRefreshSecret = crypto.randomBytes(32).toString('hex');
+        logger.warn('AVISO: JWT_REFRESH_SECRET não definido no .env! Gerando segredo temporário (somente dev).');
+    }
 }
-if (!jwtRefreshSecret) {
-    jwtRefreshSecret = crypto.randomBytes(32).toString('hex');
-     logger.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    logger.warn("AVISO: JWT_REFRESH_SECRET não definido no .env! Gerando segredo temporário.");
-    logger.warn("       Defina um JWT_REFRESH_SECRET permanente no .env para produção!");
-     logger.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-}
-// --- Fim Geração JWT ---
+// --- Fim Segredos JWT ---
 
 const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
@@ -98,7 +100,11 @@ const config = {
         }
     },
     // --- Fim Configuração Email ---
-    cookieProps: { httpOnly: true, secure: isProduction, sameSite: isProduction ? 'Lax' : 'None', path: '/', },  // Configuração mais permissiva para cookies
+    // Política única de cookies (mesma usada em server.js): httpOnly sempre,
+    // secure em produção e sameSite=Lax em todos os ambientes. O frontend é
+    // servido pela própria aplicação (mesma origem), então 'Lax' funciona e
+    // protege contra CSRF. 'None' exigiria secure=true e abriria cross-site.
+    cookieProps: { httpOnly: true, secure: isProduction, sameSite: 'lax', path: '/' },
     // --- Configuração Redis (DESABILITADA) ---
     // redis: { 
     //     host: process.env.REDIS_HOST || 'localhost', 
@@ -115,33 +121,16 @@ const config = {
     cron: { expireReservasSchedule: process.env.CRON_EXPIRE_RESERVAS || '*/5 * * * *', updateTempoSchedule: process.env.CRON_UPDATE_TEMPO || '*/1 * * * *' }, // Removido cron blacklist
     uploads: { path: path.resolve(__dirname, '..', 'uploads'), maxFileSize: parseInt(process.env.UPLOAD_MAX_SIZE_MB || '5') * 1024 * 1024, allowedMimes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'] },
     reserva: { bufferOcupadaHoras: parseFloat(process.env.RESERVA_BUFFER_OCUPADA_H || '2') },
-    // Configurações do PIX
+    // Configurações do PIX (fluxo manual, sem gateway).
+    // O BR Code é gerado localmente (utils/pixBrCode.js); aqui ficam apenas
+    // parâmetros de tempo/notificação usados pelo fluxo manual.
     pix: {
-        // Configurações da API PIX (exemplo com Gerencianet)
-        enabled: process.env.PIX_ENABLED === 'true' || false,
-        provider: process.env.PIX_PROVIDER || 'gerencianet', // 'gerencianet', 'mercadopago', etc.
-        baseUrl: process.env.PIX_BASE_URL || 'https://api-pix.gerencianet.com.br',
-        clientId: process.env.PIX_CLIENT_ID || '',
-        clientSecret: process.env.PIX_CLIENT_SECRET || '',
-        certificate: process.env.PIX_CERTIFICATE_PATH || './certs/certificate.p12',
-        pixKey: process.env.PIX_KEY || '', // Chave PIX da aplicação (opcional)
-        webhookUrl: process.env.PIX_WEBHOOK_URL || '', // URL para receber notificações de pagamento
-        
-        // Configurações de tempo (em segundos)
-        tokenExpiresIn: parseInt(process.env.PIX_TOKEN_EXPIRES_IN || '3600'),
-        chargeExpiresIn: parseInt(process.env.PIX_CHARGE_EXPIRES_IN || '3600'), // 1 hora
-        
-        // Configurações de ambiente
-        sandbox: process.env.PIX_SANDBOX === 'true' || true,
-        debug: process.env.PIX_DEBUG === 'true' || false,
-        
-        // Configurações de notificação
-        notifyCustomer: process.env.PIX_NOTIFY_CUSTOMER === 'true' || true,
-        notifyEmail: process.env.PIX_NOTIFY_EMAIL || process.env.EMAIL_ADMIN || '',
-        
-        // Configurações de segurança
-        validateWebhookSignature: process.env.PIX_VALIDATE_WEBHOOK === 'true' || true,
-        webhookSecret: process.env.PIX_WEBHOOK_SECRET || crypto.randomBytes(32).toString('hex')
+        // Tempo (em segundos) que uma cobrança PIX pendente fica viva
+        chargeExpiresIn: parseInt(process.env.PIX_CHARGE_EXPIRES_IN || '3600', 10),
+
+        // Notificação ao cliente sobre status do pagamento
+        notifyCustomer: process.env.PIX_NOTIFY_CUSTOMER !== 'false',
+        notifyEmail: process.env.PIX_NOTIFY_EMAIL || process.env.EMAIL_ADMIN || ''
     }
 };
 

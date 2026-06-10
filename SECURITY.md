@@ -17,7 +17,7 @@ A segurança do ParkNow é levada muito a sério. Se você descobriu uma vulnera
 
 **Por favor, NÃO reporte vulnerabilidades de segurança através de issues públicas do GitHub.**
 
-Em vez disso, envie um e-mail para: [SEU-EMAIL@example.com]
+Em vez disso, envie um e-mail para: alimiguel1098@gmail.com
 
 Você deve receber uma resposta dentro de 48 horas. Se por algum motivo você não receber, por favor, acompanhe por e-mail para garantir que recebemos sua mensagem original.
 

@@ -6,6 +6,7 @@
 const path = require('path');
 const fs = require('fs');
 const logger = require('../utils/logger');
+const config = require('../config');
 const pool = require('../models/db');
 const {
     AppError,
@@ -316,9 +317,51 @@ async function listarAguardandoConfirmacao(req, res, next) {
     }
 }
 
+/**
+ * ADMIN — entrega o arquivo do comprovante de um pagamento do próprio
+ * estacionamento. Comprovantes contêm dados financeiros/pessoais e NÃO são
+ * servidos estaticamente; somente por aqui, com RBAC de ownership.
+ *
+ * GET /api/admin/pagamentos/:id/comprovante
+ */
+async function baixarComprovante(req, res, next) {
+    try {
+        const pagamentoId = parseInt(req.params.id, 10);
+        const adminId = req.admin?.id;
+        if (Number.isNaN(pagamentoId)) throw new BadRequestError('ID do pagamento inválido.');
+
+        const { rows } = await pool.query(
+            `SELECT p.comprovante_url, e.admin_id
+               FROM pagamentos p
+               JOIN reservas r        ON r.id = p.reserva_id
+               JOIN estacionamentos e ON e.id = r.estacionamento_id
+              WHERE p.id = $1`,
+            [pagamentoId]
+        );
+        if (rows.length === 0) throw new NotFoundError('Pagamento não encontrado.');
+        if (parseInt(rows[0].admin_id, 10) !== parseInt(adminId, 10)) {
+            throw new AuthorizationError('Você não tem permissão sobre este estacionamento.');
+        }
+        if (!rows[0].comprovante_url) throw new NotFoundError('Comprovante não enviado.');
+
+        // path.basename impede path traversal: só arquivos do diretório de uploads.
+        const filename = path.basename(rows[0].comprovante_url);
+        const fullPath = path.join(config.uploads.path, filename);
+        if (!fs.existsSync(fullPath)) {
+            throw new NotFoundError('Arquivo do comprovante não encontrado.');
+        }
+
+        res.set('Cache-Control', 'private, max-age=300');
+        res.sendFile(fullPath);
+    } catch (error) {
+        next(error);
+    }
+}
+
 module.exports = {
     enviarComprovante,
     confirmarPagamento,
     rejeitarPagamento,
     listarAguardandoConfirmacao,
+    baixarComprovante,
 };

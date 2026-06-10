@@ -1,13 +1,39 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { check } = require('express-validator');
 const AuthController = require('../../controllers/v2/AuthController');
 const { authenticate } = require('../../middleware/v2/authMiddleware');
 const { handleValidationErrors } = require('../../middleware/validationMiddleware');
 
+// Rate limiters anti brute-force (mesma política da v1 em routes/authRoutes.js)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { success: false, error: 'too_many_login_attempts' },
+});
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'too_many_signups' },
+});
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'too_many_password_reset_requests' },
+});
+
 // Rotas públicas
 router.post(
   '/register',
+  signupLimiter,
   [
     check('nome', 'O nome é obrigatório').not().isEmpty(),
     check('email', 'Por favor, forneça um email válido').isEmail(),
@@ -56,6 +82,7 @@ router.post(
 
 router.post(
   '/login',
+  loginLimiter,
   [
     check('email', 'Por favor, forneça um email válido').isEmail(),
     check('senha', 'A senha é obrigatória').exists(),
@@ -66,6 +93,7 @@ router.post(
 
 router.post(
   '/forgot-password',
+  passwordResetLimiter,
   [check('email', 'Por favor, forneça um email válido').isEmail()],
   handleValidationErrors,
   AuthController.forgotPassword
@@ -73,6 +101,7 @@ router.post(
 
 router.patch(
   '/reset-password/:token',
+  passwordResetLimiter,
   [
     check('senha', 'A senha deve ter no mínimo 8 caracteres').isLength({ min: 8 }),
     check('senhaConfirmacao', 'As senhas não conferem').custom(

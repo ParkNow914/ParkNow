@@ -158,7 +158,7 @@ router.post('/reset-password/:token', signupLimiter, auditLog('auth.reset_passwo
 ], handleValidationErrors, authController.resetPassword);
 
 // GET /api/auth/verify-email/:token - Confirma o email do usuário (link do email)
-router.get('/verify-email/:token', auditLog('auth.verify_email'), authController.verifyEmail);
+router.get('/verify-email/:token', forgotPasswordLimiter, auditLog('auth.verify_email'), authController.verifyEmail);
 
 
 // --- Rotas de Autenticação de Administrador ---
