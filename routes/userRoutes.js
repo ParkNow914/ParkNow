@@ -122,19 +122,20 @@ router.put('/profile',
 );
 
 // --- Upload de Imagem de Perfil ---
-// Configuração do Multer para upload de imagens
+// Configuração do Multer para upload de imagens.
+// IMPORTANTE: salva em uploads/profile (fora de public/) — fotos de perfil são
+// dados pessoais e só são entregues pelo endpoint autenticado GET /profile/foto.
+const config = require('../config');
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
-        // Usar o mesmo diretório que o controlador usa para salvar as imagens processadas
-        const uploadDir = path.join(__dirname, '../public/user/img/profile');
-        
+        const uploadDir = path.join(config.uploads.path, 'profile');
+
         // Garantir que o diretório exista
         const fs = require('fs');
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
-            console.log(`Diretório de uploads criado: ${uploadDir}`);
         }
-        
+
         cb(null, uploadDir);
     },
     filename: function(req, file, cb) {
@@ -165,6 +166,10 @@ const upload = multer({
 
 // POST /api/user/profile/image - Upload de imagem de perfil
 router.post('/profile/image', upload.single('profileImage'), userController.uploadProfileImage);
+
+// GET /api/user/profile/foto - Entrega a foto de perfil do próprio usuário
+// (fotos não são servidas estaticamente por serem dados pessoais)
+router.get('/profile/foto', userController.getProfileImage);
 
 // DELETE /api/user/profile/image - Remover imagem de perfil
 router.delete('/profile/image', userController.removeProfileImage);
