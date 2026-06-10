@@ -29,9 +29,19 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 - [~] Rate limiting → Postgres → **movido para Sessão 3** (in-memory ok para 1 instância Fly hoje)
 - [x] Bug fix: validação de `numeroVagas` (range 1..1000) — regressão pega por teste
 
-### Sessão 3 — Frontend/UX & rate limit _(planejada)_
+### Sessão 3 — Auditoria completa & hardening ✅ _(sessão Claude, 2026-06-10)_
+- [x] **Segurança crítica**: senha PG hardcoded removida de 5 scripts (⚠️ ROTACIONAR a senha real); dump com PII (CPF/telefone/hash) e fotos de usuários removidos do repo + .gitignore (⚠️ reescrever histórico Git se o repo for público); CRON_API_KEY fail-closed; JWT fatal em produção sem segredo; cookies unificados (lax)
+- [x] **Uploads protegidos**: comprovantes e fotos de perfil fora do static; endpoints autenticados com ownership (GET /api/admin/pagamentos/:id/comprovante, GET /api/user/profile/foto); fotos de perfil salvas em volume persistente
+- [x] **Bugs graves**: vagas presas em 'reservada' para sempre na expiração (liberadas agora); trigger quebrado em pagamentos (INSERT falhava em banco novo); drift pagamentos/horarios_funcionamento entre linhagens de schema; protectUser vazando para metade da API (cnpj/validate-email/cron sempre 401); Zod options sem default (500 no validate-email); migrations agora aplicam 100% limpas em banco novo
+- [x] **Código morto**: ~35 arquivos (webhooks sem rota, fluxo PIX por link de e-mail quebrado, modelos/middlewares/utils órfãos, páginas demo, CSS duplicado, notificationService.new.js, Redis no-op)
+- [x] **Testes**: fluxo PIX manual completo (BOLA, dupla confirmação, expiração + liberação de vaga) e auth (register/login/refresh/logout) contra Postgres real
+- [x] **Refatoração**: contactController 1711→394 linhas (templates extraídos); cron sem HTTP self-call e sem jobs duplicados; timezone 4 módulos→1; cache de auth (1 SELECT/req a menos)
+- [x] **Frontend**: XSS sinks escapados (incl. contexto JS em onclick); console.log atrás de flag; jQuery/Bootstrap/Leaflet/Socket.IO deduplicados (3 versões de socket.io!)
+- [x] Índices faltantes; colunas asaas_* dropadas; migrations de pagamentos convergidas; página 404; release_command no Fly; docs realinhadas (ARQUITETURA, ROUTES_PAGAMENTO, GUIA)
+
+### Sessão 3 — Frontend/UX & rate limit _(planejada — itens restantes)_
 - [ ] Rate limiting → Postgres
-- [ ] Eliminar `notificationService.new.js` (duplicado)
+- [x] Eliminar `notificationService.new.js` _(Sessão 3)_
 - [ ] Modo escuro · Filtros no mapa · Páginas 404/500 · Preview de comprovante
 - [ ] Feedback visual de `?email_verificado=` na landing
 
@@ -40,8 +50,8 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 ## 🔴 CRÍTICO
 
 ### Testes & Qualidade
-- [ ] Testes de integração do fluxo PIX (reserva→BR Code→comprovante→confirmação)
-- [ ] Testes dos controllers (auth, reserva, pagamento, admin)
+- [x] Testes de integração do fluxo PIX (comprovante→confirmação/rejeição/expiração) _(Sessão 3)_
+- [~] Testes dos controllers — auth e pagamento feitos _(Sessão 3)_; reserva/admin pendentes
 - [x] CI rodando contra Postgres real _(Sessão 1)_
 - [x] Coverage como gate no CI _(Sessão 1)_
 - [ ] Teste do BR Code contra apps de banco reais
@@ -77,20 +87,20 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 
 ### Banco de Dados
 - [x] Migrations reais com tabela de controle _(Sessão 1)_
-- [ ] Consolidar migrations conflitantes num baseline limpo
-- [ ] Índices faltando (`pagamentos.reserva_id`, `reservas.usuario_id+status`, etc)
-- [ ] Dropar colunas mortas (asaas_*, stripe_*)
+- [x] Consolidar migrations — aplicam limpas em banco novo na 1ª execução _(Sessão 3)_
+- [x] Índices faltando (`pagamentos.reserva_id`, `reservas.usuario_id+status`) _(Sessão 3)_
+- [x] Dropar colunas mortas asaas_* _(Sessão 3)_
 - [ ] Constraints (CHECK valor>0, FK ON DELETE explícito)
 - [ ] Restore-drill de backup + off-site grátis (R2/B2)
 
 ### Frontend / UX
-- [ ] Eliminar `notificationService.new.js` (duplicado)
+- [x] Eliminar `notificationService.new.js` _(Sessão 3)_
 - [ ] Reduzir peso do front (React UMD + jQuery + Bootstrap juntos)
 - [ ] Modo escuro
 - [ ] Filtros de busca no mapa (preço, distância, coberto, aberto agora)
 - [ ] Estados loading/empty/erro consistentes
 - [ ] Preview de imagem antes do upload do comprovante
-- [ ] Páginas 404/500 customizadas
+- [~] Páginas 404/500 — 404 feita _(Sessão 3)_; 500 pendente
 - [ ] Onboarding/tour
 
 ### Observabilidade
@@ -106,8 +116,8 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 ## 🟢 MELHORIAS & TECH DEBT
 
 ### Refatoração
-- [ ] Quebrar god files (contactController 1711 linhas, admin script 1449)
-- [ ] Remover dead code (pixService Gerencianet, Redis comentado)
+- [~] Quebrar god files — contactController 1711→394 _(Sessão 3)_; admin script 1449 pendente
+- [x] Remover dead code (pixService Gerencianet, Redis, webhooks, +30 arquivos) _(Sessão 3)_
 - [ ] Resolver `@deprecated` (AppError, userModel)
 - [ ] TypeScript ou JSDoc + checkJs
 - [ ] Padronizar idioma do código

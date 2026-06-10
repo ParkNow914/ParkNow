@@ -50,8 +50,7 @@ const findById = async (id) => {
     const sql = `
         SELECT id, nome, latitude, longitude, endereco, vagas as vagas_total,
                preco_hora, preco_dia, descricao, foto, admin_id,
-               chave_pix, tipo_chave_pix, nome_titular_pix,
-               asaas_wallet_id, asaas_connected_at
+               chave_pix, tipo_chave_pix, nome_titular_pix
         FROM estacionamentos WHERE id = ? LIMIT 1
     `;
     try {
