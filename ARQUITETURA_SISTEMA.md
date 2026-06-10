@@ -1,250 +1,147 @@
 # 🏗️ Arquitetura do Sistema ParkNow
 
+> Atualizado em 2026-06. Reflete a stack **always free** atual: pagamento via
+> **PIX manual** (BR Code gerado localmente, confirmação pelo admin), sem
+> gateway de pagamento. As referências a Stripe/ASAAS sobrevivem apenas no
+> histórico de migrations.
+
 ## 📋 Visão Geral
 
-O **ParkNow** é uma plataforma de gerenciamento de estacionamentos com pagamentos 100% automatizados via **ASAAS**.
+O **ParkNow** é uma plataforma de gerenciamento de estacionamentos com reserva
+de vagas, mapa interativo, notificações em tempo real (Socket.IO) e pagamento
+via **PIX direto na chave do estacionamento**, com confirmação manual do
+comprovante pelo administrador.
+
+- **Backend:** Node.js 18+ / Express 4 / PostgreSQL (pg + Sequelize)
+- **Frontend:** páginas estáticas em `public/` (vanilla JS + jQuery + Bootstrap
+  + Leaflet + React UMD pontual)
+- **Tempo real:** Socket.IO (salas por usuário, por estacionamento e de admins)
+- **Deploy:** Fly.io (região GRU) ou Oracle Cloud Always Free via Terraform
 
 ---
 
 ## 👥 Tipos de Usuário
 
-### 1️⃣ **Administradores (Donos de Estacionamento)**
+### 1️⃣ Administradores (donos de estacionamento)
 
-- **Cadastro:** `/api/auth/admin/register`
-- **Perfil:** Donos de estacionamento que gerenciam suas vagas
-- **Permissões:**
-  - Criar e gerenciar estacionamento
-  - Configurar valores (hora, diária, mensal)
-  - Visualizar reservas e pagamentos
-  - Configurar dados de recebimento ASAAS
-  - Dashboard administrativo completo
+- **Cadastro:** `POST /api/auth/admin/register` (cria admin + estacionamento)
+- **Permissões:** gerenciar o próprio estacionamento, vagas e preços; cadastrar
+  a **chave PIX** de recebimento; ver a fila de comprovantes e
+  confirmar/rejeitar pagamentos; dashboard administrativo.
+- **RBAC:** todo endpoint admin valida ownership (`estacionamentos.admin_id`)
+  — um admin não enxerga nem opera dados de outro estacionamento.
 
-### 2️⃣ **Usuários (Motoristas)**
+### 2️⃣ Usuários (motoristas)
 
-- **Cadastro:** `/api/auth/register`
-- **Perfil:** Motoristas que procuram e reservam vagas
-- **Permissões:**
-  - Buscar estacionamentos disponíveis
-  - Fazer reservas com pagamento automático
-  - Visualizar histórico de reservas
-  - Gerenciar veículos cadastrados
+- **Cadastro:** `POST /api/auth/register` (com verificação de e-mail por token)
+- **Permissões:** buscar estacionamentos no mapa, reservar vaga, pagar via PIX
+  e enviar comprovante, acompanhar status em tempo real, gerenciar perfil.
 
 ---
 
-## 💳 Sistema de Pagamentos
+## 💳 Sistema de Pagamentos (PIX manual, sem gateway)
 
-### Gateway: **ASAAS** (100% Automatizado)
+1. **Usuário cria a reserva** → `POST /api/reservas/com-pagamento`
+2. **Backend gera o BR Code localmente** (`utils/pixBrCode.js`, padrão
+   EMV/Bacen com CRC16) → QR Code + copia-e-cola apontando para a **chave PIX
+   do estacionamento**. Sem custo por transação.
+3. **Usuário paga no app do banco** e anexa o comprovante:
+   `POST /api/reservas/:id/comprovante` (multipart, autenticado, rate-limited)
+4. **Admin vê a fila** em `GET /api/admin/pagamentos/aguardando-confirmacao`
+   e baixa o comprovante por `GET /api/admin/pagamentos/:id/comprovante`
+   (endpoint autenticado — comprovantes NÃO são servidos estaticamente)
+5. **Admin confirma** `POST /api/admin/reservas/:id/confirmar-pagamento`
+   (transação com `FOR UPDATE`; pagamento → `aprovado`, reserva →
+   `confirmada`, vaga → `ocupada`) **ou rejeita** com motivo
+   (`POST /api/admin/reservas/:id/rejeitar-pagamento`; usuário pode reenviar).
+6. **Usuário é notificado** via Socket.IO (sala `usuario_<id>`).
 
-#### Fluxo de Pagamento:
-
-1. **Usuário cria reserva** → Sistema calcula valor
-2. **Sistema cria cobrança no ASAAS** → Gera QR Code PIX ou link de pagamento
-3. **Usuário paga** → ASAAS processa pagamento
-4. **Webhook ASAAS notifica sistema** → Status atualizado automaticamente
-5. **Split automático:**
-   - **85%** → Conta do estacionamento
-   - **15%** → Taxa da plataforma
-
-#### Métodos de Pagamento Suportados:
-- ✅ **PIX** (instantâneo)
-- ✅ **Cartão de Crédito**
-- ✅ **Cartão de Débito**
-- ✅ **Boleto Bancário**
-
----
-
-## 🔄 Fluxo de Reserva com Pagamento
-
-```
-[Usuário] 
-    ↓
-[Seleciona vaga e horário]
-    ↓
-[POST /api/reservas/com-pagamento]
-    ↓
-[Sistema valida disponibilidade]
-    ↓
-[Sistema cria cobrança no ASAAS]
-    ↓
-[ASAAS retorna QR Code/Link]
-    ↓
-[Usuário recebe dados de pagamento]
-    ↓
-[Usuário paga via PIX/Cartão]
-    ↓
-[ASAAS processa pagamento]
-    ↓
-[Webhook POST /api/webhooks/asaas]
-    ↓
-[Sistema atualiza status → CONFIRMADO]
-    ↓
-[Split automático executado]
-    ↓
-[Notificação enviada ao usuário]
-```
+**Expiração automática:** reservas PIX pendentes além de
+`PIX_PENDING_TIMEOUT_MIN` (default 30 min) são canceladas pelo agendador
+interno, o pagamento é marcado `cancelado` e **a vaga é liberada**. Reservas
+pendentes cujo horário de entrada passou sem check-in expiram da mesma forma.
 
 ---
 
-## 🗄️ Estrutura do Banco de Dados
+## 🔁 Tarefas agendadas
 
-### Tabelas Principais:
+`services/cronJobs.js` (node-cron, in-process) chama os serviços diretamente:
 
-1. **admins** - Donos de estacionamento
-2. **usuarios** - Motoristas
-3. **estacionamentos** - Dados dos estacionamentos
-4. **vagas** - Vagas individuais
-5. **reservas** - Reservas de vagas
-6. **pagamentos** - Transações de pagamento
-7. **estacionamento_pagamentos** - Config de recebimento ASAAS
+| Tarefa | Schedule | Serviço |
+|---|---|---|
+| Expirar reservas pendentes vencidas (libera vagas) | `CRON_EXPIRE_RESERVAS` (default `*/5min`) | `reservaMaintenanceService.expirarReservasPendentes` |
+| Cancelar PIX pendente expirado (libera vagas) | `*/5min` | `pixExpirationService.cancelarReservasExpiradas` |
+| Atualizar tempo estacionado | `CRON_UPDATE_TEMPO` (default `*/1min`) | `vagaModel.updateAllTemposEstacionados` |
 
-### Relacionamentos:
-- Admin → Estacionamento (1:N)
-- Estacionamento → Vagas (1:N)
-- Usuário → Reservas (1:N)
-- Reserva → Pagamento (1:1)
-- Estacionamento → Configuração ASAAS (1:1)
+Os mesmos serviços são expostos para acionamento **externo** em
+`POST /api/cron/verificar-reservas-expiradas` e
+`POST /api/cron/expirar-reservas-pendentes`, protegidos por `CRON_API_KEY`
+(header `x-api-key`; fail-closed se a variável não estiver configurada).
+
+---
+
+## 🗄️ Banco de Dados (PostgreSQL)
+
+Tabelas principais: `usuarios`, `admins`, `estacionamentos`, `vagas`,
+`reservas`, `pagamentos`, `veiculos`, `notificacoes`, `horarios_funcionamento`,
+`estacionamento_pagamentos` (chave PIX do estacionamento),
+`solicitacoes_estacionamento`, `logs_admins`, `logs_veiculos`,
+`parceria_solicitacoes` (aprovações persistidas), `idempotency_keys`,
+`schema_migrations` (controle de migrations).
+
+- **Migrations:** `npm run migrate` (runner próprio em `scripts/migrate.js`
+  com baseline implícito + checksums; `--status` e `--strict` disponíveis).
+  Aplicam limpo em banco novo na primeira execução.
+- **Acesso a dados:** majoritariamente `pg` puro (pool em `utils/dbUtils.js`);
+  modelos Sequelize PascalCase ainda existem para partes do código — a
+  unificação completa está no ROADMAP.
+
+### Estados de reserva
+
+`pendente` → (admin confirma) `confirmada` → `ativa`/`em_andamento` →
+`concluida`/`finalizada`; caminhos terminais: `cancelada` (PIX expirado ou
+cancelamento), `expirada` (não compareceu sem pagar), `nao_compareceu`.
+Pagamentos: `pendente` → `aprovado` | `cancelado` (com `motivo_rejeicao` e
+`rejeitado_em` quando o admin rejeita o comprovante).
 
 ---
 
 ## 🔐 Autenticação e Segurança
 
-### JWT (JSON Web Tokens)
-- **Access Token:** 15 minutos (Bearer Token)
-- **Refresh Token:** 7 dias (httpOnly cookie)
-
-### Proteção de Rotas:
-- `protectUser` → Rotas de usuário autenticado
-- `protectAdmin` → Rotas de administrador
-
-### Segurança Implementada:
-- ✅ Helmet (HTTP headers)
-- ✅ Rate Limiting (proteção contra DDoS)
-- ✅ CORS configurado
-- ✅ Senhas hasheadas com Argon2
-- ✅ Validação de entrada (express-validator)
-- ✅ Proteção CSRF via SameSite cookies
-
----
-
-## 📡 Webhooks ASAAS
-
-### Endpoint: `POST /api/webhooks/asaas`
-
-#### Eventos Processados:
-- `PAYMENT_CONFIRMED` → Pagamento confirmado
-- `PAYMENT_RECEIVED` → Pagamento recebido
-- `PAYMENT_OVERDUE` → Pagamento vencido
-- `PAYMENT_REFUNDED` → Pagamento estornado
-
-#### Fluxo de Webhook:
-1. ASAAS envia notificação
-2. Sistema valida assinatura
-3. Atualiza status do pagamento
-4. Executa split se necessário
-5. Notifica usuário via Socket.IO/Email
-6. Atualiza disponibilidade da vaga
+- **JWT:** access token de 15 min (Bearer) + refresh token de 7 dias em cookie
+  `httpOnly`, `sameSite=lax`, path `/api/auth`; senhas com Argon2id;
+  verificação de e-mail no cadastro.
+- **Proteção de rotas:** `protectUser` / `protectAdmin` (com cache curto de
+  dados do usuário, TTL configurável via `AUTH_USER_CACHE_TTL_MS`).
+- **Uploads sensíveis nunca são públicos:** comprovantes PIX e fotos de perfil
+  são entregues apenas por endpoints autenticados com checagem de ownership
+  (`GET /api/admin/pagamentos/:id/comprovante`, `GET /api/user/profile/foto`);
+  fotos de estacionamento (públicas por natureza) continuam estáticas.
+- **Headers:** Helmet com CSP (CDNs permitidas explicitamente), HSTS,
+  frameguard deny. CORS restrito a `FRONTEND_URL`.
+- **Rate limiting:** login/registro/reset/refresh (v1 e v2), upload de
+  comprovante e ações admin de pagamento.
+- **Validação:** express-validator nas rotas; validação de env com zod no boot
+  (produção aborta sem segredos); `CRON_API_KEY` fail-closed com comparação em
+  tempo constante.
+- **Auditoria:** middleware `auditLog` em ações sensíveis; logs estruturados
+  Winston com rotação; request-id por requisição.
+- **Idempotência:** header `Idempotency-Key` com store em Postgres.
 
 ---
 
-## 🚀 Endpoints Principais da API
+## 📊 Observabilidade
 
-### Autenticação
-- `POST /api/auth/register` - Cadastro de usuário (motorista)
-- `POST /api/auth/admin/register` - Cadastro de admin (dono)
-- `POST /api/auth/login` - Login
-- `POST /api/auth/refresh-token` - Renovar token
-
-### Estacionamentos
-- `GET /api/estacionamentos` - Listar estacionamentos
-- `GET /api/estacionamentos/:id` - Detalhes do estacionamento
-- `GET /api/estacionamentos/:id/vagas` - Vagas disponíveis
-
-### Reservas e Pagamentos
-- `POST /api/reservas/com-pagamento` - Criar reserva com pagamento
-- `GET /api/pagamentos/:id/status` - Status do pagamento
-- `POST /api/webhooks/asaas` - Webhook de pagamento (público)
-
-### Admin
-- `GET /api/admin/reservas` - Listar todas as reservas
-- `GET /api/admin/pagamentos` - Listar pagamentos
-- `PUT /api/admin/estacionamentos/:id` - Atualizar estacionamento
+- `GET /health` (liveness) e `GET /health/ready` (readiness com ping no DB)
+- `GET /metrics` Prometheus (restrito em produção: loopback ou `METRICS_TOKEN`)
+- Stack opcional em `monitoring/` (Prometheus + Grafana + exporters + alertas)
+- Error tracking plugável (Sentry via `SENTRY_DSN`)
 
 ---
 
-## ⚙️ Variáveis de Ambiente Essenciais
+## 📚 Referências
 
-```env
-# Banco de Dados
-PG_HOST=localhost
-PG_USER=postgres
-PG_PASSWORD=sua_senha
-PG_DATABASE=parknow_db
-
-# JWT
-JWT_SECRET=seu_secret_jwt
-JWT_REFRESH_SECRET=seu_secret_refresh
-
-# Email
-EMAIL_USER=seu_email@gmail.com
-EMAIL_PASS=sua_senha_app
-
-# ASAAS
-ASAAS_SANDBOX=true
-ASAAS_SANDBOX_API_KEY=sua_chave_sandbox
-ASAAS_API_KEY=sua_chave_producao
-ASAAS_PLATFORM_FEE_PERCENT=15.0
-ASAAS_WEBHOOK_URL=https://seu-dominio.com/api/webhooks/asaas
-```
-
----
-
-## 🎯 Diferenças Importantes
-
-### ❌ O que NÃO temos:
-- ~~PIX Manual com confirmação por email~~
-- ~~Mercado Pago~~
-- ~~Stripe~~
-- ~~Pagamentos manuais~~
-
-### ✅ O que TEMOS:
-- **ASAAS 100% automatizado**
-- **Split automático de pagamentos**
-- **Webhooks em tempo real**
-- **Múltiplos métodos de pagamento**
-- **Dashboard completo para admins**
-
----
-
-## 📊 Status de Pagamento
-
-1. **PENDING** - Aguardando pagamento
-2. **CONFIRMED** - Pagamento confirmado
-3. **RECEIVED** - Valor recebido
-4. **OVERDUE** - Pagamento vencido
-5. **REFUNDED** - Pagamento estornado
-6. **CANCELLED** - Pagamento cancelado
-
----
-
-## 🔧 Tecnologias Utilizadas
-
-- **Backend:** Node.js + Express.js
-- **Banco de Dados:** PostgreSQL
-- **Gateway de Pagamento:** ASAAS
-- **Autenticação:** JWT
-- **WebSocket:** Socket.IO
-- **Email:** Nodemailer
-- **Logs:** Winston
-- **Tarefas Agendadas:** node-cron
-- **Segurança:** Helmet, express-rate-limit, Argon2
-
----
-
-## 📝 Resumo
-
-**ParkNow** é uma plataforma onde:
-- **Donos de estacionamento** se cadastram como **ADMINS** e gerenciam seus negócios
-- **Motoristas** se cadastram como **USUÁRIOS** e fazem reservas
-- **Todos os pagamentos** são processados automaticamente via **ASAAS**
-- **Split automático** garante que cada parte receba sua porcentagem
-- **Zero intervenção manual** no processo de pagamento
+- Fluxo PIX manual detalhado: [`docs/FLUXO_PIX_MANUAL.md`](docs/FLUXO_PIX_MANUAL.md)
+- Guia rápido de pagamentos: [`docs/GUIA_RAPIDO_PAGAMENTOS.md`](docs/GUIA_RAPIDO_PAGAMENTOS.md)
+- Deploy Oracle Free Tier: [`docs/DEPLOY_ORACLE_FREE_TIER.md`](docs/DEPLOY_ORACLE_FREE_TIER.md)
+- API interativa: `GET /api/docs` (Swagger UI; JSON em `/api/docs.json`)
