@@ -22,7 +22,7 @@ const _fs = require('fs'); // Adicionando o módulo fs que faltava
 const jwt = require('jsonwebtoken'); // Necessário para jwt.decode() fallback em logout
 const _db = require('../config/db'); // Para queries diretas
 // Import desabilitado pois Redis foi removido
-// const { isRedisAvailable, blacklistToken, isTokenBlacklisted } = require('../utils/redisClient');
+
 
 const BCRYPT_SALT_ROUNDS = 10; // Custo para hash do refresh token
 // Opções base para cookie, maxAge será adicionado dinamicamente

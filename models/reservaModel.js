@@ -270,41 +270,6 @@ const isVagaAvailableForPeriod = async (vagaId, inicio, fim, connection = pool) 
 };
 
 /**
- * Expira reservas não utilizadas que passaram do horário de entrada previsto
- * @param {object} [connection=pool] - Conexão opcional para transação
- * @returns {Promise<{expiredCount: number}>} Número de reservas expiradas
- */
-const expireUnusedReservas = async (connection = pool) => {
-    const sql = `
-        UPDATE reservas
-        SET status = $1,
-            updated_at = NOW()
-        WHERE status = $2
-          AND data_entrada_prevista < NOW()
-          AND data_entrada_real IS NULL
-        RETURNING id`;
-
-    try {
-        const { rowCount } = await connection.query(sql, [
-            RESERVATION_STATUS.EXPIRED,
-            RESERVATION_STATUS.PENDING
-        ]);
-
-        if (rowCount > 0) {
-            logger.info(`Expirou ${rowCount} reservas não utilizadas`);
-        }
-
-        return { expiredCount: rowCount };
-    } catch (error) {
-        logger.error('Erro ao expirar reservas não utilizadas', {
-            error: error.message,
-            stack: error.stack
-        });
-        throw error;
-    }
-};
-
-/**
  * Busca todas as reservas de um usuário
  * @param {number} usuarioId - ID do usuário
  * @param {object} [options] - Opções de consulta
@@ -615,6 +580,5 @@ module.exports = {
 
     // Métodos de verificação e cálculo
     isVagaAvailableForPeriod,
-    expireUnusedReservas,
     calcularValorReserva
 };
