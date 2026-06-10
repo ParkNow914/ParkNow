@@ -5,6 +5,10 @@
  */
 
 // Classe principal para gerenciar notificações
+// Logs de depuracao desativados por padrao; ligue com localStorage.setItem('parknow_debug','1')
+const PARKNOW_DEBUG = (() => { try { return localStorage.getItem('parknow_debug') === '1'; } catch (_e) { return false; } })();
+const debugLog = (...args) => { if (PARKNOW_DEBUG) console.log(...args); };
+
 class NotificationService {
     constructor() {
         this.socket = null;
@@ -155,7 +159,7 @@ class NotificationService {
             
             // Verifica token no cookie
             if (cookies.authToken && cookies.authToken !== this.token) {
-                console.log('[NotificationService] Novo token encontrado em cookie');
+                debugLog('[NotificationService] Novo token encontrado em cookie');
                 this.token = cookies.authToken;
                 foundNewCredentials = true;
                 
@@ -166,7 +170,7 @@ class NotificationService {
                         const payload = JSON.parse(atob(tokenParts[1]));
                         if (payload.userId) {
                             this.userId = payload.userId.toString();
-                            console.log(`[NotificationService] Obteve userId ${this.userId} do token JWT`);
+                            debugLog(`[NotificationService] Obteve userId ${this.userId} do token JWT`);
                             localStorage.setItem('userId', this.userId);
                             localStorage.setItem('authToken', this.token);
                             
@@ -186,20 +190,20 @@ class NotificationService {
             const storedToken = localStorage.getItem('authToken');
             
             if (storedToken && storedToken !== this.token) {
-                console.log('[NotificationService] Novo token encontrado no localStorage');
+                debugLog('[NotificationService] Novo token encontrado no localStorage');
                 this.token = storedToken;
                 foundNewCredentials = true;
             }
             
             if (storedUserId && storedUserId !== this.userId) {
-                console.log('[NotificationService] Novo userId encontrado no localStorage');
+                debugLog('[NotificationService] Novo userId encontrado no localStorage');
                 this.userId = storedUserId;
                 foundNewCredentials = true;
             }
             
             // Se encontramos novas credenciais, tentamos conectar
             if (foundNewCredentials && this.userId && this.token) {
-                console.log('[NotificationService] Novas credenciais disponíveis, tentando conectar...');
+                debugLog('[NotificationService] Novas credenciais disponíveis, tentando conectar...');
                 this.connect();
             }
         }, 5000); // Verifica a cada 5 segundos
@@ -207,12 +211,12 @@ class NotificationService {
         // Também configura listener de eventos para sessão do usuário
         window.addEventListener('storage', (event) => {
             if (['userId', 'authToken'].includes(event.key) && event.newValue) {
-                console.log(`[NotificationService] Mudança em localStorage detectada: ${event.key}`);
+                debugLog(`[NotificationService] Mudança em localStorage detectada: ${event.key}`);
                 if (event.key === 'userId') this.userId = event.newValue;
                 if (event.key === 'authToken') this.token = event.newValue;
                 
                 if (this.userId && this.token && !this.connected) {
-                    console.log('[NotificationService] Credenciais atualizadas em outra guia, tentando conectar...');
+                    debugLog('[NotificationService] Credenciais atualizadas em outra guia, tentando conectar...');
                     this.connect();
                 }
             }
@@ -220,17 +224,17 @@ class NotificationService {
         
         // Configura listener de eventos de login/logout da página
         document.addEventListener('auth:login', (event) => {
-            console.log('[NotificationService] Evento auth:login detectado');
+            debugLog('[NotificationService] Evento auth:login detectado');
             if (event.detail && event.detail.userId && event.detail.token) {
                 this.userId = event.detail.userId;
                 this.token = event.detail.token;
-                console.log('[NotificationService] Credenciais recebidas de evento auth:login');
+                debugLog('[NotificationService] Credenciais recebidas de evento auth:login');
                 this.connect();
             }
         });
         
         document.addEventListener('auth:logout', () => {
-            console.log('[NotificationService] Evento auth:logout detectado, desconectando...');
+            debugLog('[NotificationService] Evento auth:logout detectado, desconectando...');
             this.disconnect();
             this.userId = null;
             this.token = null;
@@ -242,7 +246,7 @@ class NotificationService {
      */
     disconnect() {
         if (this.socket) {
-            console.log('[Socket.IO] Desconectando...');
+            debugLog('[Socket.IO] Desconectando...');
             this.socket.disconnect();
             this.socket = null;
             this.connected = false;
@@ -272,7 +276,7 @@ class NotificationService {
                     
                     // Se o token expira em menos de 30 segundos, renova antes de conectar
                     if (timeUntilExpiration < 30000 && window.refreshAccessToken) {
-                        console.log('[Socket.IO] Token prestes a expirar, renovando antes de conectar...');
+                        debugLog('[Socket.IO] Token prestes a expirar, renovando antes de conectar...');
                         window.refreshAccessToken().then(() => {
                             // Atualiza o token e tenta conectar novamente
                             this.token = localStorage.getItem('authToken');
@@ -286,7 +290,7 @@ class NotificationService {
             console.warn('[Socket.IO] Erro ao verificar expiração do token:', error);
         }
         
-        console.log('[Socket.IO] Conectando ao servidor...');
+        debugLog('[Socket.IO] Conectando ao servidor...');
         
         // Cria uma nova conexão Socket.IO com autenticação
         this.socket = io({
@@ -309,7 +313,7 @@ class NotificationService {
         
         // Evento de conexão bem-sucedida
         this.socket.on('connect', () => {
-            console.log('[Socket.IO] Conectado ao servidor:', this.socket.id);
+            debugLog('[Socket.IO] Conectado ao servidor:', this.socket.id);
             this.connected = true;
             this.reconnectAttempts = 0;
             
@@ -324,7 +328,7 @@ class NotificationService {
         
         // Evento de desconexão
         this.socket.on('disconnect', (reason) => {
-            console.log(`[Socket.IO] Desconectado: ${reason}`);
+            debugLog(`[Socket.IO] Desconectado: ${reason}`);
             this.connected = false;
             
             // Emite evento para outros componentes da aplicação
@@ -334,7 +338,7 @@ class NotificationService {
             
             // Tenta reconectar automaticamente se não foi uma desconexão intencional
             if (reason !== 'io client disconnect' && this.userId && this.token) {
-                console.log('[Socket.IO] Tentando reconectar...');
+                debugLog('[Socket.IO] Tentando reconectar...');
                 setTimeout(() => {
                     if (!this.connected && this.reconnectAttempts < this.maxReconnectAttempts) {
                         this.reconnectAttempts++;
@@ -351,7 +355,7 @@ class NotificationService {
             
             // Tenta renovar o token e reconectar
             if (window.refreshAccessToken) {
-                console.log('[Socket.IO Auth] Tentando renovar token após erro de autenticação...');
+                debugLog('[Socket.IO Auth] Tentando renovar token após erro de autenticação...');
                 window.refreshAccessToken().then(() => {
                     // Atualiza o token com o novo valor do localStorage
                     this.token = localStorage.getItem('authToken');
@@ -380,13 +384,13 @@ class NotificationService {
         
         // Evento de notificação recebida
         this.socket.on('notification', (data) => {
-            console.log('[Socket.IO] Notificação recebida:', data);
+            debugLog('[Socket.IO] Notificação recebida:', data);
             this.handleNotification(data);
         });
         
         // Evento de atualização de vaga (para páginas de estacionamento)
         this.socket.on('vaga_update', (data) => {
-            console.log('[Socket.IO] Atualização de vaga:', data);
+            debugLog('[Socket.IO] Atualização de vaga:', data);
             
             // Emite evento para outros componentes da aplicação
             document.dispatchEvent(new CustomEvent('vaga:update', {
@@ -397,12 +401,12 @@ class NotificationService {
         // Adiciona listener para evento de token renovado
         document.addEventListener('auth:token-refreshed', (event) => {
             if (event.detail && event.detail.token) {
-                console.log('[Socket.IO] Token renovado detectado, atualizando...');
+                debugLog('[Socket.IO] Token renovado detectado, atualizando...');
                 this.token = event.detail.token;
                 
                 // Se estiver desconectado, tenta reconectar com o novo token
                 if (!this.connected && this.userId) {
-                    console.log('[Socket.IO] Tentando reconectar com novo token...');
+                    debugLog('[Socket.IO] Tentando reconectar com novo token...');
                     this.connect();
                 }
             }
@@ -410,7 +414,7 @@ class NotificationService {
         
         // Evento de atualização de estacionamento
         this.socket.on('estacionamento:update', (data) => {
-            console.log('[NotificationService] Atualização de estacionamento recebida:', data);
+            debugLog('[NotificationService] Atualização de estacionamento recebida:', data);
             this.triggerEvent('estacionamento:update', data);
         });
     }
@@ -425,7 +429,7 @@ class NotificationService {
             const roomId = `user:${this.userId}`;
             this.socket.emit('join', { room: roomId }, (response) => {
                 if (response.success) {
-                    console.log(`[NotificationService] Entrou na sala ${roomId}`);
+                    debugLog(`[NotificationService] Entrou na sala ${roomId}`);
                 } else {
                     console.error(`[NotificationService] Erro ao entrar na sala ${roomId}: ${response.error}`);
                 }
@@ -446,7 +450,7 @@ class NotificationService {
             const roomId = `estacionamento:${estacionamentoId}`;
             this.socket.emit('join', { room: roomId }, (response) => {
                 if (response.success) {
-                    console.log(`[NotificationService] Entrou na sala ${roomId}`);
+                    debugLog(`[NotificationService] Entrou na sala ${roomId}`);
                 } else {
                     console.error(`[NotificationService] Erro ao entrar na sala ${roomId}: ${response.error}`);
                 }
@@ -467,7 +471,7 @@ class NotificationService {
             const roomId = `estacionamento:${estacionamentoId}`;
             this.socket.emit('leave', { room: roomId }, (response) => {
                 if (response.success) {
-                    console.log(`[NotificationService] Saiu da sala ${roomId}`);
+                    debugLog(`[NotificationService] Saiu da sala ${roomId}`);
                 } else {
                     console.error(`[NotificationService] Erro ao sair da sala ${roomId}: ${response.error}`);
                 }
@@ -483,7 +487,7 @@ class NotificationService {
     processNotificationQueue() {
         if (this.notificationQueue.length === 0) return;
         
-        console.log(`[NotificationService] Processando ${this.notificationQueue.length} notificações pendentes`);
+        debugLog(`[NotificationService] Processando ${this.notificationQueue.length} notificações pendentes`);
         
         // Processa todas as notificações da fila
         while (this.notificationQueue.length > 0) {
@@ -794,7 +798,7 @@ class NotificationService {
                 // Se ocorrer algum erro, desativamos o som
                 console.warn(`[NotificationService] Erro ao tocar som: ${error}`);
                 if (error.name === 'NotAllowedError') {
-                    console.log('[NotificationService] Som desativado devido à política do navegador');
+                    debugLog('[NotificationService] Som desativado devido à política do navegador');
                     this.soundEnabled = false;
                 }
             });

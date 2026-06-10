@@ -485,6 +485,13 @@
 
 
     <script>
+        // Escapa valores dinamicos interpolados em templates HTML (anti-XSS)
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, (c) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
         // ***** SCRIPT FINAL (ADMIN UI MELHORADA + FEEDBACK + SOCKET.IO + CRUDs) *****
         const API_BASE_URL = '/api/admin'; const VAGAS_POR_PAGINA = 30; let todasAsVagas = [], paginaAtual = 1; const ESTACIONAMENTO_ID_PADRAO = 1;
         let todosEstacionamentos = []; let todosUsuarios = [];
@@ -494,7 +501,7 @@
 
         // --- Feedback & Loading ---
         const showAdminLoading = (btn, loading, txt='Salvar') => { if(!btn)return; btn.disabled=loading; const s=btn.querySelector('.spinner-border'); const i=btn.querySelector('i'); if(loading){if(i)i.style.display='none'; if(s)s.style.display='inline-block'; let tN=Array.from(btn.childNodes).find(n=>n.nodeType===Node.TEXT_NODE&&n.nodeValue.trim().length>0); if(tN)tN.nodeValue=' Processando...'; else btn.insertAdjacentText('beforeend',' Processando...');} else {if(i)i.style.display=''; if(s)s.style.display='none'; let lTN=Array.from(btn.childNodes).find(n=>n.nodeType===Node.TEXT_NODE&&n.nodeValue.includes('Processando')); if(lTN)btn.removeChild(lTN); let cT=Array.from(btn.childNodes).find(n=>n.nodeType===Node.TEXT_NODE)?.nodeValue?.trim(); if(!cT)btn.insertAdjacentText(i?'beforeend':'afterbegin',` ${txt}`);}};
-        const showAdminAlert = (msg, type='danger', elId='adminGeneralAlert') => { const fb=document.getElementById(elId); if(fb){fb.innerHTML=`<div class="alert alert-${type} alert-dismissible fade show m-0" role="alert" style="font-size: 0.9rem; padding: .6rem 1rem;">${msg}<button type="button" class="close" data-dismiss="alert" style="padding: .6rem 1rem;">×</button></div>`; fb.style.display='block';}else{console.warn(`Alert #${elId} N/A`); alert(`[${type.toUpperCase()}] ${msg}`);}};
+        const showAdminAlert = (msg, type='danger', elId='adminGeneralAlert') => { const fb=document.getElementById(elId); if(fb){fb.innerHTML=`<div class="alert alert-${type} alert-dismissible fade show m-0" role="alert" style="font-size: 0.9rem; padding: .6rem 1rem;">${escapeHtml(msg)}<button type="button" class="close" data-dismiss="alert" style="padding: .6rem 1rem;">×</button></div>`; fb.style.display='block';}else{console.warn(`Alert #${elId} N/A`); alert(`[${type.toUpperCase()}] ${msg}`);}};
         const hideAdminAlert = (elId='adminGeneralAlert') => { const c=document.getElementById(elId); if(c) c.style.display = 'none';};
 
         // --- Auth e API Admin (com refresh via cookie) ---
@@ -676,7 +683,7 @@
                     tempoMs = Date.now() - entradaDate.getTime();
                 }
                 const tF = formatarTempoLocal(tempoMs); 
-                d.innerHTML+=`<p data-vaga-id="${v.id}"><strong>Vaga ${v.numero} ${v.placa?`(${v.placa})`:''}:</strong> <span class="tempo-real">${tF}</span></p>`;
+                d.innerHTML+=`<p data-vaga-id="${Number(v.id)}"><strong>Vaga ${escapeHtml(v.numero)} ${v.placa?`(${escapeHtml(v.placa)})`:''}:</strong> <span class="tempo-real">${escapeHtml(tF)}</span></p>`;
             });
         }
         
@@ -708,7 +715,7 @@
 
         // --- UI Estacionamentos ---
         function renderEstacionamentos(lista) { const t = document.getElementById('estacionamentosTableBody'); t.innerHTML = ''; if(lista?.length){ lista.forEach(e => { t.innerHTML += `<tr><td>${e.id}</td><td>${e.nome||''}</td><td>${e.endereco||''}</td><td>${e.vagas_total||0}</td><td>R$ ${parseFloat(e.preco_hora||0).toFixed(2)}</td><td>R$ ${parseFloat(e.preco_dia||0).toFixed(2)}</td><td>${e.admin_id||''}</td><td class="action-buttons"> <button class="btn btn-sm btn-info" onclick="prepareEstacionamentoModal(${e.id})" title="Editar"><i class="fas fa-edit"></i></button> <button class="btn btn-sm btn-danger" onclick="handleDeleteEstacionamento(${e.id},'${e.nome?.replace(/'/g,"\\'")}')" title="Excluir"><i class="fas fa-trash"></i></button></td></tr>`; }); } else { t.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Nenhum correspondente.</td></tr>'; } }
-        async function loadEstacionamentosAdmin() { const t = document.getElementById('estacionamentosTableBody'); t.innerHTML = '<tr><td colspan=8 class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>'; try { const d = await fetchAdminAPI('/estacionamentos'); todosEstacionamentos = d || []; renderEstacionamentos(todosEstacionamentos); } catch (e) { t.innerHTML = `<tr><td colspan=8 class="text-center text-danger py-4">Erro: ${e.message}</td></tr>`; } }
+        async function loadEstacionamentosAdmin() { const t = document.getElementById('estacionamentosTableBody'); t.innerHTML = '<tr><td colspan=8 class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>'; try { const d = await fetchAdminAPI('/estacionamentos'); todosEstacionamentos = d || []; renderEstacionamentos(todosEstacionamentos); } catch (e) { t.innerHTML = `<tr><td colspan=8 class="text-center text-danger py-4">Erro: ${escapeHtml(e.message)}</td></tr>`; } }
         function filterEstacionamentos() { const s = document.getElementById('searchEstacionamento').value.toLowerCase(); const f = todosEstacionamentos.filter(e => (e.nome?.toLowerCase().includes(s) || e.endereco?.toLowerCase().includes(s))); renderEstacionamentos(f); }
         function prepareEstacionamentoModal(id) { hideAdminAlert('estModalAlert'); const f=document.getElementById('estacionamentoForm'); f.reset(); document.getElementById('editEstacionamentoId').value = id || ''; if(id){ document.getElementById('estacionamentoModalLabel').textContent = `Editar Est. #${id}`; fetchAdminAPI(`/estacionamentos/${id}`).then(e => { if(!e) throw new Error('N/A'); $('#estNome').val(e.nome||''); $('#estAdminId').val(e.admin_id||''); $('#estEndereco').val(e.endereco||''); $('#estLat').val(e.latitude||''); $('#estLon').val(e.longitude||''); $('#estVagas').val(e.vagas||0); $('#estPrecoHora').val(parseFloat(e.preco_hora||0).toFixed(2)); $('#estPrecoDia').val(parseFloat(e.preco_dia||0).toFixed(2)); $('#estDescricao').val(e.descricao||''); }).catch(err=>showAdminAlert(`Erro ao carregar: ${err.message}`,'danger','estModalAlert'));} else { document.getElementById('estacionamentoModalLabel').textContent='Novo Est.';}}
         async function handleSaveEstacionamento(event){ const btn=event.target.closest('button'); showAdminLoading(btn,true); hideAdminAlert('estModalAlert'); try{ const id=document.getElementById('editEstacionamentoId').value; const d={nome:$('#estNome').val().trim(),admin_id:parseInt($('#estAdminId').val())||null,endereco:$('#estEndereco').val().trim(),latitude:$('#estLat').val().trim()||null,longitude:$('#estLon').val().trim()||null,vagas:parseInt($('#estVagas').val())||0,preco_hora:parseFloat($('#estPrecoHora').val())||0.00,preco_dia:parseFloat($('#estPrecoDia').val())||0.00,descricao:$('#estDescricao').val().trim()||null}; if(!d.nome||!d.endereco||!d.admin_id||isNaN(d.vagas)||isNaN(d.preco_hora)||isNaN(d.preco_dia)){throw new Error("Campos obrigatórios inválidos.");} const url=id?`/estacionamentos/${id}`:'/estacionamentos'; const method=id?'PUT':'POST'; const r=await fetchAdminAPI(url,{method,body:JSON.stringify(d)}); showAdminAlert(r.success||'Salvo!','success','estModalAlert'); loadEstacionamentosAdmin(); setTimeout(()=>{$('#estacionamentoModal').modal('hide');},1000);}catch(e){showAdminAlert(`Erro: ${e?.data?.message||e.message}`,'danger','estModalAlert');}finally{showAdminLoading(btn,false);}}
@@ -730,7 +737,7 @@
                 renderUsuarios(todosUsuarios); 
             } catch (e) { 
                 console.error('Erro ao carregar usuários:', e);
-                t.innerHTML = `<tr><td colspan=7 class="text-center text-danger py-4">Erro: ${e.message}</td></tr>`;
+                t.innerHTML = `<tr><td colspan=7 class="text-center text-danger py-4">Erro: ${escapeHtml(e.message)}</td></tr>`;
             }
         }
         function filterUsuarios() { const s = document.getElementById('searchUsuario').value.toLowerCase(); const f = todosUsuarios.filter(u => (u.nome?.toLowerCase().includes(s) || u.email?.toLowerCase().includes(s) || u.placa_veiculo?.toLowerCase().includes(s))); renderUsuarios(f); }
@@ -822,17 +829,17 @@
                     <div class="card h-100 ${ocupada ? 'border-danger' : 'border-success'}" style="height: 180px;">
                         <div class="card-body d-flex flex-column justify-content-between p-3">
                             <div class="text-center">
-                                <h5 class="card-title mb-2" style="font-size: 1.1rem; font-weight: 600;">Vaga ${vaga.numero}</h5>
+                                <h5 class="card-title mb-2" style="font-size: 1.1rem; font-weight: 600;">Vaga ${escapeHtml(vaga.numero)}</h5>
                                 <span class="badge ${ocupada ? 'bg-danger' : 'bg-success'} mb-3 px-3 py-2" style="font-size: 0.85rem;">
                                     ${ocupada ? 'OCUPADA' : 'LIVRE'}
                                 </span>
                             </div>
                             <div class="mt-auto text-center">
                                 ${!ocupada ? 
-                                    `<button class="btn btn-sm btn-outline-success w-100" onclick="abrirModalEntrada(${vaga.numero})" style="font-size: 0.85rem; padding: 0.4rem 0.5rem;">
+                                    `<button class="btn btn-sm btn-outline-success w-100" onclick="abrirModalEntrada(${Number(vaga.numero)})" style="font-size: 0.85rem; padding: 0.4rem 0.5rem;">
                                         <i class="fas fa-parking me-1"></i> Registrar Entrada
                                     </button>` : 
-                                    `<button class="btn btn-sm btn-outline-danger w-100" onclick="handleRegistrarSaida(event)" data-vaga-id="${vaga.id}" style="font-size: 0.85rem; padding: 0.4rem 0.5rem;">
+                                    `<button class="btn btn-sm btn-outline-danger w-100" onclick="handleRegistrarSaida(event)" data-vaga-id="${Number(vaga.id)}" style="font-size: 0.85rem; padding: 0.4rem 0.5rem;">
                                         <i class="fas fa-sign-out-alt me-1"></i> Registrar Saída
                                     </button>`
                                 }

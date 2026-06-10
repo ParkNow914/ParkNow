@@ -258,6 +258,13 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 
     <script>
+        // Escapa valores dinamicos interpolados em templates HTML (anti-XSS)
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, (c) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
         // ***** SCRIPT FINALIZADO (ESTACIONAMENTO COM SOCKET.IO) *****
 
         let infoEstacionamento = null; let infoUsuario = null; let socket = null; let currentEstacionamentoId = null;
@@ -287,8 +294,8 @@
         function disconnectSocketIO() { if (socket) { socket.disconnect(); socket = null; console.log('[Socket.IO Est.] Desconectado.'); } }
 
         // --- Carregamento Dados ---
-        async function carregarDadosIniciais(estId) { try { infoEstacionamento = await fetchWithAuth(`/api/estacionamentos/${estId}`); if (!infoEstacionamento) throw new Error('Estacionamento não encontrado'); $('#estacionamentoNome').text(infoEstacionamento.nome).removeClass('text-muted'); $('#estacionamentoEndereco').text(infoEstacionamento.endereco); document.title = `${infoEstacionamento.nome} - ParkNow`; infoUsuario = await fetchWithAuth('/api/user/profile'); await carregarVagas(estId); } catch (e) { console.error('Erro dados iniciais est.:', e); $('#estacionamentoNome').text('Erro').addClass('text-danger'); $('#vagasContainer').html(`<p class="text-center text-danger col-12">Erro: ${e.message}</p>`); showAlertEst(`Erro ao carregar dados: ${e.message}`, 'danger'); } }
-        async function carregarVagas(estId) { const cont = $('#vagasContainer'); cont.html('<div class="loading-placeholder col-12"><i class="fas fa-spinner fa-spin"></i> Carregando vagas...</div>'); try { const vagas = await fetchWithAuth(`/api/estacionamentos/${estId}/vagas`); renderizarVagas(vagas); } catch (e) { cont.html(`<p class="text-center text-danger col-12">Erro ao carregar vagas: ${e.message}</p>`); showAlertEst(`Erro ao carregar vagas: ${e.message}`, 'warning'); } }
+        async function carregarDadosIniciais(estId) { try { infoEstacionamento = await fetchWithAuth(`/api/estacionamentos/${estId}`); if (!infoEstacionamento) throw new Error('Estacionamento não encontrado'); $('#estacionamentoNome').text(infoEstacionamento.nome).removeClass('text-muted'); $('#estacionamentoEndereco').text(infoEstacionamento.endereco); document.title = `${infoEstacionamento.nome} - ParkNow`; infoUsuario = await fetchWithAuth('/api/user/profile'); await carregarVagas(estId); } catch (e) { console.error('Erro dados iniciais est.:', e); $('#estacionamentoNome').text('Erro').addClass('text-danger'); $('#vagasContainer').html(`<p class="text-center text-danger col-12">Erro: ${escapeHtml(e.message)}</p>`); showAlertEst(`Erro ao carregar dados: ${e.message}`, 'danger'); } }
+        async function carregarVagas(estId) { const cont = $('#vagasContainer'); cont.html('<div class="loading-placeholder col-12"><i class="fas fa-spinner fa-spin"></i> Carregando vagas...</div>'); try { const vagas = await fetchWithAuth(`/api/estacionamentos/${estId}/vagas`); renderizarVagas(vagas); } catch (e) { cont.html(`<p class="text-center text-danger col-12">Erro ao carregar vagas: ${escapeHtml(e.message)}</p>`); showAlertEst(`Erro ao carregar vagas: ${e.message}`, 'warning'); } }
 
         // --- Renderização e UI ---
         
@@ -321,8 +328,8 @@
             
             // Renderizar cada vaga
             vagas.forEach(v => {
-                const el = $(`<div class="vaga" data-vaga-id="${v.id}" data-numero="${v.numero}" data-aos="zoom-in">
-                    <span class="numero">${v.numero}</span>
+                const el = $(`<div class="vaga" data-vaga-id="${Number(v.id)}" data-numero="${escapeHtml(v.numero)}" data-aos="zoom-in">
+                    <span class="numero">${escapeHtml(v.numero)}</span>
                     <span class="status-vaga"></span>
                     <span class="tempo-estacionado" id="tempoEstacionado-${v.id}">00:00:00</span>
                 </div>`);
@@ -363,7 +370,7 @@
                 sS.text('OCUPADA'); 
                 
                 if(vData.placa) {
-                    sS.after(`<span class="placa-veiculo">${vData.placa}</span>`);
+                    sS.after(`<span class="placa-veiculo">${escapeHtml(vData.placa)}</span>`);
                 }
                 
                 // Verificar se a vaga está ocupada pelo usuário atual
@@ -851,7 +858,7 @@
                 // Mostrar feedback de sucesso
                 if (fb) {
                     fb.innerHTML = `<div class="alert alert-success alert-sm py-1 px-2 m-0">
-                        ${data.message || "Vaga liberada com sucesso!"}
+                        ${escapeHtml(data.message || "Vaga liberada com sucesso!")}
                         ${data.tempoEstacionado ? `<br>Tempo estacionado: <strong>${data.tempoEstacionado}</strong>` : ''}
                     </div>`;
                     fb.style.display = 'block';
@@ -866,7 +873,7 @@
             } catch(e) {
                 // Mostrar erro
                 if (fb) {
-                    fb.innerHTML = `<div class="alert alert-danger alert-sm py-1 px-2 m-0">Erro: ${e?.data?.message || e.message}</div>`;
+                    fb.innerHTML = `<div class="alert alert-danger alert-sm py-1 px-2 m-0">Erro: ${escapeHtml(e?.data?.message || e.message)}</div>`;
                     fb.style.display = 'block';
                 }
             } finally {
@@ -1568,14 +1575,14 @@
                 const notificacaoHTML = `
                     <div id="${notificacaoId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
                         <div class="toast-header">
-                            <strong class="mr-auto">${titulo}</strong>
+                            <strong class="mr-auto">${escapeHtml(titulo)}</strong>
                             <small>Agora</small>
                             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
                         <div class="toast-body">
-                            ${mensagem}
+                            ${escapeHtml(mensagem)}
                         </div>
                     </div>
                 `;

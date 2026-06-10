@@ -1,3 +1,9 @@
+// Escapa valores dinamicos interpolados em templates HTML (anti-XSS)
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
 // public/js/reset-password.js
 // Script dedicado para a página reset-password.html
 
@@ -31,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(!currentText) submitButton.insertAdjacentText(icon ? 'beforeend' : 'afterbegin', ' Redefinir Senha');
         }
     };
-    const showAlert = (message, type = 'danger') => { if(feedbackDiv){ feedbackDiv.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show m-0" role="alert">${message}<button type="button" class="close" data-dismiss="alert">×</button></div>`; feedbackDiv.style.display = 'block'; } else { alert(message); }};
+    const showAlert = (message, type = 'danger') => { if(feedbackDiv){ feedbackDiv.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show m-0" role="alert">${escapeHtml(message)}<button type="button" class="close" data-dismiss="alert">×</button></div>`; feedbackDiv.style.display = 'block'; } else { alert(message); }};
     const hideAlert = () => { if(feedbackDiv) feedbackDiv.style.display = 'none'; };
     const setErrorFor = (input, message) => { if(!input) return; input.classList.add('is-invalid'); const el=input.parentNode.querySelector('.invalid-feedback'); if(el) {el.textContent=message; el.style.display='block';}};
     const clearErrorFor = (input) => { if(!input) return; input.classList.remove('is-invalid'); const el=input.parentNode.querySelector('.invalid-feedback'); if(el) el.style.display='none';};

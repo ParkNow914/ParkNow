@@ -342,6 +342,11 @@
 
   <script>
       // Funções utilitárias do modal PIX
+      // Passa um valor com segurança para handlers inline (contexto JS dentro
+      // de atributo HTML): JSON.stringify cria a string JS; escapeHtml protege o atributo.
+      function jsArg(value) {
+        return escapeHtml(JSON.stringify(String(value ?? '')));
+      }
       function escapeHtml(value = '') {
         return String(value)
           .replace(/&/g, '&amp;')
@@ -625,7 +630,7 @@
           } catch (err) {
             console.error('[Comprovante] Erro:', err);
             feedback.removeClass('alert-success').addClass('alert alert-danger')
-              .html(`<i class="fas fa-exclamation-triangle me-1"></i>${err.message}`)
+              .html(`<i class="fas fa-exclamation-triangle me-1"></i>${escapeHtml(err.message)}`)
               .show();
             btn.prop('disabled', false).html(originalLabel);
           }
@@ -3887,7 +3892,8 @@
   <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
   <!-- Socket.IO -->
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <!-- Cliente Socket.IO servido pelo próprio backend (mesma versão do servidor) -->
+  <script src="/socket.io/socket.io.js"></script>
 
   <!-- Initialize notification service -->
   <script>
@@ -4421,12 +4427,6 @@
   </style>
 
   <!-- Scripts JS -->
-  <!-- <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script> --> <!-- Já incluído acima -->
-  <!-- <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script> --> <!-- Já incluído acima -->
-  <!-- <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script> --> <!-- Já incluído acima -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script> --> <!-- Já incluído acima -->
-  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/js/bootstrap.min.js"></script> --> <!-- Já incluído acima -->
-  <script src="/socket.io/socket.io.js"></script> <!-- Socket.IO -->
 
   <script>
     // ***** SCRIPT FINAL (HOME COM SOCKET.IO E RESERVAS) *****
@@ -4436,9 +4436,9 @@
     let config = { realtime: { enabled: true } };
 
     // --- Feedback ---
-    const showUserAlert = (msg, type='info', duration=4000) => { const el=document.getElementById('mainAlertBox'); if(el){ const id=`alert-${Date.now()}`; el.insertAdjacentHTML('beforeend', `<div id="${id}" class="alert alert-${type} alert-dismissible fade show m-2" role="alert" style="font-size:0.9rem; padding:.5rem 1rem;">${msg}<button type="button" class="close" data-dismiss="alert" style="padding:.5rem 1rem; color: #000000; opacity: 0.8; font-weight: 700; text-shadow: 0 1px 0 #fff;">×</button></div>`); setTimeout(() => { $(`#${id}`).alert('close'); }, duration); } else { alert(msg); } };
+    const showUserAlert = (msg, type='info', duration=4000) => { const el=document.getElementById('mainAlertBox'); if(el){ const id=`alert-${Date.now()}`; el.insertAdjacentHTML('beforeend', `<div id="${id}" class="alert alert-${type} alert-dismissible fade show m-2" role="alert" style="font-size:0.9rem; padding:.5rem 1rem;">${escapeHtml(msg)}<button type="button" class="close" data-dismiss="alert" style="padding:.5rem 1rem; color: #000000; opacity: 0.8; font-weight: 700; text-shadow: 0 1px 0 #fff;">×</button></div>`); setTimeout(() => { $(`#${id}`).alert('close'); }, duration); } else { alert(msg); } };
     const showLoadingModal = (modalId, isLoading, btnSelector = 'button.btn-primary') => { const btn = document.querySelector(`#${modalId} ${btnSelector}`); if(btn){ btn.disabled = isLoading; const s=btn.querySelector('.spinner-border'); if(s) s.style.display = isLoading ? 'inline-block' : 'none'; }};
-    const showAlertModal = (elId, msg, type='danger') => {const fb=document.getElementById(elId); if(fb){fb.innerHTML=`<div class="alert alert-${type} alert-sm py-1 px-2 m-0">${msg}</div>`; fb.style.display='block';}};
+    const showAlertModal = (elId, msg, type='danger') => {const fb=document.getElementById(elId); if(fb){fb.innerHTML=`<div class="alert alert-${type} alert-sm py-1 px-2 m-0">${escapeHtml(msg)}</div>`; fb.style.display='block';}};
     const hideAlertModal = (elId) => {const fb=document.getElementById(elId); if(fb)fb.style.display='none';};
     const setErrorFor = (input, message) => { input.classList.add('is-invalid'); const fb = input.closest('.form-group')?.querySelector('.invalid-feedback'); if(fb) {fb.textContent=message; fb.style.display='block';} return false; };
     const clearErrorFor = (input) => { input.classList.remove('is-invalid'); const fb = input.closest('.form-group')?.querySelector('.invalid-feedback'); if(fb) fb.style.display='none'; return true;};
@@ -4780,14 +4780,14 @@
         const notificacaoHTML = `
             <div id="${notificacaoId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
                 <div class="toast-header">
-                    <strong class="mr-auto">${titulo}</strong>
+                    <strong class="mr-auto">${escapeHtml(titulo)}</strong>
                     <small>Agora</small>
                     <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="toast-body">
-                    ${mensagem}
+                    ${escapeHtml(mensagem)}
                 </div>
             </div>
         `;
@@ -5086,7 +5086,7 @@
 
                     // Adicionar um marcador temporário com animação
                     const searchMarker = L.marker(center).addTo(map)
-                        .bindPopup(`<b>${result.display_name}</b>`)
+                        .bindPopup(`<b>${escapeHtml(result.display_name)}</b>`)
                         .openPopup();
 
                     // Animação de pulso para o marcador
@@ -5402,17 +5402,17 @@
             html += `
                 <li class="list-group-item">
                     <div>
-                        <h5>${f.nome}</h5>
-                        <p><i class="fas fa-map-marker-alt mr-1"></i> ${f.endereco || 'Endereço não disponível'}</p>
+                        <h5>${escapeHtml(f.nome)}</h5>
+                        <p><i class="fas fa-map-marker-alt mr-1"></i> ${escapeHtml(f.endereco || 'Endereço não disponível')}</p>
                     </div>
                     <div class="favorito-acoes">
-                        <button class="btn btn-sm btn-outline-primary" onclick="handleNavigate(${f.id}, '${f.nome}', ${f.latitude}, ${f.longitude})">
+                        <button class="btn btn-sm btn-outline-primary" onclick="handleNavigate(${Number(f.id)}, ${jsArg(f.nome)}, ${Number(f.latitude)}, ${Number(f.longitude)})">
                             <i class="fas fa-directions mr-1"></i> Navegar
                         </button>
-                        <button class="btn btn-sm btn-info" onclick="openInfoModal(${f.id}, '${f.nome}', '${f.endereco}')">
+                        <button class="btn btn-sm btn-info" onclick="openInfoModal(${Number(f.id)}, ${jsArg(f.nome)}, ${jsArg(f.endereco)})">
                             <i class="fas fa-calendar-alt mr-1"></i> Info/Reservar
                         </button>
-                        <button class="btn btn-sm btn-warning" onclick="toggleFavorito(${f.id}, '${f.nome}', '${f.endereco}', ${f.latitude}, ${f.longitude})">
+                        <button class="btn btn-sm btn-warning" onclick="toggleFavorito(${Number(f.id)}, ${jsArg(f.nome)}, ${jsArg(f.endereco)}, ${Number(f.latitude)}, ${Number(f.longitude)})">
                             <i class="fas fa-star mr-1"></i> Remover
                         </button>
                     </div>
@@ -5527,17 +5527,17 @@
             html += `
                 <li class="list-group-item">
                     <div>
-                        <h5>${f.nome}</h5>
-                        <p><i class="fas fa-map-marker-alt mr-1"></i> ${f.endereco || 'Endereço não disponível'}</p>
+                        <h5>${escapeHtml(f.nome)}</h5>
+                        <p><i class="fas fa-map-marker-alt mr-1"></i> ${escapeHtml(f.endereco || 'Endereço não disponível')}</p>
                     </div>
                     <div class="favorito-acoes">
-                        <button class="btn btn-sm btn-outline-primary" onclick="handleNavigate(${f.id}, '${f.nome}', ${f.latitude}, ${f.longitude})">
+                        <button class="btn btn-sm btn-outline-primary" onclick="handleNavigate(${Number(f.id)}, ${jsArg(f.nome)}, ${Number(f.latitude)}, ${Number(f.longitude)})">
                             <i class="fas fa-directions mr-1"></i> Navegar
                         </button>
-                        <button class="btn btn-sm btn-info" onclick="openInfoModal(${f.id}, '${f.nome}', '${f.endereco}')">
+                        <button class="btn btn-sm btn-info" onclick="openInfoModal(${Number(f.id)}, ${jsArg(f.nome)}, ${jsArg(f.endereco)})">
                             <i class="fas fa-calendar-alt mr-1"></i> Info/Reservar
                         </button>
-                        <button class="btn btn-sm btn-warning" onclick="toggleFavorito(${f.id}, '${f.nome}', '${f.endereco}', ${f.latitude}, ${f.longitude})">
+                        <button class="btn btn-sm btn-warning" onclick="toggleFavorito(${Number(f.id)}, ${jsArg(f.nome)}, ${jsArg(f.endereco)}, ${Number(f.latitude)}, ${Number(f.longitude)})">
                             <i class="fas fa-star mr-1"></i> Remover
                         </button>
                     </div>
@@ -5610,8 +5610,8 @@
           html += `
             <li class="list-group-item">
               <div>
-                <h5>${r.nome_estacionamento}</h5>
-                <p><i class="fas fa-map-marker-alt mr-1"></i> ${r.endereco_estacionamento || 'Endereço não disponível'}</p>
+                <h5>${escapeHtml(r.nome_estacionamento)}</h5>
+                <p><i class="fas fa-map-marker-alt mr-1"></i> ${escapeHtml(r.endereco_estacionamento || 'Endereço não disponível')}</p>
                 <p><i class="far fa-calendar-alt mr-1"></i> <strong>${dataFormatada}</strong> das <strong>${horaInicio}</strong> às <strong>${horaFim}</strong></p>
                 <span class="badge ${badgeClass}">${statusText}</span>
               </div>
@@ -5774,7 +5774,7 @@
                 // HTML da foto se existir
                 const fotoHtml = e.foto ? `
                     <div class="popup-image" style="margin-bottom: 10px;">
-                        <img src="${e.foto}" alt="${e.nome}"
+                        <img src="${escapeHtml(e.foto)}" alt="${escapeHtml(e.nome)}"
                              style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;"
                              onerror="this.parentElement.style.display='none'">
                     </div>
@@ -5782,8 +5782,8 @@
 
                 const popupContent = `
                     ${fotoHtml}
-                    <b>${e.nome || 'Estacionamento'}</b>
-                    <p class="small text-muted mb-1">${e.endereco || 'Endereço não disponível'}</p>
+                    <b>${escapeHtml(e.nome || 'Estacionamento')}</b>
+                    <p class="small text-muted mb-1">${escapeHtml(e.endereco || 'Endereço não disponível')}</p>
                     <div class="popup-status">
                         <span id="status-popup-${e.id}" class="badge badge-${iconData.badgeClass} mr-2">${iconData.statusText}</span>
                         <span id="livres-popup-${e.id}" class="badge badge-${iconData.badgeClass}">Vagas: ${e.vagas_livres_agora ?? '?'}${e.total_vagas ? '/' + e.total_vagas : ''}</span>
@@ -5901,7 +5901,7 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
 
         // Adicionar cada vaga ao dropdown
         data.forEach(vaga => {
-            vagaSelect.append(`<option value="${vaga.id}">Vaga ${vaga.numero} - ${vaga.tipo || 'Normal'}</option>`);
+            vagaSelect.append(`<option value="${Number(vaga.id)}">Vaga ${escapeHtml(vaga.numero)} - ${escapeHtml(vaga.tipo || 'Normal')}</option>`);
         });
 
     } catch (e) {
@@ -6022,7 +6022,7 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
 
                             <!-- QR Code Container Responsivo -->
                             <div class="qr-code-container mb-3" style="display: flex; justify-content: center; align-items: center;">
-                                <img src="${pixData.qr_code}"
+                                <img src="${escapeHtml(pixData.qr_code)}"
                                      alt="QR Code PIX"
                                      class="img-fluid"
                                      style="max-width: min(250px, 80vw); height: auto; border: 2px solid #004080; border-radius: 8px; padding: 10px; background: white;">
@@ -6404,10 +6404,10 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
             html += `
                 <li class="list-group-item">
                     <div>
-                        <h5>${r.estacionamento_nome || r.nome_estacionamento || 'Estacionamento'} - Vaga ${r.vaga_numero || r.numero_vaga || r.numero || 'N/A'}</h5>
-                        <p class="mb-1"><i class="fas fa-map-marker-alt me-2 text-muted"></i> ${r.estacionamento_endereco || r.endereco_estacionamento || 'Endereço não disponível'}</p>
+                        <h5>${escapeHtml(r.estacionamento_nome || r.nome_estacionamento || 'Estacionamento')} - Vaga ${escapeHtml(r.vaga_numero || r.numero_vaga || r.numero || 'N/A')}</h5>
+                        <p class="mb-1"><i class="fas fa-map-marker-alt me-2 text-muted"></i> ${escapeHtml(r.estacionamento_endereco || r.endereco_estacionamento || 'Endereço não disponível')}</p>
                         <p class="mb-1"><i class="far fa-calendar-alt me-2 text-muted"></i> ${iS} - ${fS}</p>
-                        <p class="mb-2"><i class="fas fa-car me-2 text-muted"></i> Placa: ${r.placa_veiculo || 'Não informada'}</p>
+                        <p class="mb-2"><i class="fas fa-car me-2 text-muted"></i> Placa: ${escapeHtml(r.placa_veiculo || 'Não informada')}</p>
                         <span class="badge ${sC}">${sT.toUpperCase()}</span>
                         ${actionButtons}
                     </div>
@@ -6470,7 +6470,7 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
                 <div class="alert alert-danger m-3" role="alert">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     Ocorreu um erro ao carregar suas reservas ativas.
-                    <div class="mt-2 small">${e.message || 'Tente novamente mais tarde.'}</div>
+                    <div class="mt-2 small">${escapeHtml(e.message || 'Tente novamente mais tarde.')}</div>
                 </div>
             `;
         }
@@ -6527,7 +6527,7 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
                 <div class="alert alert-danger m-3" role="alert">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     Ocorreu um erro ao carregar o histórico de reservas.
-                    <div class="mt-2 small">${e.message || 'Tente novamente mais tarde.'}</div>
+                    <div class="mt-2 small">${escapeHtml(e.message || 'Tente novamente mais tarde.')}</div>
                 </div>
             `;
         }
@@ -7430,11 +7430,6 @@ async function limparHistoricoCompleto() {
     }
   </script>
   <!-- Bibliotecas JavaScript -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
 
   <!-- Serviço de notificações -->
   <script src="/js/notificationService.js"></script>
