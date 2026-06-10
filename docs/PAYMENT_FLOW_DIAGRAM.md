@@ -1,5 +1,11 @@
 # Diagramas de Fluxo - Sistema de Pagamento ParkNow
 
+> ⚠️ **Documento histórico** (pré-migração para o fluxo PIX manual always-free).
+> Partes deste documento descrevem fluxos removidos (gateway/webhooks/link de
+> confirmação por e-mail). A referência atual é `ARQUITETURA_SISTEMA.md` e
+> `docs/FLUXO_PIX_MANUAL.md`.
+
+
 ## 1. Visão Geral da Arquitetura
 
 ```

@@ -1,5 +1,11 @@
 # Resumo Executivo - Análise do Sistema de Pagamentos ParkNow
 
+> ⚠️ **Documento histórico** (pré-migração para o fluxo PIX manual always-free).
+> Partes deste documento descrevem fluxos removidos (gateway/webhooks/link de
+> confirmação por e-mail). A referência atual é `ARQUITETURA_SISTEMA.md` e
+> `docs/FLUXO_PIX_MANUAL.md`.
+
+
 **Data da Análise:** 2024-11-07  
 **Solicitação:** Analisar totalmente como está funcionando a parte de pagamento das reservas de vaga no sistema completo  
 **Status:** ✅ Análise Concluída

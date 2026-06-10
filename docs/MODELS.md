@@ -11,12 +11,12 @@ A pasta `models/` contém duas linhagens convivendo:
 |---|---|---|---|
 | Usuário | `models/userModel.js` (pg-native, helper de auth) | `User.js` (Sequelize): **em uso** via `db.User.findByPk` em `estacionamentoController`; `usuarioModel.js`: helper especializado | Coexistem por design: pg-native em rotas leves, Sequelize em queries com `include`. Apenas `findDefaultVehicleByUserId` de `usuarioModel.js` é importado em `services/reservaService.js`. |
 | Estacionamento | `models/estacionamentoModel.js` (híbrido: usa Sequelize Op internamente) | `Estacionamento.js` (Sequelize puro): usado via `models/index.js` `{Estacionamento}` | Híbrido — `estacionamentoModel` importa o modelo Sequelize via `require('../models')`. Não tocar sem migration plan. |
-| Reserva | `models/reservaModel.js` (pg-native, fluxo principal) | `Reserva.js` (Sequelize): **em uso** via `db.Reserva.findByPk` em `pixPaymentController` | Coexistem por design. |
-| Vaga | `models/vagaModel.js` (pg-native) | `Vaga.js` (Sequelize): **em uso** via `db.Vaga.findByPk`/`count`/`bulkCreate` em `estacionamentoController`, `approvalController`, `pixPaymentController` | Coexistem por design. |
+| Reserva | `models/reservaModel.js` (pg-native, fluxo principal) | `Reserva.js` (Sequelize): carregado por `models/index.js`; uso direto reduzido após a remoção do `pixPaymentController` | Coexistem por design. |
+| Vaga | `models/vagaModel.js` (pg-native) | `Vaga.js` (Sequelize): **em uso** via `db.Vaga.findByPk`/`count`/`bulkCreate` em `estacionamentoController`, `approvalController` | Coexistem por design. |
 | Horário Funcionamento | `models/HorarioFuncionamento.js` | `models/HorarioFuncionamentoModel.js`: duplicata divergente | Ambos carregados por `models/index.js` (ambos começam com maiúscula); o segundo a carregar vence em `db`. Avaliar remoção do `HorarioFuncionamentoModel.js`. |
 | Pagamento | `models/pagamentoModel.js` | — | Não há duplicata. |
 | Notificação | `models/notificacaoModel.js` | — | Não há duplicata. |
-| Veículo | `models/veiculoModel.js` | — | |
+| Veículo | *(removido)* | — | `veiculoModel.js`/`veiculoController.js`/`veiculoRoutes.js` eram código morto (rotas nunca montadas) e foram removidos; a feature "múltiplos veículos" segue no ROADMAP. |
 | Admin | `models/adminModel.js` | — | |
 | Log | `models/logModel.js` | — | |
 
