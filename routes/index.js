@@ -75,10 +75,13 @@ router.use('/estacionamento-payment-config', estacionamentoPaymentConfigRoutes);
 router.use('/reservas', reservaPagamentoRoutes);  // Para /api/reservas/com-pagamento e /api/reservas/:id/pix
 router.use('/', reservaPagamentoRoutes);           // Para /api/pagamentos/:id/status
 
-// Upload de comprovante PIX pelo USUÁRIO (protectUser aplicado via authMiddleware no controller-level)
-const { protectUser } = require('../middleware/authMiddleware');
+// Upload de comprovante PIX pelo USUÁRIO. O protectUser é aplicado DENTRO da
+// rota (pixManualConfirmacaoRoutes.userRouter) — aplicá-lo aqui no mount '/'
+// exigia token de usuário para TODAS as rotas montadas abaixo (cnpj,
+// validate-email, horários, pix, cron), quebrando o cadastro de admin e os
+// endpoints de cron externos.
 const { userRouter: pixUserUploadRouter } = require('./pixManualConfirmacaoRoutes');
-router.use('/', protectUser, pixUserUploadRouter);
+router.use('/', pixUserUploadRouter);
 
 // Rotas de validação de CNPJ
 router.use('/cnpj', cnpjRoutes);
