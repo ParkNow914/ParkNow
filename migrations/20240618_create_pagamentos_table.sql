@@ -65,34 +65,6 @@ BEFORE UPDATE ON pagamentos
 FOR EACH ROW
 EXECUTE FUNCTION atualizar_data_atualizacao();
 
--- Função para registrar logs de alterações em pagamentos
-CREATE OR REPLACE FUNCTION log_alteracao_pagamento()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_alteracao TEXT;
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        v_alteracao := 'NOVO PAGAMENTO - ID: ' || NEW.id || ', Reserva: ' || NEW.reserva_id || 
-                      ', Método: ' || NEW.metodo || ', Valor: ' || NEW.valor || ', Status: ' || NEW.status;
-    ELSIF TG_OP = 'UPDATE' THEN
-        v_alteracao := 'ATUALIZAÇÃO DE PAGAMENTO - ID: ' || NEW.id || 
-                      CASE WHEN OLD.status != NEW.status THEN 
-                          ', Status: ' || OLD.status || ' -> ' || NEW.status 
-                      ELSE '' END;
-    ELSIF TG_OP = 'DELETE' THEN
-        v_alteracao := 'EXCLUSÃO DE PAGAMENTO - ID: ' || OLD.id || ', Reserva: ' || OLD.reserva_id;
-    END IF;
-    
-    -- Insere o log na tabela de logs (assumindo que existe uma tabela logs)
-    INSERT INTO logs (tipo, acao, descricao, usuario_id, ip_origem)
-    VALUES ('pagamento', TG_OP, v_alteracao, NULL, NULL);
-    
-    RETURN NULL; -- O valor de retorno é ignorado para triggers AFTER
-END;
-$$ LANGUAGE plpgsql;
-
--- Cria a trigger para log de alterações
-CREATE TRIGGER trigger_log_alteracao_pagamento
-AFTER INSERT OR UPDATE OR DELETE ON pagamentos
-FOR EACH ROW
-EXECUTE FUNCTION log_alteracao_pagamento();
+-- (Removido) O trigger de log de alterações referenciava NEW.metodo (coluna
+-- renomeada para metodo_pagamento) e uma tabela `logs` inexistente — quebrava
+-- qualquer INSERT em pagamentos. Ver 20260610_align_pagamentos_schema.sql.

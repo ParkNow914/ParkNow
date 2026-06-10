@@ -13,16 +13,26 @@ CREATE TABLE IF NOT EXISTS veiculos (
 -- Adiciona índice para melhorar buscas por usuário
 CREATE INDEX IF NOT EXISTS idx_veiculos_usuario_id ON veiculos(usuario_id);
 
--- Migra os veículos existentes da tabela de usuários para a nova tabela
+-- Migra os veículos existentes da tabela de usuários para a nova tabela.
+-- Guard: só roda se usuarios.tipo_veiculo/placa_veiculo existirem (em bancos
+-- recém-criados a ordem alfabética colocaria as add_*.sql depois desta).
 DO $$
 DECLARE
     usuario_record RECORD;
     veiculo_id INTEGER;
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'usuarios' AND column_name = 'tipo_veiculo')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'usuarios' AND column_name = 'placa_veiculo') THEN
+        RAISE NOTICE 'usuarios.tipo_veiculo/placa_veiculo ausentes — nada a migrar';
+        RETURN;
+    END IF;
+
     -- Para cada usuário que tem veículo cadastrado
-    FOR usuario_record IN 
-        SELECT id, tipo_veiculo, placa_veiculo 
-        FROM usuarios 
+    FOR usuario_record IN
+        SELECT id, tipo_veiculo, placa_veiculo
+        FROM usuarios
         WHERE tipo_veiculo IS NOT NULL AND placa_veiculo IS NOT NULL
     LOOP
         -- Insere o veículo na nova tabela
