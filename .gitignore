@@ -29,6 +29,17 @@ yarn-error.log*
 *.bak
 *.tmp
 
+# Dumps de banco de dados (contêm dados pessoais — nunca commitar)
+/bd/
+*.dump
+*.sql.gz
+
+# Uploads de runtime (comprovantes PIX e fotos contêm dados pessoais)
+/uploads/
+
+# Fotos de perfil legadas salvas dentro de public/ (dados pessoais)
+/public/user/img/profile/
+
 # Arquivos do sistema
 Thumbs.db
 ehthumbs.db

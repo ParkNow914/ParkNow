@@ -8,12 +8,32 @@
 // A rota /reservas/:id/comprovante é montada sob /api (precisa protectUser).
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { param, body } = require('express-validator');
 const ctrl = require('../controllers/pixManualConfirmacaoController');
 const { handleValidationErrors } = require('../middleware/validationMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 const auditLog = require('../middleware/auditLog');
+
+// Anti-abuso nas ações de confirmação/rejeição (já autenticadas via protectAdmin
+// no mount): evita rajadas de confirmações em massa com um token comprometido.
+const adminActionLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'too_many_requests' },
+});
+
+// Upload de comprovante pelo usuário: limite por IP para conter spam de arquivos.
+const comprovanteUploadLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'too_many_uploads' },
+});
 
 /**
  * @swagger
@@ -40,10 +60,27 @@ router.get(
  */
 router.post(
     '/reservas/:id/confirmar-pagamento',
+    adminActionLimiter,
     [param('id').isInt({ min: 1 }).toInt()],
     handleValidationErrors,
     auditLog('payment.admin_confirm'),
     ctrl.confirmarPagamento
+);
+
+/**
+ * @swagger
+ * /api/admin/pagamentos/{id}/comprovante:
+ *   get:
+ *     summary: Entrega o arquivo do comprovante PIX (admin do estacionamento)
+ *     tags: [Pagamentos]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+    '/pagamentos/:id/comprovante',
+    [param('id').isInt({ min: 1 }).toInt()],
+    handleValidationErrors,
+    ctrl.baixarComprovante
 );
 
 /**
@@ -57,6 +94,7 @@ router.post(
  */
 router.post(
     '/reservas/:id/rejeitar-pagamento',
+    adminActionLimiter,
     [
         param('id').isInt({ min: 1 }).toInt(),
         body('motivo').isString().trim().isLength({ min: 3, max: 500 }),
@@ -90,6 +128,7 @@ const userRouter = express.Router();
  */
 userRouter.post(
     '/reservas/:id/comprovante',
+    comprovanteUploadLimiter,
     [param('id').isInt({ min: 1 }).toInt()],
     handleValidationErrors,
     upload.single('comprovante'),

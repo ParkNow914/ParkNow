@@ -15,12 +15,16 @@ const LOG_FILE = path.join(__dirname, '../../logs/maintenance.log');
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, '../../backups');
 const RETENTION_DAYS = parseInt(process.env.BACKUP_RETENTION_DAYS) || 30;
 
-// Configuração do PostgreSQL
+// Configuração do PostgreSQL — senha obrigatória via ambiente (sem fallback).
+if (!process.env.PG_PASSWORD) {
+  console.error('Erro: defina a variável de ambiente PG_PASSWORD antes de executar este script.');
+  process.exit(1);
+}
 const pgConfig = {
   user: process.env.PG_USER || 'postgres',
   host: process.env.PG_HOST || 'localhost',
   database: process.env.PG_DATABASE || 'parknow_db',
-  password: process.env.PG_PASSWORD || '91827364Now#',
+  password: process.env.PG_PASSWORD,
   port: parseInt(process.env.PG_PORT) || 5432,
 };
 

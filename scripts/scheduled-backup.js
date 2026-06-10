@@ -11,12 +11,16 @@ const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const BACKUP_FILE = path.join(BACKUP_DIR, `backup-${timestamp}.sql`);
 const LOG_FILE = path.join(BACKUP_DIR, 'backup.log');
 
-// Configurações do banco de dados
+// Configurações do banco de dados — senha obrigatória via ambiente (sem fallback).
+if (!process.env.PG_PASSWORD) {
+  console.error('Erro: defina a variável de ambiente PG_PASSWORD antes de executar este script.');
+  process.exit(1);
+}
 const pgConfig = {
   user: process.env.PG_USER || 'postgres',
   host: process.env.PG_HOST || 'localhost',
   database: process.env.PG_DATABASE || 'parknow_db',
-  password: process.env.PG_PASSWORD || '91827364Now#',
+  password: process.env.PG_PASSWORD,
   port: process.env.PG_PORT || 5432,
 };
 

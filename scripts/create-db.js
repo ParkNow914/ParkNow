@@ -9,7 +9,8 @@ async function createDatabase() {
     port: process.env.PG_PORT || 5432,
     database: 'postgres', // Conecta ao banco padrão
     username: process.env.PG_USER || 'postgres',
-    password: process.env.PG_PASSWORD || '91827364Now#',
+    // Senha obrigatória via ambiente — sem fallback embutido.
+    password: process.env.PG_PASSWORD,
     logging: false
   });
 
