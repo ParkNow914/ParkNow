@@ -1,5 +1,11 @@
 # Análise Completa do Sistema de Pagamento de Reservas - ParkNow
 
+> ⚠️ **Documento histórico** (pré-migração para o fluxo PIX manual always-free).
+> Partes deste documento descrevem fluxos removidos (gateway/webhooks/link de
+> confirmação por e-mail). A referência atual é `ARQUITETURA_SISTEMA.md` e
+> `docs/FLUXO_PIX_MANUAL.md`.
+
+
 ## Índice
 1. [Visão Geral](#visão-geral)
 2. [Arquitetura do Sistema](#arquitetura-do-sistema)

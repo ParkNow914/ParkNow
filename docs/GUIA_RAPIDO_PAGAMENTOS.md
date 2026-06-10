@@ -53,23 +53,28 @@ Authorization: Bearer <JWT_TOKEN>
 }
 ```
 
-### 2️⃣ Cliente Paga e Notifica
+### 2️⃣ Cliente Paga e Envia o Comprovante
 
 ```http
-POST /api/reservas/123/notificar-pix
+POST /api/reservas/123/comprovante
 Authorization: Bearer <JWT_TOKEN>
+Content-Type: multipart/form-data
 
-{
-  "tipo": "pix_copiado",
-  "codigoPix": "00020126580014br.gov.bcb.pix..."
-}
+comprovante=<arquivo JPG/PNG/WEBP/PDF>
 ```
 
-### 3️⃣ Estacionamento Confirma
+### 3️⃣ Admin do Estacionamento Confirma
 
-Email recebido com links:
-- ✅ **Confirmar Pagamento**: `/api/reservas/123/confirmar-pagamento?token=XXX`
-- ❌ **Cancelar Reserva**: `/api/reservas/123/cancelar-reserva?token=XXX`
+O admin vê a fila e o comprovante (endpoints autenticados — comprovantes não
+são servidos estaticamente):
+
+```http
+GET  /api/admin/pagamentos/aguardando-confirmacao
+GET  /api/admin/pagamentos/456/comprovante
+
+POST /api/admin/reservas/123/confirmar-pagamento
+POST /api/admin/reservas/123/rejeitar-pagamento   { "motivo": "Comprovante ilegível" }
+```
 
 ### 4️⃣ Status Final
 
