@@ -9,6 +9,11 @@ primary_region = 'gru'
 [build]
   dockerfile = 'Dockerfile'
 
+[deploy]
+  # Migrations rodam ANTES da troca de tráfego; se falharem, o deploy aborta
+  # (substitui o passo pós-deploy com `|| true` que mascarava falhas).
+  release_command = 'node scripts/migrate.js'
+
 [env]
   BODY_LIMIT = '2mb'
   LOG_LEVEL = 'info'

@@ -9,7 +9,7 @@
 tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaa..."
 user_ocid        = "ocid1.user.oc1..aaaaaaaa..."
 fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
-private_key_path = "C:/Users/alimi/.oci/oci_api_key.pem"
+private_key_path = "~/.oci/oci_api_key.pem"
 
 # Região onde a VM vai rodar. Veja https://docs.oracle.com/iaas/Content/General/Concepts/regions.htm
 # Para Brasil: sa-saopaulo-1 ou sa-vinhedo-1.
@@ -22,7 +22,7 @@ compartment_ocid = "ocid1.tenancy.oc1..aaaaaaaa..."
 # ─── SSH ─────────────────────────────────────────────────────────────────
 # Caminho para sua chave SSH PÚBLICA. Se não tem, gere uma:
 #   ssh-keygen -t ed25519 -C "parknow"
-ssh_public_key_path = "C:/Users/alimi/.ssh/id_ed25519.pub"
+ssh_public_key_path = "~/.ssh/id_ed25519.pub"
 
 # ─── Aplicação ──────────────────────────────────────────────────────────
 # Hostname público — aponte o DNS aqui DEPOIS do apply (output mostra o IP).

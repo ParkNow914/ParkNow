@@ -82,8 +82,10 @@ class PostgresIdempotencyStore {
              ON CONFLICT (key) DO UPDATE SET fingerprint = $2, status = 'in_progress', expires_at = $3`,
             [key, fingerprint, expiresAt]
         );
-        // limpeza oportunista
-        this.pool.query('DELETE FROM idempotency_keys WHERE expires_at < NOW()').catch(() => {});
+        // limpeza oportunista (best-effort, mas com log)
+        this.pool.query('DELETE FROM idempotency_keys WHERE expires_at < NOW()').catch((err) =>
+            logger.warn('[idempotency] limpeza de expirados falhou', { error: err.message })
+        );
     }
     async setCompleted(key, payload) {
         const expiresAt = new Date(Date.now() + this.ttlMs);
@@ -192,7 +194,11 @@ function idempotency({ store = null, required = false } = {}) {
 
         res.on('close', () => {
             if (!captured) {
-                Promise.resolve(activeStore.delete(key)).catch(() => {});
+                Promise.resolve(activeStore.delete(key)).catch((err) =>
+                    logger.warn('[idempotency] falha ao liberar chave após conexão fechada', {
+                        error: err.message,
+                    })
+                );
             }
         });
 

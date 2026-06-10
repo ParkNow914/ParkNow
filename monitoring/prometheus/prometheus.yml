@@ -39,7 +39,3 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets: ['alertmanager:9093']
-
-# Configurações de regras de alerta
-rule_files:
-  - 'alert.rules'
