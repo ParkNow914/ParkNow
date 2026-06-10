@@ -5,6 +5,88 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.1.0] - 2026-06-10 — Auditoria completa & hardening
+
+### Segurança
+- **Credenciais**: senha PostgreSQL hardcoded removida de 5 scripts (fallback
+  eliminado; `PG_PASSWORD` obrigatória). ⚠️ A senha exposta deve ser rotacionada.
+- **PII removida do repositório**: `bd/backup.sql` (continha nome, e-mail, CPF,
+  telefone e hash de senha de usuários reais) e fotos de perfil commitadas em
+  `uploads/` e `public/user/img/profile/`. `.gitignore` atualizado. ⚠️ Se o
+  repositório for público, reescreva o histórico (`git filter-repo`).
+- **Uploads sensíveis não são mais públicos**: comprovantes PIX e fotos de
+  perfil saem do static e são servidos por endpoints autenticados com checagem
+  de ownership (`GET /api/admin/pagamentos/:id/comprovante`,
+  `GET /api/user/profile/foto`). Fotos de perfil agora persistem no volume.
+- **Fail-closed**: `CRON_API_KEY` sem fallback (503 se ausente, comparação em
+  tempo constante, só via header); `JWT_SECRET`/`JWT_REFRESH_SECRET` ausentes
+  são erro fatal em produção; corrigido bypass `undefined !== undefined` no
+  endpoint de cron legado.
+- **Cookies**: política unificada (`sameSite=lax` sempre; `server.js` e
+  `config/` divergiam em direções opostas).
+- **XSS**: valores dinâmicos escapados em todos os sinks `innerHTML`/`.html()`
+  do frontend (incl. contexto JS de handlers `onclick` via `jsArg`); CSP sem
+  wildcards `ws://*`/`http:`.
+- Rate limiting adicionado: verify-email, ações admin de pagamento, upload de
+  comprovante e rotas de auth da API v2 (não tinham nenhum).
+
+### Corrigido
+- **Vagas presas para sempre**: nenhuma rotina de expiração liberava a vaga
+  (`reserva_id_ativa` só é setado na confirmação). Agora PIX expirado e reserva
+  vencida liberam a vaga — com testes de regressão.
+- **protectUser vazando**: o mount da rota de comprovante aplicava `protectUser`
+  a TODAS as rotas seguintes — `/api/cnpj` e `/api/validate-email` (usadas pelo
+  cadastro de admin sem token!), `/api/horarios`, `/api/pix` e `/api/cron`
+  respondiam 401 sempre. O cron via HTTP nunca tinha funcionado por isso.
+- **Banco novo quebrado**: trigger `log_alteracao_pagamento` referenciava coluna
+  renomeada e tabela inexistente (qualquer INSERT em pagamentos falhava);
+  tabela `pagamentos` divergia entre a linhagem das migrations e a de produção
+  (cada ambiente quebrava em queries diferentes — convergidas com backfill);
+  `horarios_funcionamento` não tinha migration; 2 migrations dependiam de ordem
+  alfabética e falhavam na 1ª execução. `npm run migrate` em banco limpo agora
+  aplica tudo de primeira, sem warnings.
+- Schema Zod de `/api/validate-email` explodia (500) sem o campo `options`.
+- `responseDateFormatter` era no-op (checava `req.timezone` que ninguém setava)
+  e `timezoneUtils` guardava o fuso em variável global (vazava entre
+  requisições concorrentes) — removidos; API fala UTC/ISO 8601.
+- `models/HorarioFuncionamento.js` era uma fábrica quebrada sobrescrita pelo
+  model real — removida (com verificação em runtime).
+
+### Removido (~35 arquivos de código morto verificado)
+- Cadeia de webhooks sem consumidor (controller sem rota, service sem uso,
+  stubs no-op) e fluxo de confirmação por link de e-mail (quebrado de ponta a
+  ponta: `db.Usuario` inexistente, token nunca validava, mount `/api/api/...`).
+- `pixService` (Gerencianet), `paymentService`, `redisClient` (100% no-op),
+  veículo (rotas nunca montadas), runners de migração legados, scripts .bat
+  órfãos, páginas demo/teste expostas, CSS duplicado,
+  `notificationService.new.js`, 3 dos 4 módulos de timezone
+  (dependência `moment-timezone` removida).
+
+### Adicionado
+- Testes de integração contra Postgres real: fluxo PIX manual completo
+  (confirmação, BOLA, dupla confirmação, rejeição, expiração + liberação de
+  vaga) e fluxo de auth (register/login/refresh/logout); testes do middleware
+  de API key. 50 → 66 testes.
+- Cache curto (TTL 30s) dos dados do usuário no `protectUser` (elimina 1
+  SELECT por requisição autenticada).
+- Página 404 customizada + 404 JSON para `/api/*`.
+- Migrations: índices `pagamentos.reserva_id` e `reservas(usuario_id,status)`;
+  drop das colunas mortas `asaas_*`.
+- Fly.io: migrations como `release_command` (abortam o deploy se falharem;
+  antes rodavam pós-deploy com `|| true`).
+
+### Alterado
+- `contactController` 1711→394 linhas (templates de e-mail extraídos para
+  `services/parceriaEmailTemplates.js`).
+- Cron: agendador interno chama os serviços diretamente (sem HTTP self-call
+  com API key); 5 jobs deduplicados em 3.
+- Frontend: `console.log` atrás de flag de debug; bibliotecas deduplicadas em
+  `home.html` (jQuery/Bootstrap/Leaflet 2x; Socket.IO em 3 versões diferentes).
+- Docs realinhadas ao fluxo atual: `ARQUITETURA_SISTEMA.md` (descrevia gateway
+  ASAAS removido), `ROUTES_PAGAMENTO.md`, `GUIA_RAPIDO_PAGAMENTOS.md`,
+  `MODELS.md`, swagger; `SECURITY.md` com e-mail de contato real; `README` sem
+  referências a arquivos inexistentes.
+
 ## [2.0.0] - 2026-05-25 — Always Free
 
 ### 🔥 Breaking changes
