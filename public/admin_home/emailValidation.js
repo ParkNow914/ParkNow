@@ -1,3 +1,9 @@
+// Escapa valores dinamicos interpolados em templates HTML (anti-XSS)
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
 /**
  * Validação de e-mail em tempo real para o formulário de registro
  * Melhorias implementadas:
@@ -82,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (type === 'verifying') {
             feedbackContainer.innerHTML = getStatusIcon(iconType);
         } else {
-            feedbackContainer.innerHTML = `${getStatusIcon(iconType)} <span class="ms-2">${message}</span>`;
+            feedbackContainer.innerHTML = `${getStatusIcon(iconType)} <span class="ms-2">${escapeHtml(message)}</span>`;
         }
 
         // Animações

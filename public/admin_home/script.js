@@ -1,6 +1,16 @@
 // public/admin_home/script.js
 // Lida com interface de login/cadastro do admin e interage com API Node.js
 
+// Logs de depuracao desativados por padrao; ligue com localStorage.setItem('parknow_debug','1')
+const PARKNOW_DEBUG = (() => { try { return localStorage.getItem('parknow_debug') === '1'; } catch (_e) { return false; } })();
+const debugLog = (...args) => { if (PARKNOW_DEBUG) console.log(...args); };
+// Escapa valores dinamicos interpolados em templates HTML (anti-XSS)
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Seletores de Formulários e Elementos
     const loginForm = document.getElementById('loginForm');
@@ -472,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 field.siblings('.invalid-feedback').text(errorData.mensagem || 'CNPJ não encontrado');
             }
         } catch (error) {
-            console.log('Erro ao consultar CNPJ:', error);
+            debugLog('Erro ao consultar CNPJ:', error);
             // Não bloqueia se API falhar
         }
     }
@@ -609,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const showAdminAlert = (elementId, message, type = 'danger') => {
         const feedbackElement = document.getElementById(elementId);
-        if (feedbackElement) { feedbackElement.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show m-0" role="alert" style="font-size: 0.9rem; padding: .6rem 1rem;">${message}<button type="button" class="close" data-dismiss="alert" aria-label="Close" style="padding: .6rem 1rem;"><span aria-hidden="true">×</span></button></div>`; feedbackElement.style.display = 'block'; }
+        if (feedbackElement) { feedbackElement.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show m-0" role="alert" style="font-size: 0.9rem; padding: .6rem 1rem;">${escapeHtml(message)}<button type="button" class="close" data-dismiss="alert" aria-label="Close" style="padding: .6rem 1rem;"><span aria-hidden="true">×</span></button></div>`; feedbackElement.style.display = 'block'; }
         else { console.warn(`Alert #${elementId} N/A`); alert(`[${type.toUpperCase()}] ${message}`); }
     };
     const hideAdminAlert = (elementId) => { const fb = document.getElementById(elementId); if (fb) fb.style.display = 'none'; };
@@ -802,12 +812,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 dadosSolicitacao.fotoEstacionamentoNome = file.name;
             }
             
-            console.log('Enviando registro de admin:', { ...dadosSolicitacao, fotoEstacionamento: dadosSolicitacao.fotoEstacionamento ? '[IMAGEM]' : 'sem foto' });
+            debugLog('Enviando registro de admin:', { ...dadosSolicitacao, fotoEstacionamento: dadosSolicitacao.fotoEstacionamento ? '[IMAGEM]' : 'sem foto' });
             
             // Enviando para o endpoint de registro de admin
             const response = await postJsonWithTimeoutAndRetry('/api/auth/admin/register', dadosSolicitacao, { timeoutMs: 25000, retries: 1 });
             
-            console.log('Resposta do servidor:', response.status);
+            debugLog('Resposta do servidor:', response.status);
             
             // Verifica se a resposta é JSON
             const contentType = response.headers.get('content-type');
@@ -815,7 +825,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (contentType && contentType.includes('application/json')) {
                 data = await response.json();
-                console.log('Dados da resposta:', data);
+                debugLog('Dados da resposta:', data);
                 
                 if (!response.ok) {
                     if (response.status === 422 && data.errors) { 
@@ -836,7 +846,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 2000);
             } else {
                 const text = await response.text();
-                console.log('Resposta não-JSON:', text);
+                debugLog('Resposta não-JSON:', text);
                 throw new Error('Resposta inválida do servidor');
             }
         } catch (error) {
@@ -1129,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Função para calcular coordenadas com MÁXIMA PRECISÃO usando endereço estruturado
     const calcularCoordenadasPrecisas = async (dadosEndereco) => {
         try {
-            console.log('🎯 Calculando coordenadas com precisão...', dadosEndereco);
+            debugLog('🎯 Calculando coordenadas com precisão...', dadosEndereco);
             
             // Mostra indicador de carregamento
             const latInput = document.getElementById('latitude');
@@ -1156,7 +1166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.status === 'success' && result.data) {
                 const { latitude, longitude, qualityScore, confidence, precisao, consenso, distanciaMediaConsenso, fonte, type: _type } = result.data;
                 
-                console.log('✅ Coordenadas 100% PRECISAS calculadas:', {
+                debugLog('✅ Coordenadas 100% PRECISAS calculadas:', {
                     latitude,
                     longitude,
                     qualityScore,
@@ -1288,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const data = await response.json();
                         if (data.status === 'success' && data.variacoes) {
                             enderecoFormatado = data.variacoes;
-                            console.log('Variações de endereço geradas pelo servidor:', enderecoFormatado);
+                            debugLog('Variações de endereço geradas pelo servidor:', enderecoFormatado);
                         } else {
                             throw new Error(data.message || 'Erro ao processar endereço');
                         }
@@ -1307,7 +1317,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            console.log('Buscando coordenadas para:', enderecoFormatado);
+            debugLog('Buscando coordenadas para:', enderecoFormatado);
             
             // Usa o endpoint local como proxy para o OpenCage
             const response = await fetch('/api/utils/geocodificar', {
@@ -1342,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const latFormatted = formatCoord(latitude);
                 const lngFormatted = formatCoord(longitude);
                 
-                console.log('Resposta da API:', {
+                debugLog('Resposta da API:', {
                     coordenadas: { 
                         latitude: latFormatted, 
                         longitude: lngFormatted 

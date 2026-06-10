@@ -6,6 +6,10 @@
  * @param {Function} options.onClose - Callback chamado quando o modal é fechado
  * @returns {Object} Instância do modal
  */
+// Logs de depuracao desativados por padrao; ligue com localStorage.setItem('parknow_debug','1')
+const PARKNOW_DEBUG = (() => { try { return localStorage.getItem('parknow_debug') === '1'; } catch (_e) { return false; } })();
+const debugLog = (...args) => { if (PARKNOW_DEBUG) console.log(...args); };
+
 function initPixPaymentModal(options = {}) {
   // Verificar se o modal já foi carregado
   if (window.pixPaymentModal) {
@@ -21,19 +25,19 @@ function initPixPaymentModal(options = {}) {
   // Criar instância do modal
   const modal = new ManualPixPaymentModal({
     onPaymentInitiated: (data) => {
-      console.log('Pagamento PIX iniciado:', data);
+      debugLog('Pagamento PIX iniciado:', data);
       if (typeof options.onPaymentInitiated === 'function') {
         options.onPaymentInitiated(data);
       }
     },
     onPaymentConfirmed: (data) => {
-      console.log('Pagamento PIX confirmado:', data);
+      debugLog('Pagamento PIX confirmado:', data);
       if (typeof options.onPaymentConfirmed === 'function') {
         options.onPaymentConfirmed(data);
       }
     },
     onClose: () => {
-      console.log('Modal PIX fechado');
+      debugLog('Modal PIX fechado');
       if (typeof options.onClose === 'function') {
         options.onClose();
       }
