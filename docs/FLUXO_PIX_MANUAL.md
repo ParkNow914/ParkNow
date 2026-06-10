@@ -66,6 +66,7 @@ PIX do estacionamento, com **confirmação manual** pelo admin via painel.
 | `POST` | `/api/reservas/com-pagamento` | Cria reserva + gera PIX BR Code |
 | `GET`  | `/api/reservas/:id/pix` | Reexibe o PIX (copia-e-cola + QR base64) |
 | `POST` | `/api/reservas/:id/comprovante` | Anexa comprovante (multipart `comprovante=...`) |
+| `GET`  | `/api/admin/pagamentos/:id/comprovante` | Entrega o arquivo do comprovante ao admin do estacionamento (comprovantes **não** são servidos estaticamente de `/uploads` — contêm dados financeiros) |
 | `GET`  | `/api/pagamentos/:id/status` | Consulta status atual (pendente / aprovado / cancelado) |
 | `POST` | `/api/pagamentos/:id/novo-qrcode` | Regenera o PIX se o anterior expirou |
 | `DELETE` | `/api/reservas/:id/cancelar` | Cancela reserva (libera vaga; marca pagamento como cancelado) |
