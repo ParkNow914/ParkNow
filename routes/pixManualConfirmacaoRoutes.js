@@ -126,8 +126,10 @@ const userRouter = express.Router();
  *                 type: string
  *                 format: binary
  */
+const { protectUser } = require('../middleware/authMiddleware');
 userRouter.post(
     '/reservas/:id/comprovante',
+    protectUser,
     comprovanteUploadLimiter,
     [param('id').isInt({ min: 1 }).toInt()],
     handleValidationErrors,
