@@ -7,6 +7,10 @@
  */
 
 // Função para inicializar serviços da aplicação
+// Logs de depuracao desativados por padrao; ligue com localStorage.setItem('parknow_debug','1')
+const PARKNOW_DEBUG = (() => { try { return localStorage.getItem('parknow_debug') === '1'; } catch (_e) { return false; } })();
+const debugLog = (...args) => { if (PARKNOW_DEBUG) console.log(...args); };
+
 function initializeAppServices() {
     // Inicializa o serviço de notificações automaticamente em todas as páginas
     if (window.notificationService) {
@@ -59,7 +63,7 @@ function setupTokenRefresh() {
         
         // Programa a renovação para 1 minuto antes da expiração
         const refreshTime = timeUntilExpiration - 60000; // 1 minuto antes
-        console.log(`[TokenRefresh] Token expira em ${Math.round(timeUntilExpiration/1000)}s. Renovação programada para ${Math.round(refreshTime/1000)}s.`);
+        debugLog(`[TokenRefresh] Token expira em ${Math.round(timeUntilExpiration/1000)}s. Renovação programada para ${Math.round(refreshTime/1000)}s.`);
         
         // Limpa qualquer temporizador existente
         if (window.tokenRefreshTimeout) {
@@ -79,7 +83,7 @@ function setupTokenRefresh() {
 
 // Função para renovar o token de acesso
 async function refreshAccessToken() {
-    console.log('[TokenRefresh] Iniciando renovação do token...');
+    debugLog('[TokenRefresh] Iniciando renovação do token...');
     
     try {
         // Adiciona timestamp para evitar cache
@@ -117,7 +121,7 @@ async function refreshAccessToken() {
         const data = await response.json();
         
         if (data.accessToken) {
-            console.log('[TokenRefresh] Token renovado com sucesso!');
+            debugLog('[TokenRefresh] Token renovado com sucesso!');
             localStorage.setItem('authToken', data.accessToken);
             
             // Atualiza o token no serviço de notificações, se disponível
@@ -211,7 +215,7 @@ function checkForAuthCookies() {
     
     // Se temos um cookie de autenticação mas não temos no localStorage
     if (cookies.authToken && !localStorage.getItem('authToken')) {
-        console.log('[AppUtils] Encontrado token no cookie, mas não no localStorage.');
+        debugLog('[AppUtils] Encontrado token no cookie, mas não no localStorage.');
         localStorage.setItem('authToken', cookies.authToken);
         
         // Tenta decodificar o JWT para extrair o userId
@@ -221,7 +225,7 @@ function checkForAuthCookies() {
                 const payload = JSON.parse(atob(tokenParts[1]));
                 if (payload.id) {
                     localStorage.setItem('userId', payload.id.toString());
-                    console.log(`[AppUtils] Extraído userId ${payload.id} do token JWT.`);
+                    debugLog(`[AppUtils] Extraído userId ${payload.id} do token JWT.`);
                     
                     // Reinicializa serviços com novas credenciais
                     initializeAppServices();

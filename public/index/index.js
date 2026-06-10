@@ -2,6 +2,16 @@
 // Script principal para a landing page (index.html)
 // Lida com modais de login, cadastro, esqueci senha, newsletter e contato
 
+// Logs de depuracao desativados por padrao; ligue com localStorage.setItem('parknow_debug','1')
+const PARKNOW_DEBUG = (() => { try { return localStorage.getItem('parknow_debug') === '1'; } catch (_e) { return false; } })();
+const debugLog = (...args) => { if (PARKNOW_DEBUG) console.log(...args); };
+// Escapa valores dinamicos interpolados em templates HTML (anti-XSS)
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     // Seletores Globais (evita repetição)
     const registerForm = document.getElementById('registerUserForm');
@@ -52,7 +62,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const showAlert = (elementId, message, type = 'danger') => {
         const feedbackElement = document.getElementById(elementId);
         if (feedbackElement) {
-            feedbackElement.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show m-0" role="alert" style="font-size: 0.9rem; padding: .6rem 1rem;">${message}<button type="button" class="close" data-dismiss="alert" aria-label="Close" style="padding: .6rem 1rem;"><span aria-hidden="true">×</span></button></div>`;
+            feedbackElement.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show m-0" role="alert" style="font-size: 0.9rem; padding: .6rem 1rem;">${escapeHtml(message)}<button type="button" class="close" data-dismiss="alert" aria-label="Close" style="padding: .6rem 1rem;"><span aria-hidden="true">×</span></button></div>`;
             feedbackElement.style.display = 'block';
         } else { console.warn(`Elemento ${elementId} N/A.`); alert(`[${type.toUpperCase()}] ${message}`); }
     };
@@ -122,9 +132,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 const result = await response.json();
                 
                 // Adiciona log detalhado para depuração
-                console.log('Resposta do servidor:', result);
+                debugLog('Resposta do servidor:', result);
                 if (result.errors) {
-                    console.log('Erros de validação detalhados:', result.errors);
+                    debugLog('Erros de validação detalhados:', result.errors);
                 }
                 
                 if (!response.ok) { handleApiError(result, response.status, feedbackId); return; } // Usa helper de erro
@@ -192,11 +202,11 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     });
                     document.dispatchEvent(authEvent);
-                    console.log('[Login] Disparando evento auth:login para notificationService');
+                    debugLog('[Login] Disparando evento auth:login para notificationService');
                     
                     // Inicializa notificationService diretamente se disponível
                     if (window.notificationService) {
-                        console.log('[Login] Inicializando notificationService diretamente');
+                        debugLog('[Login] Inicializando notificationService diretamente');
                         window.notificationService.init({
                             userId: result.user.id,
                             token: result.accessToken,
