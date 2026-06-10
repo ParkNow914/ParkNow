@@ -1,5 +1,6 @@
 // controllers/userController.js
 const userModel = require('../models/userModel');
+const { invalidateUserCache } = require('../middleware/authMiddleware');
 const { AppError, NotFoundError, BadRequestError } = require('../utils/AppError');
 const logger = require('../utils/logger');
 const config = require('../config');
@@ -68,6 +69,7 @@ const updateUserProfile = async (req, res, next) => {
 
         // Atualiza o usuário no banco de dados
         const updated = await userModel.updateUser(userId, dataToUpdate);
+        invalidateUserCache(userId);
 
         // updateUser retorna true/false, mas pode lançar ER_DUP_ENTRY
         if (!updated && !(await userModel.findUserById(userId))) { // Checa se usuário ainda existe

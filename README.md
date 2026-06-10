@@ -88,28 +88,14 @@ EMV/Bacen (`utils/pixBrCode.js`). O fluxo end-to-end:
 
 Detalhes em [`docs/FLUXO_PIX_MANUAL.md`](docs/FLUXO_PIX_MANUAL.md).
 
-Execute os scripts de migração para criar a estrutura do banco:
+Execute as migrations para criar a estrutura do banco (runner com tabela de
+controle `schema_migrations`; aplica o baseline automaticamente em banco novo):
 
 ```bash
-# Acesse o container do banco de dados (se estiver usando Docker)
-docker-compose exec db psql -U postgres -d parknow_db -f /docker-entrypoint-initdb.d/migrations/create_tables.sql
-
-# Ou execute diretamente no seu banco de dados local
-psql -U seu_usuario -d parknow_db -f migrations/create_tables.sql
+npm run migrate          # aplica baseline + migrations pendentes
+npm run migrate:status   # lista aplicadas x pendentes
+npm run migrate:strict   # aborta no primeiro erro (CI)
 ```
-
-### Dados de Teste
-
-Para popular o banco de dados com dados de teste, execute:
-
-```bash
-node scripts/seed-data.js
-```
-
-Isso criará:
-* Um usuário de teste (email: teste@parknow.com.br, senha: senha123)
-* Um estacionamento de teste com configuração de pagamento PIX
-* 10 vagas de teste
 
 ## Pré-requisitos
 

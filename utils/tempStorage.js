@@ -88,8 +88,10 @@ const set = async (key, value, ttl = DEFAULT_TTL) => {
                  ON CONFLICT (chave) DO UPDATE SET dados = $2, expires_at = $3`,
                 [key, JSON.stringify(payload), expiresAt]
             );
-            // limpeza oportunista de expirados
-            p.query('DELETE FROM parceria_solicitacoes WHERE expires_at < NOW()').catch(() => {});
+            // limpeza oportunista de expirados (best-effort, mas com log)
+            p.query('DELETE FROM parceria_solicitacoes WHERE expires_at < NOW()').catch((err) =>
+                logger.warn('[tempStorage] limpeza de expirados falhou', { error: err.message })
+            );
             return true;
         } catch (err) {
             logger.error('[tempStorage] falha ao gravar no Postgres, usando fallback em memória', { error: err.message });

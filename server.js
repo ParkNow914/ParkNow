@@ -3,8 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');                     // Segurança HTTP Headers
-const detectTimezone = require('./middleware/detectTimezone');  // Timezone detection middleware
-const _rateLimit = require('express-rate-limit');     // Limita requisições (Rate Limiting)
 const cookieParser = require('cookie-parser');         // Para ler/escrever cookies (refresh token)
 const http = require('http');                          // Módulo HTTP nativo do Node.js (para Socket.IO)
 const morgan = require('morgan');                      // Middleware para log HTTP
@@ -93,10 +91,9 @@ app.use(
                 imgSrc: [
                     "'self'",
                     "data:",
+                    "blob:",
                     "https://*.tile.openstreetmap.org",
-                    "http://*.tile.openstreetmap.org",
-                    "https://*.openstreetmap.org",
-                    "http://*.openstreetmap.org"
+                    "https://*.openstreetmap.org"
                 ],
                 mediaSrc: [
                     "'self'",
@@ -106,12 +103,12 @@ app.use(
                 ],
                 connectSrc: [
                     "'self'",
+                    // Socket.IO usa websocket para a PRÓPRIA origem; nada de
+                    // wildcards ws://*/wss://* (permitiriam exfiltração para
+                    // qualquer destino em caso de XSS).
+                    "wss:",
                     "https://nominatim.openstreetmap.org",
-                    "http://nominatim.openstreetmap.org",
                     "https://*.openstreetmap.org",
-                    "http://*.openstreetmap.org",
-                    "wss://*",
-                    "ws://*",
                     "https://receitaws.com.br",
                     "https://brasilapi.com.br",
                     "https://dns.google",
@@ -159,11 +156,11 @@ app.use(morgan(morganFormat, { stream: logger.stream }));
 // Prometheus metrics collection (must come after morgan so we measure the same scope)
 app.use(metricsMiddleware);
 
-// Timezone Middleware: Detecta e define o timezone do usuário
-app.use(detectTimezone);
-
-// Response Date Formatter: Formata datas nas respostas da API para o timezone do usuário
-app.use(require('./middleware/responseDateFormatter'));
+// Timezone: a API fala UTC/ISO 8601; a formatação para o fuso do usuário é
+// feita no cliente (public/js/dateUtils.js). Os antigos middlewares
+// detectTimezone/responseDateFormatter guardavam o timezone em estado global
+// (vazava entre requisições concorrentes) e o formatador nunca chegou a rodar
+// (checava req.timezone, que ninguém setava) — removidos.
 // Fotos de perfil legadas eram salvas dentro de public/ — bloqueia o caminho
 // para que dados pessoais nunca sejam servidos estaticamente (o endpoint
 // autenticado GET /api/user/profile/foto cobre a entrega).

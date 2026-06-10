@@ -6,7 +6,6 @@ const logger = require('../utils/logger');
 const reservaModel = require('./reservaModel'); // Importa para interagir com reservas
 const logModel = require('./logModel'); // Importa para logs de veículo
 const config = require('../config'); // Para config.reserva.bufferOcupadaHoras
-const dateUtils = require('../utils/dateUtils'); // Utilitário para manipulação de datas
 
 // --- Funções de Busca ---
 /** Busca todas as vagas com detalhes para admin (com filtro opcional) */
@@ -247,11 +246,9 @@ const ocuparVaga = async (vagaId, userId, placaVeiculo) => {
             throw new Error("Vaga não está livre.");
         }
 
-        // Preparar dados para atualização usando o utilitário de datas
-        // Obter o timestamp atual em UTC para garantir consistência
-        const horaEntrada = dateUtils.nowUTC();
-        // Manter o formato UTC completo com 'Z' para garantir que o cliente interprete corretamente
-        const entradaSql = dateUtils.formatForAPI(horaEntrada);
+        // Timestamp atual em UTC (ISO 8601 com 'Z') para o cliente interpretar corretamente
+        const horaEntrada = new Date();
+        const entradaSql = horaEntrada.toISOString();
 
         // Atualizar status da vaga para ocupada
         const sqlUpdVaga = `UPDATE vagas SET status='ocupada', placa=$1, entrada=$2, tempo_estacionado=0, usuario_id=$3, reserva_id_ativa=NULL
@@ -474,7 +471,7 @@ const updateAllTemposEstacionados = async () => {
                     if (entradaCorrigida) {
                         try {
                             // Garantir que o timestamp esteja em formato UTC válido
-                            entradaCorrigida = dateUtils.formatForAPI(entradaCorrigida);
+                            entradaCorrigida = new Date(entradaCorrigida).toISOString();
                         } catch (err) {
                             logger.error(`Erro ao formatar timestamp de entrada para vaga ${vaga.id}:`, err);
                         }
@@ -490,7 +487,7 @@ const updateAllTemposEstacionados = async () => {
                         timezone: {
                             serverTimezone: config.timezone.default,
                             offsetHours: config.timezone.offsetHours,
-                            serverTime: dateUtils.formatForAPI(dateUtils.nowUTC())
+                            serverTime: new Date().toISOString()
                         }
                     });
                 });
