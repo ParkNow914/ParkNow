@@ -141,10 +141,12 @@ class EstacionamentoPaymentConfigService {
         resultado = await client.query(insertQuery, insertValues);
       }
 
-      // Atualiza a chave PIX no cadastro do estacionamento para facilitar consultas
+      // Atualiza a chave PIX no cadastro do estacionamento para facilitar consultas.
+      // A tabela estacionamentos usa updated_at (padrão do projeto), não
+      // data_atualizacao (essa é a convenção de estacionamento_pagamentos).
       await client.query(
-        'UPDATE estacionamentos SET chave_pix = $1, tipo_chave_pix = $2, nome_titular_pix = $3, data_atualizacao = $4 WHERE id = $5',
-        [chave_pix, tipo_chave_pix, nome_titular, new Date(), estacionamentoId]
+        'UPDATE estacionamentos SET chave_pix = $1, tipo_chave_pix = $2, nome_titular_pix = $3, updated_at = NOW() WHERE id = $4',
+        [chave_pix, tipo_chave_pix, nome_titular, estacionamentoId]
       );
 
       await client.query('COMMIT');

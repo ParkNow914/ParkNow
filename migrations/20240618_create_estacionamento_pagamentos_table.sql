@@ -79,10 +79,15 @@ END $$;
 CREATE OR REPLACE FUNCTION sincronizar_chave_pix()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Atualiza a chave_pix na tabela estacionamentos quando um registro for inserido ou atualizado em estacionamento_pagamentos
+    -- Atualiza a chave PIX espelhada na tabela estacionamentos quando um
+    -- registro for inserido/atualizado em estacionamento_pagamentos.
+    -- IMPORTANTE: não tocar em colunas de timestamp aqui — as linhagens de
+    -- schema divergem (updated_at vs data_atualizacao vs nenhuma) e o trigger
+    -- quebrava TODO cadastro de chave PIX em bancos criados pelas migrations.
     UPDATE estacionamentos
     SET chave_pix = NEW.chave_pix,
-        data_atualizacao = NOW()
+        tipo_chave_pix = NEW.tipo_chave_pix,
+        nome_titular_pix = NEW.nome_titular
     WHERE id = NEW.estacionamento_id;
     
     RETURN NEW;
