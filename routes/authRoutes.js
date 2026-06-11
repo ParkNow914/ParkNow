@@ -14,6 +14,10 @@ const logger = require('../utils/logger');
 const router = express.Router();
 
 // --- Rate limiters específicos das rotas de auth ---
+// Persistidos no Postgres (utils/pgRateLimitStore.js): sobrevivem a restarts
+// e funcionam com múltiplas instâncias. Fail-open se o banco cair.
+const { PgRateLimitStore } = require('../utils/pgRateLimitStore');
+
 // Login: muito restritivo (anti brute-force), conta apenas falhas para não
 // punir clientes legítimos que entraram com sucesso.
 const loginLimiter = rateLimit({
@@ -22,6 +26,7 @@ const loginLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: true,
+    store: new PgRateLimitStore({ prefix: 'auth_login' }),
     message: { success: false, error: 'too_many_login_attempts' },
     handler: (req, res, _next, options) => {
         logger.warn('[authRoutes] login rate limit hit', { ip: req.ip, requestId: req.id });
@@ -35,6 +40,7 @@ const signupLimiter = rateLimit({
     max: 20,
     standardHeaders: true,
     legacyHeaders: false,
+    store: new PgRateLimitStore({ prefix: 'auth_signup' }),
     message: { success: false, error: 'too_many_signups' },
 });
 
@@ -43,6 +49,7 @@ const forgotPasswordLimiter = rateLimit({
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
+    store: new PgRateLimitStore({ prefix: 'auth_forgot' }),
     message: { success: false, error: 'too_many_password_reset_requests' },
 });
 
@@ -53,6 +60,7 @@ const refreshLogoutLimiter = rateLimit({
     max: 60,
     standardHeaders: true,
     legacyHeaders: false,
+    store: new PgRateLimitStore({ prefix: 'auth_refresh' }),
     message: { success: false, error: 'too_many_requests' },
 });
 
