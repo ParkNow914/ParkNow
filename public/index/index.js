@@ -68,6 +68,40 @@ document.addEventListener("DOMContentLoaded", function() {
     };
     const hideAlert = (elementId) => { const fb=document.getElementById(elementId); if(fb) fb.style.display = 'none'; };
 
+    // Feedback do link de verificação de e-mail (GET /api/auth/verify-email/:token
+    // redireciona para /?email_verificado=sucesso|invalido|expirado|erro)
+    (function mostrarFeedbackVerificacaoEmail() {
+        const params = new URLSearchParams(window.location.search);
+        const status = params.get('email_verificado');
+        if (!status) return;
+        const mensagens = {
+            sucesso: ['✅ E-mail confirmado com sucesso! Você já pode fazer login.', 'success'],
+            invalido: ['Link de verificação inválido. Solicite um novo e-mail de confirmação.', 'danger'],
+            expirado: ['O link de verificação expirou (validade de 24h). Faça login para reenviar.', 'warning'],
+            erro: ['Não foi possível verificar seu e-mail agora. Tente novamente mais tarde.', 'danger'],
+        };
+        const [mensagem, tipo] = mensagens[status] || mensagens.erro;
+        // Banner fixo no topo (independe dos containers de formulário)
+        const banner = document.createElement('div');
+        banner.className = `alert alert-${tipo} text-center mb-0`;
+        banner.setAttribute('role', 'alert');
+        banner.style.cssText = 'position:sticky;top:0;z-index:2000;border-radius:0;';
+        banner.textContent = mensagem;
+        const fechar = document.createElement('button');
+        fechar.type = 'button';
+        fechar.className = 'close';
+        fechar.setAttribute('aria-label', 'Fechar');
+        fechar.innerHTML = '<span aria-hidden="true">&times;</span>';
+        fechar.addEventListener('click', () => banner.remove());
+        banner.appendChild(fechar);
+        document.body.prepend(banner);
+        // Limpa o parâmetro da URL sem recarregar
+        params.delete('email_verificado');
+        const novaQuery = params.toString();
+        window.history.replaceState({}, '', window.location.pathname + (novaQuery ? `?${novaQuery}` : ''));
+        if (status === 'sucesso') setTimeout(() => banner.remove(), 10000);
+    })();
+
     // --- Validação e Submissão de Formulários ---
 
     // CADASTRO
