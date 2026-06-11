@@ -19,7 +19,7 @@ primary_region = 'gru'
   LOG_LEVEL = 'info'
   LOG_TO_FILE = 'false'
   NODE_ENV = 'production'
-  NODE_OPTIONS = '--max-old-space-size=200'
+  NODE_OPTIONS = '--max-old-space-size=768'
   PG_CONNECTION_TIMEOUT_MS = '10000'
   PG_IDLE_TIMEOUT_MS = '30000'
   PG_MAX_CONNECTIONS = '5'
@@ -54,7 +54,7 @@ primary_region = 'gru'
 
 [[vm]]
   size = 'shared-cpu-1x'
-  memory = '256mb'
+  memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 256
+  memory_mb = 1024
