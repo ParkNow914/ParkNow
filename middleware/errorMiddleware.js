@@ -119,6 +119,19 @@ const errorHandler = (err, req, res, _next) => {
         logger.info(`${err.statusCode} - ${message}`, logData);
     }
 
+    // Navegação de browser (fora de /api) com erro 5xx: serve a página 500
+    // customizada em vez de JSON cru.
+    if (
+        err.statusCode >= 500 &&
+        !req.originalUrl.startsWith('/api') &&
+        req.accepts(['json', 'html']) === 'html'
+    ) {
+        const path = require('path');
+        return res
+            .status(500)
+            .sendFile(path.join(__dirname, '..', 'public', '500.html'));
+    }
+
     // Prepara a resposta para o cliente
     const response = {
         status: err.status,

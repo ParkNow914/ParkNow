@@ -20,7 +20,8 @@
     "migrate": "node scripts/migrate.js",
     "migrate:status": "node scripts/migrate.js --status",
     "migrate:strict": "node scripts/migrate.js --strict",
-    "syntax-check": "node -c server.js"
+    "syntax-check": "node -c server.js",
+    "prepare": "husky || true"
   },
   "dependencies": {
     "argon2": "^0.43.0",
@@ -74,7 +75,9 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jest": "^28.6.0",
     "eslint-plugin-node": "^11.1.0",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
+    "lint-staged": "^17.0.7",
     "nodemon": "^3.1.10",
     "prettier": "^3.3.3",
     "supertest": "^7.0.0"
@@ -105,5 +108,9 @@
     "sequelize": {
       "uuid": "^11.1.1"
     }
+  },
+  "lint-staged": {
+    "*.js": "eslint",
+    "*.{json,yml,yaml,md}": "prettier --write --ignore-unknown"
   }
 }
