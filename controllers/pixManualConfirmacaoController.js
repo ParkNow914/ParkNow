@@ -17,6 +17,7 @@ const {
 const reservaModel = require('../models/reservaModel');
 const pagamentoModel = require('../models/pagamentoModel');
 const socketService = require('../services/socketService');
+const { sanitizeComprovanteUpload } = require('../utils/uploadSecurity');
 
 /**
  * USUÁRIO — envia o comprovante PIX (foto / PDF) de uma reserva já com pagamento criado.
@@ -53,16 +54,43 @@ async function enviarComprovante(req, res, next) {
             throw new AppError('Este pagamento já foi confirmado.', 409);
         }
 
-        const comprovantePath = `/uploads/${path.basename(req.file.path)}`;
+        // Valida o conteúdo REAL do arquivo (magic bytes) e, se for imagem,
+        // re-encoda removendo EXIF/GPS. Lança BadRequestError em conteúdo inválido.
+        const { path: sanitizedPath, sha256 } = await sanitizeComprovanteUpload(req.file);
+
+        // Anti-duplicação: o mesmo arquivo de comprovante não pode ser
+        // reutilizado no pagamento de OUTRA reserva (indício de fraude).
+        const { rows: dupRows } = await pool.query(
+            `SELECT p.id, p.reserva_id
+               FROM pagamentos p
+              WHERE p.comprovante_hash = $1
+                AND p.reserva_id <> $2
+              LIMIT 1`,
+            [sha256, reservaId]
+        );
+        if (dupRows.length > 0) {
+            try { fs.unlinkSync(sanitizedPath); } catch (_e) {}
+            logger.warn('[PIX manual] Comprovante duplicado rejeitado', {
+                reservaId,
+                hashConflitoCom: dupRows[0].reserva_id,
+            });
+            throw new AppError(
+                'Este comprovante já foi usado em outra reserva. Envie o comprovante correto desta transação.',
+                409
+            );
+        }
+
+        const comprovantePath = `/uploads/${path.basename(sanitizedPath)}`;
         await pool.query(
             `UPDATE pagamentos
                 SET comprovante_url        = $1,
+                    comprovante_hash       = $2,
                     comprovante_enviado_em = NOW(),
                     rejeitado_em           = NULL,
                     motivo_rejeicao        = NULL,
                     updated_at             = NOW()
-              WHERE id = $2`,
-            [comprovantePath, pagamento.id]
+              WHERE id = $3`,
+            [comprovantePath, sha256, pagamento.id]
         );
 
         logger.info('[PIX manual] Comprovante anexado pelo usuário', {
