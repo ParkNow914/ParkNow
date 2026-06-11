@@ -21,27 +21,27 @@ Este projeto representa o backend do sistema de gerenciamento de estacionamento 
 
 O ParkNow visa oferecer uma experiência fluida tanto para motoristas que procuram vagas quanto para administradores que gerenciam estacionamentos. Esta versão implementa uma API RESTful completa com as seguintes funcionalidades principais:
 
-*   **Autenticação Segura:** Cadastro e login para usuários e administradores usando JWT (Access Tokens + Refresh Tokens em cookies `httpOnly`). Senhas hasheadas com Argon2id.
-*   **Recuperação de Senha:** Fluxo completo de "Esqueci Minha Senha" via email (requer configuração SMTP).
-*   **Gerenciamento de Perfil:** Usuários podem visualizar e editar seus dados.
-*   **Mapa Interativo:** Clientes visualizam estacionamentos próximos em um mapa Leaflet.
-*   **Visualização de Vagas:** Detalhes de vagas (livre/ocupada/reservada) por estacionamento.
-*   **Agendamento/Ocupação:** Clientes podem ocupar vagas livres diretamente.
-*   **Reserva Antecipada:** Clientes podem reservar vagas específicas para horários futuros, com verificação de disponibilidade no período.
-*   **Tempo Real (Básico):** Atualizações de status de vagas são enviadas para clientes conectados na página do estacionamento via Socket.IO.
-*   **Painel Admin:** Interface web para administradores gerenciarem:
-    *   Vagas (visualização, entrada/saída manual).
-    *   Estacionamentos (CRUD - Criar, Listar, Editar, Excluir).
-    *   Usuários (Listar, Ativar/Desativar).
-*   **Tarefas Agendadas:** Expiração automática de reservas não utilizadas e atualização periódica de tempo estacionado no banco (`node-cron`).
-*   **Sistema de Pagamento PIX Manual (always free):**
-    * QR Code BR Code gerado **localmente** (padrão EMV/Bacen, sem gateway)
-    * Usuário paga PIX direto na chave do estacionamento e anexa o comprovante
-    * Admin confirma manualmente pelo painel (`/api/admin/reservas/:id/confirmar-pagamento`)
-    * Notificações em tempo real via Socket.IO ao usuário
-*   **Segurança:** Implementa `helmet`, rate limiting (`express-rate-limit`), validação de entrada (`express-validator`), e proteção CSRF implícita via `sameSite` cookies.
-*   **Logging:** Logs estruturados e persistentes com `Winston`.
-*   **Validação de Chave PIX:** Verificação automática de CNPJ para chaves PIX de estacionamentos.
+- **Autenticação Segura:** Cadastro e login para usuários e administradores usando JWT (Access Tokens + Refresh Tokens em cookies `httpOnly`). Senhas hasheadas com Argon2id.
+- **Recuperação de Senha:** Fluxo completo de "Esqueci Minha Senha" via email (requer configuração SMTP).
+- **Gerenciamento de Perfil:** Usuários podem visualizar e editar seus dados.
+- **Mapa Interativo:** Clientes visualizam estacionamentos próximos em um mapa Leaflet.
+- **Visualização de Vagas:** Detalhes de vagas (livre/ocupada/reservada) por estacionamento.
+- **Agendamento/Ocupação:** Clientes podem ocupar vagas livres diretamente.
+- **Reserva Antecipada:** Clientes podem reservar vagas específicas para horários futuros, com verificação de disponibilidade no período.
+- **Tempo Real (Básico):** Atualizações de status de vagas são enviadas para clientes conectados na página do estacionamento via Socket.IO.
+- **Painel Admin:** Interface web para administradores gerenciarem:
+  - Vagas (visualização, entrada/saída manual).
+  - Estacionamentos (CRUD - Criar, Listar, Editar, Excluir).
+  - Usuários (Listar, Ativar/Desativar).
+- **Tarefas Agendadas:** Expiração automática de reservas não utilizadas e atualização periódica de tempo estacionado no banco (`node-cron`).
+- **Sistema de Pagamento PIX Manual (always free):**
+  - QR Code BR Code gerado **localmente** (padrão EMV/Bacen, sem gateway)
+  - Usuário paga PIX direto na chave do estacionamento e anexa o comprovante
+  - Admin confirma manualmente pelo painel (`/api/admin/reservas/:id/confirmar-pagamento`)
+  - Notificações em tempo real via Socket.IO ao usuário
+- **Segurança:** Implementa `helmet`, rate limiting (`express-rate-limit`), validação de entrada (`express-validator`), e proteção CSRF implícita via `sameSite` cookies.
+- **Logging:** Logs estruturados e persistentes com `Winston`.
+- **Validação de Chave PIX:** Verificação automática de CNPJ para chaves PIX de estacionamentos.
 
 ## Configuração do Ambiente de Desenvolvimento
 
@@ -99,65 +99,68 @@ npm run migrate:strict   # aborta no primeiro erro (CI)
 
 ## Pré-requisitos
 
-*   [Node.js](https://nodejs.org/) **v18 ou superior** (veja `.nvmrc`)
-*   [npm](https://www.npmjs.com/) v9+
-*   [Git](https://git-scm.com/)
-*   [PostgreSQL](https://www.postgresql.org/) (v13 ou superior recomendado) — pode ser executado via [Docker](https://www.docker.com/) (`docker compose up db`) ou instalado localmente
-*   **Opcional (Para Reset Senha):** Credenciais de um servidor SMTP (SendGrid, Mailgun, Mailtrap para teste, etc.).
+- [Node.js](https://nodejs.org/) **v18 ou superior** (veja `.nvmrc`)
+- [npm](https://www.npmjs.com/) v9+
+- [Git](https://git-scm.com/)
+- [PostgreSQL](https://www.postgresql.org/) (v13 ou superior recomendado) — pode ser executado via [Docker](https://www.docker.com/) (`docker compose up db`) ou instalado localmente
+- **Opcional (Para Reset Senha):** Credenciais de um servidor SMTP (SendGrid, Mailgun, Mailtrap para teste, etc.).
 
 ## Instalação e Setup
 
 1.  **Clone o Repositório:**
+
     ```bash
     git clone <url_do_seu_repositorio> parknow-node
     cd parknow-node
     ```
 
 2.  **Instale as Dependências:**
+
     ```bash
     npm install
     # ou: yarn install
     ```
 
 3.  **Configure o Banco de Dados:**
-    *   Inicie seu servidor PostgreSQL.
-    *   Crie um banco de dados (ex: `parknow_db`).
-    *   Execute o script `scripts/create-postgres-tables.sql` para criar a estrutura do banco de dados.
-    *   **Se estiver migrando de uma versão anterior**, certifique-se de fazer backup dos dados antes de prosseguir.
+    - Inicie seu servidor PostgreSQL.
+    - Crie um banco de dados (ex: `parknow_db`).
+    - Rode `npm run migrate` para criar/atualizar a estrutura (baseline + migrations, idempotente).
+    - **Se estiver migrando de uma versão anterior**, faça backup dos dados antes de prosseguir.
 
 4.  **Configure as Variáveis de Ambiente:**
-    *   **Copie `.env.example` para `.env`:** `cp .env.example .env` (Linux/Mac) ou `copy .env.example .env` (Windows).
-    *   **Edite o arquivo `.env`:** Preencha **TODAS** as variáveis com seus valores:
-        *   Credenciais do Banco de Dados (`PG_HOST`, `PG_USER`, `PG_PASSWORD`, `PG_DATABASE`).
-        *   **Gerar segredos JWT FORTES** (mínimo 32 caracteres) para `JWT_SECRET` e `JWT_REFRESH_SECRET`. Em produção, segredos fracos/ausentes abortam o startup.
-        *   Configurações de Email (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM`) se for usar o reset de senha.
-        *   `FRONTEND_URL` (URL base onde o frontend será acessado).
-        *   Ajuste `NODE_ENV` para `production` em ambiente de produção.
+    - **Copie `.env.example` para `.env`:** `cp .env.example .env` (Linux/Mac) ou `copy .env.example .env` (Windows).
+    - **Edite o arquivo `.env`:** Preencha **TODAS** as variáveis com seus valores:
+      - Credenciais do Banco de Dados (`PG_HOST`, `PG_USER`, `PG_PASSWORD`, `PG_DATABASE`).
+      - **Gerar segredos JWT FORTES** (mínimo 32 caracteres) para `JWT_SECRET` e `JWT_REFRESH_SECRET`. Em produção, segredos fracos/ausentes abortam o startup.
+      - Configurações de Email (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM`) se for usar o reset de senha.
+      - `FRONTEND_URL` (URL base onde o frontend será acessado).
+      - Ajuste `NODE_ENV` para `production` em ambiente de produção.
 
 ## Rodando a Aplicação
 
-*   **Modo de Desenvolvimento:**
-    *   Inicia o servidor com `nodemon`, que reinicia automaticamente ao salvar arquivos. Ideal para desenvolver.
-    ```bash
-    npm run dev
-    ```
+- **Modo de Desenvolvimento:**
+  - Inicia o servidor com `nodemon`, que reinicia automaticamente ao salvar arquivos. Ideal para desenvolver.
 
-*   **Modo de Produção:**
-    *   Inicia o servidor usando Node diretamente. Garanta que `NODE_ENV=production` esteja definido no ambiente ou no script de inicialização.
-    ```bash
-    npm start
-    # ou: NODE_ENV=production node server.js
-    ```
-*   **Modo Docker (recomendado para reproduzir prod localmente):**
-    ```bash
-    cp .env.example .env  # ajuste os valores
-    docker compose up --build
-    ```
-*   **Acesso:** A aplicação estará rodando na URL definida por `FRONTEND_URL` ou `http://localhost:PORT` (ex: `http://localhost:3000`).
-*   **Health checks:** `GET /health` (liveness) e `GET /health/ready` (readiness incluindo banco).
-*   **Métricas:** `GET /metrics` em formato Prometheus (em produção requer loopback ou `Authorization: Bearer $METRICS_TOKEN`).
-*   **Error tracking:** defina `SENTRY_DSN` e instale `@sentry/node` para enviar erros ao Sentry; sem isso, erros caem no Winston (sem deps extras).
-*   **Idempotência:** envie header `Idempotency-Key: <opaco>` em `POST /api/reservas/com-pagamento` para garantir que retries não produzam duplicatas.
+  ```bash
+  npm run dev
+  ```
+
+- **Modo de Produção:**
+  - Inicia o servidor usando Node diretamente. Garanta que `NODE_ENV=production` esteja definido no ambiente ou no script de inicialização.
+  ```bash
+  npm start
+  # ou: NODE_ENV=production node server.js
+  ```
+- **Modo Docker (recomendado para reproduzir prod localmente):**
+  ```bash
+  cp .env.example .env  # ajuste os valores
+  docker compose up --build
+  ```
+- **Acesso:** A aplicação estará rodando na URL definida por `FRONTEND_URL` ou `http://localhost:PORT` (ex: `http://localhost:3000`).
+- **Health checks:** `GET /health` (liveness) e `GET /health/ready` (readiness incluindo banco).
+- **Métricas:** `GET /metrics` em formato Prometheus (em produção requer loopback ou `Authorization: Bearer $METRICS_TOKEN`).
+- **Error tracking:** defina `SENTRY_DSN` e instale `@sentry/node` para enviar erros ao Sentry; sem isso, erros caem no Winston (sem deps extras).
+- **Idempotência:** envie header `Idempotency-Key: <opaco>` em `POST /api/reservas/com-pagamento` para garantir que retries não produzam duplicatas.
 
 ## Qualidade e Testes
 
@@ -216,17 +219,17 @@ Authorization: Bearer SEU_JWT_ADMIN
 
 ## Estrutura do Projeto
 
-PI_NODE/
+ParkNow/
 ├── config/ # Configuração (DB, JWT, Email, Cache)
 ├── controllers/ # Lógica de aplicação (manipula requisições)
 ├── logs/ # Arquivos de log (gerados pelo Winston)
 ├── middleware/ # Middlewares (Auth, Erro, Validação, Upload)
-│   └── validatePixKey.js # Validação de chave PIX
+│ └── validatePixKey.js # Validação de chave PIX
 ├── models/ # Camada de acesso a dados (interage com DB)
 ├── public/ # Arquivos estáticos do Frontend (HTML, CSS, JS, Imagens)
 ├── routes/ # Definição das rotas da API
-│   ├── reservaPagamentoRoutes.js # Rotas para reservas com pagamento
-│   └── estacionamentoPaymentConfigRoutes.js # Rotas para configuração de pagamento
+│ ├── reservaPagamentoRoutes.js # Rotas para reservas com pagamento
+│ └── estacionamentoPaymentConfigRoutes.js # Rotas para configuração de pagamento
 ├── services/ # Serviços (Socket.IO, Tarefas Agendadas/Cron)
 ├── uploads/ # Pasta para arquivos de upload (fotos de estacionamento)
 ├── utils/ # Utilitários (Auth, Erros, Email, Log, Cache, Token, etc.)
@@ -243,70 +246,70 @@ Consulte o arquivo `.env.example` para ver a lista completa de variáveis necess
 
 ## API Endpoints Principais
 
-(Uma documentação mais formal usando Swagger/OpenAPI seria ideal para produção)
+> Documentação interativa completa: **`GET /api/docs`** (Swagger UI; JSON em `/api/docs.json`).
 
-*   **Autenticação (`/api/auth`)**:
-    *   `POST /register`: Registro de usuário.
-    *   `POST /login`: Login de usuário (retorna `accessToken`, seta cookie `refreshToken`).
-    *   `POST /admin/register`: Registro de admin + estacionamento inicial (requer upload `fotoEstacionamento` opcional).
-    *   `POST /admin/login`: Login de admin.
-    *   `POST /refresh-token`: Obtém novo `accessToken` usando `refreshToken` do cookie.
-    *   `POST /logout`: Invalida `refreshToken` (limpa hash DB/cookie, adiciona à blacklist).
-    *   `POST /forgot-password`: Envia email de reset.
-    *   `POST /reset-password/:token`: Define nova senha usando token.
-*   **Usuário (`/api/user`)**: _(Requer Auth Usuário)_
-    *   `GET /profile`: Obtém perfil do usuário logado.
-    *   `PUT /profile`: Atualiza perfil do usuário logado.
-*   **Estacionamentos (`/api/estacionamentos`)**: _(Requer Auth Usuário)_
-    *   `GET /`: Lista todos os estacionamentos (para mapa).
-    *   `GET /:id`: Detalhes de um estacionamento.
-    *   `GET /:id/vagas`: Lista vagas de um estacionamento.
-    *   `GET /vagas/livres`: Conta vagas livres (pode filtrar por `?estacionamentoId=X`).
-    *   `POST /vagas/:vagaId/agendar`: Ocupa uma vaga livre/reservada.
-    *   `GET /vagas/:vagaId/tempo`: Obtém tempo estacionado atual.
-*   **Reservas (`/api/reservas`)**: _(Requer Auth Usuário)_
-    *   `POST /`: Cria uma nova reserva.
-    *   `GET /minhas`: Lista reservas do usuário logado.
-    *   `DELETE /:reservaId/cancelar`: Cancela uma reserva ativa.
-*   **Pagamentos PIX (`/api`)**: _(PIX manual, always free)_
-    *   `POST /reservas/com-pagamento`: Cria reserva + gera QR Code PIX local
-    *   `GET /reservas/:id/pix`: Reexibe o PIX salvo (copia-e-cola + base64)
-    *   `POST /reservas/:id/comprovante`: Usuário anexa comprovante (multipart)
-    *   `GET /pagamentos/:id/status`: Verifica status atual
-    *   `POST /pagamentos/:id/novo-qrcode`: Regenera PIX expirado
-*   **Admin API (`/api/admin`)**: _(Requer Auth Admin)_
-    *   `GET /vagas`, `GET /vagas/ocupadas`, `GET /vagas/:id/tempo-db`: Visualização de vagas.
-    *   `POST /vagas/:numero/entrada`, `POST /vagas/:id/saida`: Gerenciamento manual de vagas.
-    *   `POST /vagas/atualizar-tempo`: Endpoint (opcional) para forçar atualização de tempo no DB.
-    *   `GET /estacionamentos`, `POST /estacionamentos`, `GET /estacionamentos/:id`, `PUT /estacionamentos/:id`, `DELETE /estacionamentos/:id`: CRUD de Estacionamentos.
-    *   `PUT /config/vagas`: Ajusta número total de vagas.
-    *   `GET /users`, `PATCH /users/:userId/status`: Gerenciamento de Usuários.
-    *   `GET /pagamentos/aguardando-confirmacao`: Fila de pagamentos PIX aguardando confirmação manual.
-    *   `POST /reservas/:id/confirmar-pagamento`: Confirma manualmente o PIX (ocupa vaga).
-    *   `POST /reservas/:id/rejeitar-pagamento`: Rejeita pagamento (body: `{ motivo }`).
+- **Autenticação (`/api/auth`)**:
+  - `POST /register`: Registro de usuário.
+  - `POST /login`: Login de usuário (retorna `accessToken`, seta cookie `refreshToken`).
+  - `POST /admin/register`: Registro de admin + estacionamento inicial (requer upload `fotoEstacionamento` opcional).
+  - `POST /admin/login`: Login de admin.
+  - `POST /refresh-token`: Obtém novo `accessToken` usando `refreshToken` do cookie.
+  - `POST /logout`: Invalida `refreshToken` (limpa hash no DB e o cookie).
+  - `POST /forgot-password`: Envia email de reset.
+  - `POST /reset-password/:token`: Define nova senha usando token.
+- **Usuário (`/api/user`)**: _(Requer Auth Usuário)_
+  - `GET /profile`: Obtém perfil do usuário logado.
+  - `PUT /profile`: Atualiza perfil do usuário logado.
+- **Estacionamentos (`/api/estacionamentos`)**: _(Requer Auth Usuário)_
+  - `GET /`: Lista todos os estacionamentos (para mapa).
+  - `GET /:id`: Detalhes de um estacionamento.
+  - `GET /:id/vagas`: Lista vagas de um estacionamento.
+  - `GET /vagas/livres`: Conta vagas livres (pode filtrar por `?estacionamentoId=X`).
+  - `POST /vagas/:vagaId/agendar`: Ocupa uma vaga livre/reservada.
+  - `GET /vagas/:vagaId/tempo`: Obtém tempo estacionado atual.
+- **Reservas (`/api/reservas`)**: _(Requer Auth Usuário)_
+  - `POST /`: Cria uma nova reserva.
+  - `GET /minhas`: Lista reservas do usuário logado.
+  - `DELETE /:reservaId/cancelar`: Cancela uma reserva ativa.
+- **Pagamentos PIX (`/api`)**: _(PIX manual, always free)_
+  - `POST /reservas/com-pagamento`: Cria reserva + gera QR Code PIX local
+  - `GET /reservas/:id/pix`: Reexibe o PIX salvo (copia-e-cola + base64)
+  - `POST /reservas/:id/comprovante`: Usuário anexa comprovante (multipart)
+  - `GET /pagamentos/:id/status`: Verifica status atual
+  - `POST /pagamentos/:id/novo-qrcode`: Regenera PIX expirado
+- **Admin API (`/api/admin`)**: _(Requer Auth Admin)_
+  - `GET /vagas`, `GET /vagas/ocupadas`, `GET /vagas/:id/tempo-db`: Visualização de vagas.
+  - `POST /vagas/:numero/entrada`, `POST /vagas/:id/saida`: Gerenciamento manual de vagas.
+  - `POST /vagas/atualizar-tempo`: Endpoint (opcional) para forçar atualização de tempo no DB.
+  - `GET /estacionamentos`, `POST /estacionamentos`, `GET /estacionamentos/:id`, `PUT /estacionamentos/:id`, `DELETE /estacionamentos/:id`: CRUD de Estacionamentos.
+  - `PUT /config/vagas`: Ajusta número total de vagas.
+  - `GET /users`, `PATCH /users/:userId/status`: Gerenciamento de Usuários.
+  - `GET /pagamentos/aguardando-confirmacao`: Fila de pagamentos PIX aguardando confirmação manual.
+  - `POST /reservas/:id/confirmar-pagamento`: Confirma manualmente o PIX (ocupa vaga).
+  - `POST /reservas/:id/rejeitar-pagamento`: Rejeita pagamento (body: `{ motivo }`).
 
 ## Tecnologias Utilizadas
 
-*   **Backend:** Node.js, Express.js
-*   **Banco de Dados:** PostgreSQL (`pg`)
-*   **Pagamentos:** PIX manual (BR Code gerado local com `utils/pixBrCode.js`, sem gateway pago)
-*   **Autenticação:** JWT (`jsonwebtoken`), Cookies (`cookie-parser`), Argon2 (`argon2`), Bcrypt (`bcrypt` para hash de refresh token)
-*   **Validação:** `express-validator`
-*   **Segurança:** `helmet`, `express-rate-limit`, `cors`
-*   **Tempo Real:** Socket.IO (`socket.io`)
-*   **Tarefas Agendadas:** `node-cron`
-*   **Email:** Nodemailer (`nodemailer`)
-*   **Logging:** Winston (`winston`), Morgan (`morgan`)
-*   **Cache (Simples):** `node-cache`
-*   **Upload:** Multer (`multer`)
-*   **Outros:** `dotenv`, `crypto`, `uuid`
+- **Backend:** Node.js, Express.js
+- **Banco de Dados:** PostgreSQL (`pg`)
+- **Pagamentos:** PIX manual (BR Code gerado local com `utils/pixBrCode.js`, sem gateway pago)
+- **Autenticação:** JWT (`jsonwebtoken`), Cookies (`cookie-parser`), Argon2 (`argon2`), Bcrypt (`bcrypt` para hash de refresh token)
+- **Validação:** `express-validator`
+- **Segurança:** `helmet`, `express-rate-limit`, `cors`
+- **Tempo Real:** Socket.IO (`socket.io`)
+- **Tarefas Agendadas:** `node-cron`
+- **Email:** Nodemailer (`nodemailer`)
+- **Logging:** Winston (`winston`), Morgan (`morgan`)
+- **Cache (Simples):** `node-cache`
+- **Upload:** Multer (`multer`)
+- **Outros:** `dotenv`, `crypto`, `uuid`
 
 ## Documentação do Sistema de Pagamentos
 
 Para uma análise completa do sistema de pagamentos de reservas, consulte:
 
-*   **[📄 Fluxo PIX Manual (Always Free)](docs/FLUXO_PIX_MANUAL.md)** - Fluxo completo end-to-end
-*   **[🚀 Deploy Oracle Cloud Free Tier](docs/DEPLOY_ORACLE_FREE_TIER.md)** - Guia de deploy R$ 0/mês
+- **[📄 Fluxo PIX Manual (Always Free)](docs/FLUXO_PIX_MANUAL.md)** - Fluxo completo end-to-end
+- **[🚀 Deploy Oracle Cloud Free Tier](docs/DEPLOY_ORACLE_FREE_TIER.md)** - Guia de deploy R$ 0/mês
 
 ### Características do Sistema PIX Manual:
 
@@ -321,19 +324,19 @@ Para uma análise completa do sistema de pagamentos de reservas, consulte:
 ✅ **Donos de Estacionamento**: Cadastram-se como **ADMINS**, recebem PIX direto e confirmam pagamentos pelo painel
 ✅ **Motoristas**: Cadastram-se como **USUÁRIOS**, reservam vagas e anexam comprovante PIX
 
-## TODO / Próximos Passos (Pós-Implementação)
+## Roadmap
 
-*   **Configuração de Ambiente:** Definir corretamente TODAS as variáveis no `.env` (DB, JWT, Email).
-*   **Testes Automatizados:** Implementar testes unitários, de integração e E2E.
-*   **Refinamento da UI/UX:** Melhorar a interface do admin e o feedback visual geral.
-*   **HTTPS:** Configurar proxy reverso (Nginx) e SSL (Let's Encrypt) para produção.
-*   **Monitoramento:** Configurar monitoramento de performance e erros em produção.
-*   **Documentação da API:** Gerar documentação formal (Swagger/OpenAPI).
+O plano de evolução vive em [`ROADMAP.md`](ROADMAP.md) (sessões concluídas e
+pendências priorizadas). Testes automatizados (76 no CI contra Postgres real),
+documentação OpenAPI, monitoramento Prometheus e pipeline de deploy já fazem
+parte do projeto — ver seções acima.
 
 ## Contribuição
 
-(Instruções sobre como contribuir, se aplicável)
+Contribuições são bem-vindas! Leia o [`CONTRIBUTING.md`](CONTRIBUTING.md)
+(fluxo de PR, commits semânticos) e o [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+O pre-commit roda ESLint/Prettier via husky + lint-staged automaticamente.
 
 ## Licença
 
-(Informações sobre a licença do projeto, se aplicável)
+Distribuído sob a licença [MIT](LICENSE).
