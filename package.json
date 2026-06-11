@@ -59,7 +59,7 @@
     "rate-limiter-flexible": "^7.1.1",
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.3",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.0",
     "socket.io": "^4.8.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
