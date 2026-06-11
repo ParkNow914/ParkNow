@@ -98,6 +98,21 @@ class ReservaService {
 
       logger.info('Reserva criada com sucesso', { reserva_id: reserva.id, status: reserva.status });
 
+      // Marca a vaga como reservada DENTRO da transação, com guarda atômica:
+      // se a vaga não estiver mais livre (corrida com outro usuário), aborta.
+      // Sem isso a vaga seguia 'livre' até a confirmação do admin e podia ser
+      // ocupada por outra pessoa no meio do pagamento; a expiração de PIX
+      // (que devolve vagas 'reservada' para 'livre') também assume este estado.
+      if (vaga_id) {
+        const { rowCount: vagaReservada } = await client.query(
+          `UPDATE vagas SET status = 'reservada' WHERE id = $1 AND status = 'livre'`,
+          [vaga_id]
+        );
+        if (vagaReservada === 0) {
+          throw new AppError('Esta vaga não está mais disponível. Escolha outra vaga.', 409);
+        }
+      }
+
       // Processar pagamento PIX usando o serviço de pagamento
       const paymentProcessingService = require('./estacionamentoPaymentProcessingService');
 
