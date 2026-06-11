@@ -5,9 +5,53 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.2.0] - 2026-06-11 — Top-tier: zero vulnerabilidades, upload blindado, rate limit persistente
+
+### Segurança
+
+- **30 → 0 vulnerabilidades npm** (1 crítica, 17 high): axios/ws/brace-expansion
+  e demais corrigidas; nodemailer 8.0.11 (SMTP command injection); override de
+  uuid ^11.1.1 dentro do Sequelize; lockfile regenerado.
+- **Upload blindado** (`utils/uploadSecurity.js`): magic bytes do arquivo REAL
+  (mimetype do cliente não é confiável), re-encode de imagens via sharp
+  (remove EXIF/GPS, valida decodificação, neutraliza poliglotas) e
+  **anti-duplicação por SHA-256** — o mesmo comprovante reutilizado em outra
+  reserva é rejeitado com 409. 7 testes com payloads disfarçados.
+- **Rate limiting persistente no Postgres** (`utils/pgRateLimitStore.js`):
+  contadores de login/registro/reset/refresh (v1 e v2) sobrevivem a restart e
+  valem para múltiplas instâncias; fail-open com log se o DB cair.
+
+### Corrigido (bugs que quebravam banco novo, achados por testes)
+
+- Trigger `sincronizar_chave_pix()` referenciava coluna inexistente — QUALQUER
+  cadastro de chave PIX falhava em bancos criados pelas migrations.
+- `reservas.id_pagamento` (gravada pelo fluxo de pagamento) não tinha migration.
+- `estacionamentoPaymentConfigService` usava `data_atualizacao` em
+  `estacionamentos` (a tabela usa `updated_at`).
+- **Corrida de vaga**: `criarReservaComPagamento` não marcava a vaga como
+  `reservada` — ficava `livre` durante o pagamento e outro usuário podia
+  ocupá-la. Agora reserva atômica na mesma transação; corrida → 409.
+
+### Adicionado
+
+- Testes de integração da criação de reserva+PIX (BR Code EMV com CRC válido,
+  persistência, corrida, rollback). Suíte: 66 → 76 testes.
+- Husky + lint-staged no pre-commit (ESLint + Prettier nos staged).
+- Página 500 customizada (browser) e banner de `?email_verificado=` na landing.
+- `.github/CODEOWNERS`.
+
+### Alterado
+
+- GitHub Actions atualizadas (checkout/setup-node v6, CodeQL v4 — a v2 está
+  descontinuada —, codecov v6, create-pull-request v8); Node 22 na matriz do CI.
+- Deploy sem `FLY_API_TOKEN` agora é PULADO com aviso explicativo.
+- README sem seções obsoletas (TODO antigo, placeholders, instruções
+  divergentes de migration).
+
 ## [2.1.0] - 2026-06-10 — Auditoria completa & hardening
 
 ### Segurança
+
 - **Credenciais**: senha PostgreSQL hardcoded removida de 5 scripts (fallback
   eliminado; `PG_PASSWORD` obrigatória). ⚠️ A senha exposta deve ser rotacionada.
 - **PII removida do repositório**: `bd/backup.sql` (continha nome, e-mail, CPF,
@@ -31,6 +75,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   comprovante e rotas de auth da API v2 (não tinham nenhum).
 
 ### Corrigido
+
 - **Vagas presas para sempre**: nenhuma rotina de expiração liberava a vaga
   (`reserva_id_ativa` só é setado na confirmação). Agora PIX expirado e reserva
   vencida liberam a vaga — com testes de regressão.
@@ -53,6 +98,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   model real — removida (com verificação em runtime).
 
 ### Removido (~35 arquivos de código morto verificado)
+
 - Cadeia de webhooks sem consumidor (controller sem rota, service sem uso,
   stubs no-op) e fluxo de confirmação por link de e-mail (quebrado de ponta a
   ponta: `db.Usuario` inexistente, token nunca validava, mount `/api/api/...`).
@@ -63,6 +109,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   (dependência `moment-timezone` removida).
 
 ### Adicionado
+
 - Testes de integração contra Postgres real: fluxo PIX manual completo
   (confirmação, BOLA, dupla confirmação, rejeição, expiração + liberação de
   vaga) e fluxo de auth (register/login/refresh/logout); testes do middleware
@@ -76,6 +123,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   antes rodavam pós-deploy com `|| true`).
 
 ### Alterado
+
 - `contactController` 1711→394 linhas (templates de e-mail extraídos para
   `services/parceriaEmailTemplates.js`).
 - Cron: agendador interno chama os serviços diretamente (sem HTTP self-call
@@ -90,6 +138,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ## [2.0.0] - 2026-05-25 — Always Free
 
 ### 🔥 Breaking changes
+
 - **Gateway ASAAS removido completamente**. O sistema agora opera 100% sem
   gateway pago. Recebimento direto via PIX na chave do estacionamento.
 - Endpoint `POST /api/webhooks/asaas` foi removido.
@@ -98,6 +147,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   preservar dados; pode ser dropada via migration custom no futuro).
 
 ### Adicionado
+
 - **Gerador BR Code PIX local** (`utils/pixBrCode.js`) — segue o padrão EMV/Bacen
   com CRC16-CCITT-FALSE. Sem dependência externa. Coberto por testes unitários.
 - **Fluxo de comprovante manual**:
@@ -114,6 +164,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Documento de fluxo `docs/FLUXO_PIX_MANUAL.md` substitui o antigo `FLUXO_COMPLETO_ASAAS.md`.
 
 ### Removido
+
 - `services/asaasMarketplaceService.js`
 - `middleware/asaasWebhookAuth.js`
 - `routes/estacionamentoAsaasRoutes.js`
@@ -124,11 +175,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Arquivos `.backup` / `.jsx.backup` em `public/js/components/`.
 
 ### Segurança
+
 - Removidas **credenciais Gmail hardcoded** em `config/index.js` (vazamento
   acidental no histórico anterior). Em produção o envValidator aborta o startup
   sem `EMAIL_USER`/`EMAIL_PASS`.
 
 ### Custo
+
 - **Stack 100% always free**: deploy em Oracle Cloud Free Tier (2 ARM VMs, 24GB
   RAM total), Postgres self-hosted, Caddy + Let's Encrypt para HTTPS, Gmail SMTP.
   Custo total: R$ 0,00/mês.
@@ -138,6 +191,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ### Adicionado
 
 #### Infraestrutura e DevOps
+
 - 🚀 Workflows CI/CD completos com GitHub Actions
 - 🔒 Análise de segurança automatizada com CodeQL
 - 🤖 Atualização automática de dependências via bot
@@ -151,6 +205,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - 🏷️ Tag v1.0.0 do projeto
 
 #### Sistema Core
+
 - ✅ Sistema completo de autenticação com JWT
 - 🔐 Refresh tokens em cookies httpOnly
 - 🔑 Sistema de recuperação de senha via email
@@ -167,11 +222,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - ⏲️ Tarefas agendadas com node-cron
 
 #### Banco de Dados
+
 - 🗄️ Migrations completas do PostgreSQL
 - 📦 Backups automáticos
 - 🔧 Scripts de manutenção
 
 ### Segurança
+
 - Implementação de helmet para headers HTTP seguros
 - Rate limiting para proteção contra ataques
 - Validação de entrada com express-validator
@@ -180,6 +237,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Sanitização de dados
 
 ### Documentação
+
 - README.md completo com instruções de instalação
 - Documentação de APIs
 - Guias de email validation e password reset

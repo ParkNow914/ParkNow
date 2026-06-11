@@ -1,0 +1,8 @@
+# Revisores padrão de todo o repositório
+* @ParkNow914
+
+# Áreas sensíveis: mudanças aqui merecem atenção redobrada
+/middleware/   @ParkNow914
+/migrations/   @ParkNow914
+/.github/      @ParkNow914
+SECURITY.md    @ParkNow914
