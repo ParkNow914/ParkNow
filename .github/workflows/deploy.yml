@@ -22,14 +22,29 @@ jobs:
     # Só roda se o token estiver configurado (não falha forks/PRs sem o secret).
     if: ${{ github.repository_owner == 'ParkNow914' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+
+      # Sem o secret FLY_API_TOKEN o deploy é PULADO com aviso (em vez de
+      # falhar vermelho sem explicação). Configure em:
+      # Settings → Secrets and variables → Actions → FLY_API_TOKEN
+      - name: Verificar FLY_API_TOKEN
+        id: token
+        run: |
+          if [ -z "${{ secrets.FLY_API_TOKEN }}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FLY_API_TOKEN não configurado — deploy pulado. Gere com 'fly tokens create deploy' e adicione como secret."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup flyctl
+        if: steps.token.outputs.configured == 'true'
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       # Migrations rodam como release_command (fly.toml) antes da troca de
       # tráfego; se falharem, o deploy aborta — sem `|| true` mascarando erro.
       - name: Deploy
+        if: steps.token.outputs.configured == 'true'
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
