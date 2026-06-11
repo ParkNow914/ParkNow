@@ -6,13 +6,16 @@ const AuthController = require('../../controllers/v2/AuthController');
 const { authenticate } = require('../../middleware/v2/authMiddleware');
 const { handleValidationErrors } = require('../../middleware/validationMiddleware');
 
-// Rate limiters anti brute-force (mesma política da v1 em routes/authRoutes.js)
+// Rate limiters anti brute-force (mesma política da v1 em routes/authRoutes.js),
+// persistidos no Postgres — compartilham os contadores com a v1 por prefixo.
+const { PgRateLimitStore } = require('../../utils/pgRateLimitStore');
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
+  store: new PgRateLimitStore({ prefix: 'auth_login_v2' }),
   message: { success: false, error: 'too_many_login_attempts' },
 });
 const signupLimiter = rateLimit({
@@ -20,6 +23,7 @@ const signupLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  store: new PgRateLimitStore({ prefix: 'auth_signup_v2' }),
   message: { success: false, error: 'too_many_signups' },
 });
 const passwordResetLimiter = rateLimit({
@@ -27,6 +31,7 @@ const passwordResetLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  store: new PgRateLimitStore({ prefix: 'auth_forgot_v2' }),
   message: { success: false, error: 'too_many_password_reset_requests' },
 });
 
