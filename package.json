@@ -21,7 +21,8 @@
     "migrate:status": "node scripts/migrate.js --status",
     "migrate:strict": "node scripts/migrate.js --strict",
     "syntax-check": "node -c server.js",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "argon2": "^0.43.0",
@@ -72,6 +73,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.60.0",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
