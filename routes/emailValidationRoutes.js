@@ -13,15 +13,20 @@ const { compressResponse } = require('../middleware/compression');
 // Esquema de validação com Zod
 const emailSchema = z.object({
   email: z.string().email(),
-  // .default({}) garante que os defaults internos sejam aplicados quando o
-  // cliente não envia `options` — sem isso, `options.validateMx` explodia
-  // com TypeError em requisições sem o campo (500 no cadastro).
+  // Default EXPLÍCITO e completo: no Zod 4, .default(valor) usa o valor como
+  // está (não reaplica os defaults internos do objeto) — .default({}) deixava
+  // allowFree/validateMx undefined e o endpoint rejeitava e-mails válidos.
   options: z.object({
     allowDisposable: z.boolean().optional().default(false),
     allowFree: z.boolean().optional().default(true),
     validateMx: z.boolean().optional().default(true),
     validateSmtp: z.boolean().optional().default(false)
-  }).optional().default({})
+  }).optional().default({
+    allowDisposable: false,
+    allowFree: true,
+    validateMx: true,
+    validateSmtp: false
+  })
 });
 
 // Middleware para validação de entrada

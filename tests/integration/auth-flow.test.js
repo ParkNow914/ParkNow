@@ -50,6 +50,11 @@ beforeAll(async () => {
     try {
         await probePool.query('SELECT 1 FROM usuarios LIMIT 1');
         dbAvailable = true;
+        // Rate limiting agora é persistido no Postgres: zera os contadores de
+        // auth para a suíte não tropeçar no próprio limite em execuções repetidas.
+        await probePool
+            .query("DELETE FROM rate_limits WHERE key LIKE 'auth_%'")
+            .catch(() => {});
     } catch (_e) {
         dbAvailable = false;
         return;
