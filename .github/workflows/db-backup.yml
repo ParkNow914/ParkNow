@@ -1,0 +1,67 @@
+name: Backup do Banco (criptografado)
+
+# Backup diário do Postgres de produção (parknow-db é "Legacy" no Fly — sem
+# backup automático da plataforma). O dump é CRIPTOGRAFADO com AES-256 antes
+# de subir como artifact (o repositório é público; artifacts são acessíveis —
+# NUNCA subir dump em claro).
+#
+# Requer secrets:
+#   FLY_API_TOKEN       — já usado pelo deploy
+#   BACKUP_PASSPHRASE   — senha forte para criptografar (defina uma!)
+#
+# Restaurar localmente:
+#   openssl enc -d -aes-256-cbc -pbkdf2 -in backup.sql.enc -out backup.sql
+#   (digite a BACKUP_PASSPHRASE quando pedir)
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # diariamente 06:00 UTC (03:00 BRT)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'ParkNow914' }}
+    steps:
+      - name: Verificar secrets
+        id: check
+        run: |
+          if [ -z "${{ secrets.FLY_API_TOKEN }}" ] || [ -z "${{ secrets.BACKUP_PASSPHRASE }}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FLY_API_TOKEN e/ou BACKUP_PASSPHRASE ausentes — backup pulado. Configure em Settings → Secrets."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup flyctl
+        if: steps.check.outputs.configured == 'true'
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Dump + criptografia
+        if: steps.check.outputs.configured == 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          # OPERATOR_PASSWORD vive dentro da máquina do banco; o dump sai por stdout
+          flyctl ssh console -a parknow-db -C 'sh -c "PGPASSWORD=$OPERATOR_PASSWORD pg_dump -h localhost -p 5432 -U postgres parknow_db"' > dump.sql
+          test -s dump.sql # falha se vazio
+          gzip -9 dump.sql
+          openssl enc -aes-256-cbc -pbkdf2 -salt \
+            -in dump.sql.gz -out "backup-$(date -u +%Y%m%d-%H%M).sql.gz.enc" \
+            -pass env:BACKUP_PASSPHRASE
+          rm -f dump.sql.gz
+          ls -la backup-*.enc
+
+      - name: Upload (retenção 30 dias)
+        if: steps.check.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: backup-*.enc
+          retention-days: 30
+          if-no-files-found: error
