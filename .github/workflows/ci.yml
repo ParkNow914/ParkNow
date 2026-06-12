@@ -83,6 +83,66 @@ jobs:
           flags: unittests
           name: codecov-umbrella
 
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    # E2E roda uma vez (Node 20) — é a rede de proteção das refatorações de frontend.
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: parknow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      CI: 'true'
+      PG_HOST: localhost
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PASSWORD: postgres
+      PG_DATABASE: parknow_test
+      PG_SSL: 'false'
+      JWT_SECRET: ci_jwt_secret_with_more_than_32_characters_long
+      JWT_REFRESH_SECRET: ci_refresh_secret_with_more_than_32_characters_long
+      SESSION_SECRET: ci_session_secret_with_more_than_32_characters_long
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.x'
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Migrations
+        run: npm run migrate
+
+      - name: Instalar Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Rodar E2E
+        run: npm run test:e2e
+
+      - name: Upload de traces em falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: test-results/
+          retention-days: 7
+
   security:
     name: Security audit
     runs-on: ubuntu-latest

@@ -109,3 +109,5 @@ web-report/
 
 # Arquivo de variáveis de ambiente (local)
 .env
+test-results/
+playwright-report/
