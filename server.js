@@ -67,25 +67,29 @@ app.use(
         contentSecurityPolicy: {
             directives: {
                 defaultSrc: ["'self'"],
+                // Sem 'unsafe-inline': todos os <script> inline foram extraídos
+                // para arquivos (.inline-N.js) — um <script> injetado por XSS
+                // não executa mais. Handlers de atributo (onclick=) seguem
+                // permitidos via scriptSrcAttr abaixo (débito documentado).
                 scriptSrc: [
                     "'self'",
-                    "'unsafe-inline'",
                     "cdn.socket.io",
                     "https://cdn.socket.io",
                     "code.jquery.com",
                     "cdn.jsdelivr.net",
                     "cdnjs.cloudflare.com",
-                    "unpkg.com"
+                    "unpkg.com",
+                    "kit.fontawesome.com"
                 ],
                 scriptSrcElem: [
                     "'self'",
-                    "'unsafe-inline'",
                     "cdn.socket.io",
                     "https://cdn.socket.io",
                     "code.jquery.com",
                     "cdn.jsdelivr.net",
                     "cdnjs.cloudflare.com",
-                    "unpkg.com"
+                    "unpkg.com",
+                    "kit.fontawesome.com"
                 ],
                 scriptSrcAttr: ["'self'", "'unsafe-inline'"],
                 imgSrc: [
