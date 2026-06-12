@@ -58,11 +58,14 @@ module.exports = [
         rules: { 'no-console': 'off' },
     },
 
-    // Frontend (public/): browser + jQuery + globals de CDN
+    // Frontend (public/): browser + jQuery + globals de CDN.
+    // sourceType 'script' (clássico): é como os arquivos realmente rodam
+    // (tags <script> sem type=module); em modo module o ESLint rejeitaria
+    // padrões válidos de script clássico (ex.: function redeclarada).
     {
         files: ['public/**/*.js'],
         languageOptions: {
-            sourceType: 'module',
+            sourceType: 'script',
             globals: {
                 ...globals.browser,
                 ...globals.jquery,
@@ -75,7 +78,26 @@ module.exports = [
                 ManualPixPaymentModal: 'readonly',
                 google: 'readonly',
                 Stripe: 'readonly',
+                // expostos por admin-validators.js (carregado antes de script.js)
+                validarCPF: 'readonly',
+                validarCNPJ: 'readonly',
+                formatarCNPJ: 'readonly',
+                formatarCep: 'readonly',
             },
         },
+    },
+
+    // admin-validators.js DEFINE os globals declarados acima (é a origem deles)
+    {
+        files: ['public/admin_home/admin-validators.js'],
+        rules: { 'no-redeclare': 'off' },
+    },
+
+    // Blocos inline extraídos do HTML legado: contêm funções redeclaradas
+    // pré-existentes (válido em script clássico — a última vence). Mantido
+    // como warning para rastrear sem bloquear; limpar é tarefa do ROADMAP.
+    {
+        files: ['public/**/*.inline-*.js'],
+        rules: { 'no-redeclare': 'warn' },
     },
 ];
