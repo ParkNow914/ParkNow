@@ -104,7 +104,8 @@
       "utils/**/*.js",
       "services/**/*.js",
       "!**/node_modules/**"
-    ]
+    ],
+    "maxWorkers": 1
   },
   "overrides": {
     "sequelize": {
