@@ -1,14 +1,20 @@
 name: Deploy to Fly.io
 
-# Deploy automático no push da main (após o CI passar implicitamente — o Fly
-# faz o build remoto). Requer o secret FLY_API_TOKEN configurado no repositório:
+# Deploy GATEADO: só roda DEPOIS que o "CI/CD Pipeline" (lint + 76 testes +
+# E2E Playwright + CodeQL) conclui com SUCESSO na main. Isso impede que um
+# frontend/refator quebrado chegue à produção — antes o deploy disparava em
+# paralelo ao CI no push, sem esperar os testes.
+#
+# Requer o secret FLY_API_TOKEN:
 #   Settings → Secrets and variables → Actions → New repository secret
 #   Nome: FLY_API_TOKEN   Valor: (gerado com `fly tokens create deploy`)
 
 on:
-  push:
+  workflow_run:
+    workflows: ['CI/CD Pipeline']
+    types: [completed]
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch: {} # deploy manual de emergência (pula o gate)
 
 # Evita deploys concorrentes pisando um no outro.
 concurrency:
@@ -19,14 +25,20 @@ jobs:
   deploy:
     name: fly deploy
     runs-on: ubuntu-latest
-    # Só roda se o token estiver configurado (não falha forks/PRs sem o secret).
-    if: ${{ github.repository_owner == 'ParkNow914' }}
+    # Só roda no repo oficial E quando o CI passou (ou em dispatch manual).
+    if: >-
+      ${{ github.repository_owner == 'ParkNow914' &&
+          (github.event_name == 'workflow_dispatch' ||
+           github.event.workflow_run.conclusion == 'success') }}
     steps:
+      # Faz checkout do EXATO commit que passou no CI (head_sha do run que
+      # disparou); em dispatch manual, usa o ref selecionado.
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       # Sem o secret FLY_API_TOKEN o deploy é PULADO com aviso (em vez de
-      # falhar vermelho sem explicação). Configure em:
-      # Settings → Secrets and variables → Actions → FLY_API_TOKEN
+      # falhar vermelho sem explicação).
       - name: Verificar FLY_API_TOKEN
         id: token
         run: |
