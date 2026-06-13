@@ -3,8 +3,10 @@
 // Lida com modais de login, cadastro, esqueci senha, newsletter e contato
 
 // Logs de depuracao desativados por padrao; ligue com localStorage.setItem('parknow_debug','1')
-const PARKNOW_DEBUG = (() => { try { return localStorage.getItem('parknow_debug') === '1'; } catch (_e) { return false; } })();
-const debugLog = (...args) => { if (PARKNOW_DEBUG) console.log(...args); };
+window.PARKNOW_DEBUG = (typeof window.PARKNOW_DEBUG !== 'undefined')
+    ? window.PARKNOW_DEBUG
+    : (() => { try { return localStorage.getItem('parknow_debug') === '1'; } catch (_e) { return false; } })();
+function debugLog(...args) { if (window.PARKNOW_DEBUG) console.log(...args); }
 // Escapa valores dinamicos interpolados em templates HTML (anti-XSS)
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (c) => ({
