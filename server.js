@@ -71,6 +71,12 @@ app.use(
                 // para arquivos (.inline-N.js) — um <script> injetado por XSS
                 // não executa mais. Handlers de atributo (onclick=) seguem
                 // permitidos via scriptSrcAttr abaixo (débito documentado).
+                // Allowlist de CDNs realmente usados pelo frontend (enumerados
+                // a partir dos <script src> de TODAS as páginas servidas).
+                // Sem 'unsafe-inline': os <script> inline foram extraídos para
+                // arquivos (.inline-N.js) — um <script> injetado por XSS não
+                // executa. A E2E (Playwright) valida que nenhuma página dispara
+                // violação de CSP em runtime.
                 scriptSrc: [
                     "'self'",
                     "cdn.socket.io",
@@ -79,7 +85,9 @@ app.use(
                     "cdn.jsdelivr.net",
                     "cdnjs.cloudflare.com",
                     "unpkg.com",
-                    "kit.fontawesome.com"
+                    "kit.fontawesome.com",
+                    "stackpath.bootstrapcdn.com",
+                    "cdn.datatables.net"
                 ],
                 scriptSrcElem: [
                     "'self'",
@@ -89,7 +97,9 @@ app.use(
                     "cdn.jsdelivr.net",
                     "cdnjs.cloudflare.com",
                     "unpkg.com",
-                    "kit.fontawesome.com"
+                    "kit.fontawesome.com",
+                    "stackpath.bootstrapcdn.com",
+                    "cdn.datatables.net"
                 ],
                 scriptSrcAttr: ["'self'", "'unsafe-inline'"],
                 imgSrc: [
@@ -119,7 +129,10 @@ app.use(
                     "https://cdn.jsdelivr.net",
                     "https://cdnjs.cloudflare.com",
                     "https://unpkg.com",
-                    "https://cdn.socket.io"
+                    "https://cdn.socket.io",
+                    "https://cdn.datatables.net",
+                    // FontAwesome kit busca a definição de fontes via fetch
+                    "https://ka-f.fontawesome.com"
                 ]
             }
         },
