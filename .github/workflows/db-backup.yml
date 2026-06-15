@@ -6,8 +6,12 @@ name: Backup do Banco (criptografado)
 # NUNCA subir dump em claro).
 #
 # Requer secrets:
-#   FLY_API_TOKEN       — já usado pelo deploy
+#   FLY_DB_TOKEN        — token com acesso ao APP parknow-db (o token de deploy
+#                         do parknow-alimi NÃO enxerga o banco). Crie um token
+#                         org/conta no dashboard (Account → Access Tokens) OU
+#                         `fly tokens create deploy -a parknow-db`.
 #   BACKUP_PASSPHRASE   — senha forte para criptografar (defina uma!)
+# (Fallback: se FLY_DB_TOKEN não existir, tenta FLY_API_TOKEN.)
 #
 # Restaurar localmente:
 #   openssl enc -d -aes-256-cbc -pbkdf2 -in backup.sql.enc -out backup.sql
@@ -28,10 +32,14 @@ jobs:
     steps:
       - name: Verificar secrets
         id: check
+        env:
+          FLY_DB_TOKEN: ${{ secrets.FLY_DB_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
-          if [ -z "${{ secrets.FLY_API_TOKEN }}" ] || [ -z "${{ secrets.BACKUP_PASSPHRASE }}" ]; then
+          if { [ -z "$FLY_DB_TOKEN" ] && [ -z "$FLY_API_TOKEN" ]; } || [ -z "$BACKUP_PASSPHRASE" ]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::FLY_API_TOKEN e/ou BACKUP_PASSPHRASE ausentes — backup pulado. Configure em Settings → Secrets."
+            echo "::warning::FLY_DB_TOKEN/FLY_API_TOKEN e/ou BACKUP_PASSPHRASE ausentes — backup pulado. Configure em Settings → Secrets."
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
@@ -43,7 +51,8 @@ jobs:
       - name: Dump + criptografia
         if: steps.check.outputs.configured == 'true'
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          # Prefere o token do banco; cai para o token geral se não houver.
+          FLY_API_TOKEN: ${{ secrets.FLY_DB_TOKEN || secrets.FLY_API_TOKEN }}
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
