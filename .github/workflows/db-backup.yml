@@ -56,8 +56,11 @@ jobs:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
-          # OPERATOR_PASSWORD vive dentro da máquina do banco; o dump sai por stdout
-          flyctl ssh console -a parknow-db -C 'sh -c "PGPASSWORD=$OPERATOR_PASSWORD pg_dump -h localhost -p 5432 -U postgres parknow_db"' > dump.sql
+          # pg_dumpall: dump do CLUSTER inteiro (globals/roles + todos os bancos).
+          # Não exige o nome do banco (conecta no 'postgres', que sempre existe) —
+          # antes falhava com pg_dump parknow_db porque o banco de produção tem
+          # outro nome. OPERATOR_PASSWORD vive dentro da máquina do banco.
+          flyctl ssh console -a parknow-db -C 'sh -c "PGPASSWORD=$OPERATOR_PASSWORD pg_dumpall -h localhost -p 5432 -U postgres"' > dump.sql
           test -s dump.sql # falha se vazio
           gzip -9 dump.sql
           openssl enc -aes-256-cbc -pbkdf2 -salt \
