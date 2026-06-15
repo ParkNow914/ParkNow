@@ -3,7 +3,6 @@
 // contactController (eram ~1.350 linhas de HTML inline numa única função).
 // Cada builder recebe um objeto com os dados da solicitação e devolve a string.
 
-/* eslint-disable max-len */
 
 const config = require('../config');
 

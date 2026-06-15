@@ -27,7 +27,6 @@ function init() {
     try {
         // Optional dependency: only loaded when configured. The require is
         // wrapped so missing module isn't fatal.
-        // eslint-disable-next-line global-require
         sentry = require('@sentry/node');
         sentry.init({
             dsn,
