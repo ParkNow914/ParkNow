@@ -67,7 +67,7 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 - [x] `tempStorage` (aprovações) → Postgres _(Sessão 2)_
 - [x] Idempotency → Postgres _(Sessão 2)_
 - [x] Rate limiting → Postgres _(Sessão 4)_
-- [ ] Remover `unsafe-inline` da CSP (nonce nos scripts)
+- [x] Remover `unsafe-inline` de script-src da CSP (scripts inline extraídos) _(Sessão 4)_
 - [x] Validar magic bytes + stripar EXIF no upload de comprovante _(Sessão 4)_
 - [ ] 2FA opcional para admins (TOTP)
 - [ ] Auditar logs para não gravar PII (CPF/senha)
@@ -100,7 +100,7 @@ Documento de controle do trabalho contínuo. **Todos os itens são gratuitos**
 - [x] Índices faltando (`pagamentos.reserva_id`, `reservas.usuario_id+status`) _(Sessão 3)_
 - [x] Dropar colunas mortas asaas*\* *(Sessão 3)\_
 - [ ] Constraints (CHECK valor>0, FK ON DELETE explícito)
-- [ ] Restore-drill de backup + off-site grátis (R2/B2)
+- [~] Backup diário criptografado no CI (artifact) _(Sessão 4)_; restore-drill + off-site pendentes
 
 ### Frontend / UX
 

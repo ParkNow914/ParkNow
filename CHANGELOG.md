@@ -5,6 +5,53 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.3.0] - 2026-06-15 — Esteira E2E + deploy gateado + dependências major
+
+### CI/CD
+
+- **Deploy gateado pelo CI**: `deploy.yml` agora dispara via `workflow_run`
+  após o "CI/CD Pipeline" concluir com SUCESSO na main (antes era push direto,
+  em paralelo ao CI). Comprovado em produção: 3 commits com CI vermelho foram
+  BLOQUEADOS do deploy, e só o commit 100% verde foi implantado.
+- **Suíte E2E (Playwright)** em browser real, como job dedicado do CI: landing,
+  cadastro pelo modal, login com redirect, home (mapa Leaflet), admin e reset —
+  rede de proteção das refatorações de frontend. Traces como artifact em falha.
+- `workflow_dispatch` no CI (validar qualquer branch sem PR).
+- Jest `maxWorkers=1`: testes de integração compartilham um único Postgres;
+  serial elimina flakiness com as tabelas rate_limits/idempotency_keys.
+
+### Dependências (majors do Dependabot, mantendo 0 vulnerabilidades)
+
+- Express 4 → 5, Zod 3 → 4, ESLint 8 → 9 (flat config `eslint.config.js`),
+  Jest 29 → 30. GitHub Actions: checkout/setup-node v6, CodeQL v4, codecov v6.
+
+### Segurança
+
+- **CSP sem `unsafe-inline` em `script-src`/`script-src-elem`**: os 15 blocos
+  `<script>` inline das páginas servidas foram extraídos para arquivos externos;
+  um `<script>` injetado por XSS não executa mais. Allowlist de CDNs enumerada
+  de todos os `<script src>` reais.
+- **Backup diário criptografado** do Postgres (AES-256-CBC/PBKDF2) via Actions —
+  parknow-db é Legacy (sem backup da plataforma). Requer `BACKUP_PASSPHRASE`.
+
+### Corrigido (bugs reais que a E2E pegou — estavam em produção)
+
+- **`SyntaxError: Identifier 'PARKNOW_DEBUG' has already been declared`**: o
+  gating de logs declarava `const` de mesmo nome no topo de 5 arquivos JS; a
+  landing carrega 4 deles como scripts clássicos no mesmo escopo → o
+  `index.js` era abortado e login/cadastro da página inicial não funcionavam.
+  Corrigido para forma idempotente (`window.PARKNOW_DEBUG` + `function debugLog`).
+- **CSP bloqueava Bootstrap** de `stackpath.bootstrapcdn.com` e DataTables de
+  `cdn.datatables.net` (modais não abriam no reset-password e afins).
+- Bug de schema em banco novo: `public/js/timeService.js` (ESM morto) quebrava
+  o lint; removido.
+
+### Refatoração
+
+- `admin_home/script.js`: validadores puros (CPF/CNPJ/CEP) extraídos para
+  `admin-validators.js` (testáveis). Husky + lint-staged no pre-commit.
+- Limpeza de diretivas `eslint-disable` obsoletas.
+
 ## [2.2.0] - 2026-06-11 — Top-tier: zero vulnerabilidades, upload blindado, rate limit persistente
 
 ### Segurança

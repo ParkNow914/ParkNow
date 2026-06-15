@@ -64,7 +64,6 @@ function checksum(content) {
 
 function log(level, msg) {
     const ts = new Date().toISOString();
-    // eslint-disable-next-line no-console
     console.log(`${ts} [migrate:${level}] ${msg}`);
 }
 
