@@ -1,0 +1,12 @@
+# ParkNow — robots
+User-agent: *
+Allow: /
+# Áreas autenticadas/privadas não indexáveis
+Disallow: /api/
+Disallow: /admin/
+Disallow: /admin_home/
+Disallow: /user/
+Disallow: /reset-password/
+Disallow: /uploads/
+
+Sitemap: https://parknow-alimi.fly.dev/sitemap.xml
