@@ -11,6 +11,7 @@
 // Registros financeiros (reservas/pagamentos) são preservados já desvinculados
 // de identidade — retenção fiscal/contábil, exceção legítima do art. 16.
 
+const crypto = require('crypto');
 const argon2 = require('argon2');
 const { pool } = require('../utils/dbUtils');
 const { invalidateUserCache } = require('../middleware/authMiddleware');
@@ -22,8 +23,10 @@ const logger = require('../utils/logger');
 const CONFIRMACAO_EXCLUSAO = 'EXCLUIR MINHA CONTA';
 
 /**
- * SELECT tolerante: se a tabela/coluna não existir naquele ambiente, devolve
- * lista vazia em vez de derrubar a exportação inteira. (Best-effort com log.)
+ * SELECT tolerante A SCHEMA: devolve lista vazia SOMENTE quando a tabela/coluna
+ * não existe naquele ambiente (42P01 = undefined_table, 42703 = undefined_column).
+ * Qualquer outro erro (conexão, permissão, sintaxe) é repropagado — não podemos
+ * mascarar uma exportação incompleta como se fosse sucesso.
  * @returns {Promise<Array>}
  */
 async function selectSafe(sql, params, contexto) {
@@ -31,8 +34,11 @@ async function selectSafe(sql, params, contexto) {
         const { rows } = await pool.query(sql, params);
         return rows;
     } catch (err) {
-        logger.warn(`[LGPD] Falha ao ler ${contexto} na exportação`, { error: err.message });
-        return [];
+        if (err.code === '42P01' || err.code === '42703') {
+            logger.warn(`[LGPD] ${contexto} indisponível na exportação (${err.code})`, { error: err.message });
+            return [];
+        }
+        throw err;
     }
 }
 
@@ -100,9 +106,10 @@ async function excluirConta(req, res, next) {
         );
     }
 
-    // Hash argon2 de um valor aleatório: a senha fica inutilizável (o login usa
-    // argon2.verify e retornará false), sem deixar hash conhecido.
-    const senhaInutilizavel = await argon2.hash(`deleted:${userId}:${Date.now()}:${Math.random()}`);
+    // Hash argon2 de um valor aleatório criptograficamente forte: a senha fica
+    // inutilizável (o login usa argon2.verify e retornará false) e não
+    // correlacionável a nada.
+    const senhaInutilizavel = await argon2.hash(crypto.randomBytes(32).toString('hex'));
     const emailAnonimo = `excluido-${userId}@lgpd.parknow.invalid`;
 
     const client = await pool.connect();
@@ -145,8 +152,8 @@ async function excluirConta(req, res, next) {
         client.release();
     }
 
-    // Invalida o cache de usuário do middleware de auth (o token atual deixa de
-    // resolver para um titular válido).
+    // Invalida o cache de usuário do middleware de auth: na próxima requisição,
+    // protectUser recarrega do banco, vê status='excluida' e rejeita o token.
     invalidateUserCache(userId);
     logger.info('[LGPD] Conta excluída/anonimizada', { usuarioId: userId });
 
