@@ -1,0 +1,15 @@
+{
+  "name": "ParkNow — Reserva de vagas com PIX",
+  "short_name": "ParkNow",
+  "description": "Encontre, reserve e pague vagas de estacionamento com PIX direto, sem taxas.",
+  "lang": "pt-BR",
+  "start_url": "/?utm_source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#004080",
+  "icons": [
+    { "src": "/img/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
