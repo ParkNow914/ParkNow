@@ -73,7 +73,7 @@ jobs:
 
       - name: Upload (retenção 30 dias)
         if: steps.check.outputs.configured == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: db-backup-${{ github.run_id }}
           path: backup-*.enc
