@@ -33,7 +33,7 @@ jobs:
     steps:
       # Faz checkout do EXATO commit que passou no CI (head_sha do run que
       # disparou); em dispatch manual, usa o ref selecionado.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
