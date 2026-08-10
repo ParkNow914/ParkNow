@@ -74,14 +74,14 @@
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.60.0",
-    "eslint": "^9.39.4",
+    "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
     "husky": "^9.1.7",
     "jest": "^30.4.2",
     "lint-staged": "^17.0.7",
     "nodemon": "^3.1.10",
-    "prettier": "^3.3.3",
+    "prettier": "^3.9.6",
     "supertest": "^7.0.0"
   },
   "jest": {
