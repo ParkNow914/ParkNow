@@ -33,6 +33,15 @@ const initCronJobs = require('./services/cronJobs'); // Importa a função de in
 
 // --- Inicialização do Express e Servidor HTTP ---
 const app = express();
+
+// Atrás de proxy (Fly.io, Caddy, Cloudflare) o IP real vem em X-Forwarded-For.
+// Sem isto, req.ip é o IP do proxy e todos os limites por IP (login, cadastro,
+// refresh) viram limites GLOBAIS da plataforma. TRUST_PROXY = número de saltos
+// de proxy confiáveis (Fly: 1). Padrão 0 = conexão direta.
+const trustProxyEnv = String(process.env.TRUST_PROXY || '0').trim().toLowerCase();
+const trustProxy = /^\d+$/.test(trustProxyEnv) ? parseInt(trustProxyEnv, 10) : trustProxyEnv === 'true';
+app.set('trust proxy', trustProxy);
+
 const server = http.createServer(app); // Cria servidor HTTP a partir do Express app
 const _io = initSocketIO(server);       // Inicializa e anexa Socket.IO ao servidor HTTP
 
@@ -198,13 +207,19 @@ app.use((req, res, next) => {
 // NÃO são servidos estaticamente. Eles são entregues apenas por endpoints
 // autenticados: GET /api/user/profile/foto (dono) e
 // GET /api/admin/pagamentos/:id/comprovante (admin do estacionamento).
-const SENSITIVE_UPLOAD_PATTERN = /^\/(comprovante-|profile\/|profile_images\/)/i;
+//
+// Lista de PERMITIDOS (não de bloqueados): só fotos de estacionamento saem
+// por aqui. A versão anterior bloqueava por regex sobre o caminho cru e era
+// burlada codificando uma letra (`/uploads/%63omprovante-...`), porque o
+// express.static decodifica a URL depois do teste.
+const PUBLIC_UPLOAD_PATTERN = /^\/(estacionamentos\/[A-Za-z0-9._-]+|fotoEstacionamento-[A-Za-z0-9._-]+)$/;
 app.use('/uploads', (req, res, next) => {
-    if (SENSITIVE_UPLOAD_PATTERN.test(req.path)) {
+    const p = req.path;
+    if (p.includes('%') || p.includes('\\') || p.includes('..') || !PUBLIC_UPLOAD_PATTERN.test(p)) {
         return res.status(404).json({ success: false, message: 'Não encontrado.' });
     }
     next();
-}, express.static(path.join(__dirname, 'uploads')));
+}, express.static(path.join(__dirname, 'uploads'), { dotfiles: 'deny', index: false, redirect: false }));
 
 // Rotas públicas (não requerem autenticação)
 app.use('/api/public', approvalRoutes); // Rotas de aprovação de parcerias

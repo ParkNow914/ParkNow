@@ -1,0 +1,15 @@
+# Configuração do gitleaks (varredura de segredos).
+# Usa as regras padrão e só libera valores de teste conhecidos.
+title = "ParkNow gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fixtures de teste (não são segredos reais)"
+paths = [
+  '''node_modules/''',
+]
+regexes = [
+  '''abcdef1234567890''',
+]

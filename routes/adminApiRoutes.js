@@ -4,7 +4,7 @@
 const express = require('express');
 const adminApiController = require('../controllers/adminApiController');
 const adminSplitsController = require('../controllers/adminSplitsController');
-const { protectAdmin } = require('../middleware/adminAuthMiddleware'); // Middleware de autenticação admin
+const { protectAdmin, requireSuperAdmin } = require('../middleware/adminAuthMiddleware'); // Autenticação admin + papel da plataforma
 const { param, body, query: _query } = require('express-validator'); // Funções de validação
 const { handleValidationErrors } = require('../middleware/validationMiddleware'); // Handler de erros de validação
 const _upload = require('../middleware/uploadMiddleware'); // Para upload de foto de estacionamento
@@ -48,7 +48,7 @@ router.post('/vagas/:id/saida', [
 ], handleValidationErrors, adminApiController.registrarSaida);
 
 // POST /api/admin/vagas/atualizar-tempo - Endpoint para cron job ou trigger manual (sem validação de entrada)
-router.post('/vagas/atualizar-tempo', adminApiController.atualizarTempoEstacionadoGlobal);
+router.post('/vagas/atualizar-tempo', requireSuperAdmin, adminApiController.atualizarTempoEstacionadoGlobal);
 
 // --- Rotas de Configuração/Gerenciamento Estacionamento ---
 // PUT /api/admin/config/vagas - Ajusta número total de vagas de um estacionamento
@@ -115,25 +115,25 @@ router.delete('/estacionamentos/:estacionamentoId', [
 router.get('/users', adminApiController.getAllUsersAdmin); // Adicionar filtros e paginação aqui
 
 // PATCH /api/admin/users/:userId/status - Ativa/Desativa um usuário
-router.patch('/users/:userId/status', [
+router.patch('/users/:userId/status', requireSuperAdmin, [
     userIdParamValidation,
     body('status', "Status deve ser 'ativo' ou 'inativo'").isIn(['ativo', 'inativo'])
 ], handleValidationErrors, adminApiController.setUserStatus);
 
 // --- Rotas de Splits e Relatórios ---
 // GET /api/admin/splits/estatisticas - Estatísticas gerais de splits
-router.get('/splits/estatisticas', adminSplitsController.obterEstatisticas);
+router.get('/splits/estatisticas', requireSuperAdmin, adminSplitsController.obterEstatisticas);
 
 // GET /api/admin/splits/transacoes - Lista transações com splits
-router.get('/splits/transacoes', adminSplitsController.listarTransacoes);
+router.get('/splits/transacoes', requireSuperAdmin, adminSplitsController.listarTransacoes);
 
 // GET /api/admin/splits/transacoes/:id - Detalhes de uma transação
-router.get('/splits/transacoes/:id', [
+router.get('/splits/transacoes/:id', requireSuperAdmin, [
     idParamValidation('id', 'ID da transação inválido')
 ], handleValidationErrors, adminSplitsController.obterDetalheTransacao);
 
 // GET /api/admin/splits/exportar - Exportar relatório CSV
-router.get('/splits/exportar', adminSplitsController.exportarRelatorio);
+router.get('/splits/exportar', requireSuperAdmin, adminSplitsController.exportarRelatorio);
 
 // --- Rotas de Confirmação Manual de Pagamento PIX ---
 const pixManualRoutes = require('./pixManualConfirmacaoRoutes');

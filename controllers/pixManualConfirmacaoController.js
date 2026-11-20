@@ -102,6 +102,7 @@ async function enviarComprovante(req, res, next) {
         // Notifica admins do estacionamento via Socket.IO (fila a confirmar)
         try {
             socketService.emitToAdmin('comprovante_pix_recebido', {
+                estacionamento_id: reserva.estacionamento_id,
                 reserva_id: reservaId,
                 pagamento_id: pagamento.id,
                 valor: pagamento.valor,

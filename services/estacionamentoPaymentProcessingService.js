@@ -50,13 +50,17 @@ class EstacionamentoPaymentProcessingService {
                 throw new AppError('Estacionamento não encontrado', 404);
             }
 
-            // Calcula o valor total da reserva
-            const valorTotal = await reservaModel.calcularValorReserva(
-                reserva.horario_inicio_reserva,
-                reserva.horario_fim_reserva,
-                estacionamento.preco_hora,
-                client
-            );
+            // Só reservas aguardando pagamento podem gerar nova cobrança.
+            if (!['pendente', 'pendente_pagamento'].includes(reserva.status)) {
+                throw new AppError('Esta reserva não está aguardando pagamento.', 409);
+            }
+
+            // O valor é o calculado no servidor quando a reserva foi criada
+            // (utils/pricing). Nunca recalcula a partir de dados do cliente.
+            const valorTotal = Number.parseFloat(reserva.valor_total);
+            if (!Number.isFinite(valorTotal) || valorTotal <= 0) {
+                throw new AppError('Reserva sem valor válido. Crie uma nova reserva.', 409);
+            }
 
             // Processa o pagamento de acordo com o método
             let resultadoPagamento;
@@ -72,27 +76,13 @@ class EstacionamentoPaymentProcessingService {
                     );
                     break;
 
+                // Cartão e dinheiro não têm integração real: os métodos
+                // processarPagamentoCartao/processarPagamentoDinheiro aprovavam
+                // o pagamento sem cobrar nada. Bloqueados até existir gateway.
                 case PAYMENT_METHODS.CARTAO_CREDITO:
                 case PAYMENT_METHODS.CARTAO_DEBITO:
-                    resultadoPagamento = await this.processarPagamentoCartao(
-                        reserva,
-                        estacionamento,
-                        valorTotal,
-                        metodoPagamento,
-                        dadosPagamento,
-                        client
-                    );
-                    break;
-
                 case PAYMENT_METHODS.DINHEIRO:
-                    resultadoPagamento = await this.processarPagamentoDinheiro(
-                        reserva,
-                        estacionamento,
-                        valorTotal,
-                        dadosPagamento,
-                        client
-                    );
-                    break;
+                    throw new AppError('No momento só aceitamos pagamento via PIX.', 400);
 
                 default:
                     throw new AppError(`Método de pagamento não suportado: ${metodoPagamento}`, 400);
@@ -136,6 +126,13 @@ class EstacionamentoPaymentProcessingService {
      * @private
      */
     async processarPagamentoPix(reserva, estacionamento, valorTotal, dadosPagamento, client) {
+        // Falha fechado: sem valor positivo o BR Code sairia "valor a definir"
+        // (campo 54 omitido) e o pagador escolheria quanto pagar.
+        const valorNumerico = Number(valorTotal);
+        if (!Number.isFinite(valorNumerico) || valorNumerico <= 0) {
+            throw new AppError('Valor da cobrança inválido.', 500);
+        }
+
         // Verifica se o estacionamento está configurado para receber PIX
         const configPagamento = await estacionamentoModel.validarConfiguracaoPagamento(estacionamento.id, client);
 

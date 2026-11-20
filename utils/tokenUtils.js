@@ -17,10 +17,9 @@ const generateSecureToken = (length = 32) => {
         // Converte para string hexadecimal
         return buffer.toString('hex');
     } catch (error) {
+        // Falha fechado: um token previsível (Math.random) seria pior que erro.
         logger.error("[Token Utils] Erro CRÍTICO ao gerar token seguro com crypto.randomBytes:", error);
-        // Fallback MUITO MENOS SEGURO - usar apenas em caso de falha extrema do crypto
-        logger.warn("[Token Utils] Usando fallback inseguro para geração de token!");
-        return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        throw new Error('Não foi possível gerar um token seguro.');
     }
 };
 
@@ -47,8 +46,33 @@ const hashToken = (token) => {
     }
 };
 
+/**
+ * Hash do refresh token para guardar no banco.
+ * SHA-256 (e não bcrypt): o bcrypt só considera os 72 primeiros bytes, e todo
+ * refresh JWT do mesmo usuário começa igual nesses 72 bytes — com bcrypt, um
+ * token antigo continuava valendo depois da rotação.
+ * O prefixo `sha256:` distingue do formato antigo ($2b$...), que deixa de ser
+ * aceito (sessões antigas precisam logar de novo).
+ */
+const hashRefreshToken = (token) => `sha256:${hashToken(token)}`;
+
+/**
+ * Compara o refresh token recebido com o hash salvo, em tempo constante.
+ * @returns {boolean}
+ */
+const verifyRefreshTokenAgainstHash = (token, storedHash) => {
+    if (typeof token !== 'string' || !token || typeof storedHash !== 'string' || !storedHash.startsWith('sha256:')) {
+        return false;
+    }
+    const esperado = Buffer.from(storedHash, 'utf8');
+    const recebido = Buffer.from(hashRefreshToken(token), 'utf8');
+    return esperado.length === recebido.length && crypto.timingSafeEqual(esperado, recebido);
+};
+
 // Exporta as funções utilitárias
 module.exports = {
     generateSecureToken,
-    hashToken
+    hashToken,
+    hashRefreshToken,
+    verifyRefreshTokenAgainstHash
 };

@@ -281,9 +281,12 @@
 
         socket.on('connect', () => {
             console.log('Socket.IO conectado!');
-            // Entrar na sala do usuário
-            if (infoUsuario?.id) {
-                socket.emit('join_usuario_room', infoUsuario.id);
+            // O servidor já coloca o socket na sala do usuário a partir do
+            // token. O pedido explícito fica como reforço. (Antes usava
+            // `infoUsuario`, que não existe nesta página e quebrava o handler.)
+            const userIdAtual = localStorage.getItem('userId');
+            if (userIdAtual) {
+                socket.emit('join_usuario_room', userIdAtual);
             }
         });
 
@@ -333,8 +336,9 @@
     function disconnectSocketIO() {
         if (socket) {
             // Sair da sala do usuário
-            if (infoUsuario?.id) {
-                socket.emit('leave_usuario_room', infoUsuario.id);
+            const userIdAtual = localStorage.getItem('userId');
+            if (userIdAtual) {
+                socket.emit('leave_usuario_room', userIdAtual);
             }
             socket.disconnect();
             socket = null;
@@ -1762,24 +1766,16 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
             const dataEntrada = new Date(inicio);
             const dataSaida = new Date(dataEntrada.getTime() + (parseInt(duracao) * 60 * 1000));
 
-            // Obter o valor da vaga (você pode precisar ajustar isso para obter o valor real)
-            const valor = 10.00; // Valor padrão, substitua pelo valor real
-
+            // O valor NÃO é enviado: o servidor calcula pela tabela de preços
+            // do estacionamento e devolve em `reserva.valor_total`.
             const reservaData = {
                 estacionamento_id: estId,
                 vaga_id: parseInt(vagaId),
                 data_entrada: dataEntrada.toISOString(),
                 data_saida: dataSaida.toISOString(),
-                valor: valor,
                 metodo_pagamento: 'pix',
-                status: 'pendente',
-                usuario_id: localStorage.getItem('userId'),
                 veiculo_placa: userData?.placa_veiculo || '',
-                veiculo_modelo: userData?.tipo_veiculo || '',
-                observacoes: 'Reserva via aplicativo',
-                pagador_nome: userData?.nome || '',
-                pagador_email: userData?.email || '',
-                pagador_cpf: userData?.cpf || ''
+                veiculo_modelo: userData?.tipo_veiculo || ''
             };
 
             console.log('Enviando dados para a API:', reservaData);
@@ -1805,7 +1801,7 @@ async function fetchVagasDisponiveisParaReserva(estacionamentoId) {
               qr_code_base64: pixInfo.qr_code_base64 || pagamentoInfo.qr_code_base64,
               qr_code_text: pixInfo.qr_code_text || pixInfo.qr_code || pagamentoInfo.qr_code,
               pagamento_id: pagamentoInfo.id,
-              valor: result.reserva?.valor_total || reservaData.valor,
+              valor: result.reserva?.valor_total ?? result.pix?.valor ?? null,
               chave_pix: pixInfo.chave_pix,
               nome_titular: pixInfo.nome_titular,
               expira_em: pixInfo.expira_em || pagamentoInfo.expira_em,

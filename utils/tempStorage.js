@@ -37,7 +37,8 @@ const validateParkingData = (data) => {
     const requiredFields = [
         { field: 'nome', type: 'string', min: 3, max: 100 },
         { field: 'email', type: 'string', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
-        { field: 'senha', type: 'string', min: 8 },
+        // Só o hash é guardado (auditoria C-07); nunca a senha em claro.
+        { field: 'senha_hash', type: 'string', min: 20 },
         { field: 'nomeEstacionamento', type: 'string', min: 3, max: 200 },
         { field: 'enderecoEstacionamento', type: 'string', min: 10, max: 500 },
         { field: 'cnpj', type: 'string', pattern: /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/ },

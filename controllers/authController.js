@@ -24,7 +24,7 @@ const _db = require('../config/db'); // Para queries diretas
 // Import desabilitado pois Redis foi removido
 
 
-const BCRYPT_SALT_ROUNDS = 10; // Custo para hash do refresh token
+// Refresh tokens são guardados como SHA-256 (utils/tokenUtils.hashRefreshToken).
 // Opções base para cookie, maxAge será adicionado dinamicamente
 const _refreshTokenCookieOptions = { ...config.cookieProps };
 const clearTokenCookieOptions = { ...config.cookieProps }; // Opções para limpar
@@ -119,7 +119,7 @@ const loginUser = async (req, res, next) => {
         const payload = { userId: user.id, type: 'user' };
         const accessToken = jwtUtils.generateAccessToken(payload);
         const refreshToken = jwtUtils.generateRefreshToken(payload);
-        const refreshTokenHash = await bcrypt.hash(refreshToken, BCRYPT_SALT_ROUNDS); // Hash do refresh
+        const refreshTokenHash = tokenUtils.hashRefreshToken(refreshToken); // SHA-256 (bcrypt truncava em 72 bytes)
         await userModel.saveRefreshTokenHash(user.id, refreshTokenHash); // Salva hash no DB
 
         setRefreshTokenCookie(res, refreshToken); // Seta o cookie httpOnly
@@ -188,7 +188,7 @@ const refreshToken = async (req, res, next) => {
         const newRefreshToken = jwtUtils.generateRefreshToken(payload);
         
         // Salva o novo hash do refresh token no banco de dados
-        const refreshTokenHash = await bcrypt.hash(newRefreshToken, BCRYPT_SALT_ROUNDS);
+        const refreshTokenHash = tokenUtils.hashRefreshToken(newRefreshToken);
         
         if (payload.type === 'user') {
             await userModel.saveRefreshTokenHash(payload.userId, refreshTokenHash);
@@ -214,8 +214,20 @@ const logout = async (req, res, _next) => {
     let userId = null; let adminId = null; let accountType = null;
     try {
         if (requestRefreshToken) {
-            // Decodifica mesmo se expirado para pegar o ID
-            const decoded = jwtUtils.verifyRefreshToken(requestRefreshToken) || jwt.decode(requestRefreshToken);
+            // Só age sobre token com ASSINATURA válida (expirado é aceito para
+            // permitir logout de sessão vencida). Antes usava jwt.decode como
+            // fallback: um token forjado sem assinatura derrubava a sessão de
+            // qualquer conta.
+            let decoded = null;
+            try {
+                decoded = jwt.verify(requestRefreshToken, config.jwt.refreshSecret, {
+                    algorithms: ['HS256'],
+                    ignoreExpiration: true,
+                });
+                if (decoded.tokenType !== 'refresh') decoded = null;
+            } catch (_e) {
+                decoded = null;
+            }
             if (decoded) {
                 userId = decoded.userId; adminId = decoded.adminId; accountType = decoded.type;
                 // Limpa o hash do refresh token no DB para invalidá-lo permanentemente
@@ -373,11 +385,15 @@ const registerAdmin = async (req, res, next) => {
         const approvalToken = crypto.randomBytes(32).toString('hex');
         const storageKey = `parceria:${approvalToken}`;
         
+        // A senha NUNCA é guardada em claro: o hash (bcrypt, mesmo formato do
+        // login de admin) é gerado agora e usado direto na aprovação.
+        const senhaHash = await bcrypt.hash(senha, 12);
+
         // Preparar dados completos para aprovação
         const solicitacaoData = {
             nome,
             email,
-            senha, // Será hasheada na aprovação
+            senha_hash: senhaHash,
             cnpj,
             telefone,
             nomeEstacionamento,
@@ -639,7 +655,7 @@ const loginAdmin = async (req, res, next) => {
         const payload = { adminId: admin.id, type: 'admin' };
         const accessToken = jwtUtils.generateAccessToken(payload);
         const refreshToken = jwtUtils.generateRefreshToken(payload);
-        const refreshTokenHash = await bcrypt.hash(refreshToken, BCRYPT_SALT_ROUNDS);
+        const refreshTokenHash = tokenUtils.hashRefreshToken(refreshToken);
         
         // Atualiza o hash do refresh token no banco de dados
         await adminModel.saveAdminRefreshTokenHash(admin.id, refreshTokenHash);

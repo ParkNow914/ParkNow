@@ -15,6 +15,8 @@ const PG = {
     database: process.env.PG_DATABASE || 'parknow_test',
     ssl: false,
     connectionTimeoutMillis: 3000,
+    // Mesma sessão UTC do app (utils/dbUtils.js): timestamps comparáveis.
+    options: '-c TimeZone=UTC',
 };
 
 let dbAvailable = false;
