@@ -3,6 +3,7 @@
 
 const { Server } = require('socket.io');        // Importa classe Server do socket.io
 const logger = require('../utils/logger');       // Logger Winston
+const { logSafe } = require('../utils/logSafe');  // Neutraliza dado externo em logs
 const config = require('../config');             // Configurações da aplicação
 const jwtUtils = require('../utils/jwtUtils');   // Para autenticar conexão via JWT
 const vagaModel = require('../models/vagaModel'); // Modelo de vagas para buscar estado
@@ -10,6 +11,53 @@ const userModel = require('../models/userModel'); // Para autenticação por han
 
 
 let io; // Variável global para a instância do servidor Socket.IO
+
+// --- Salas e privacidade ---
+// `estacionamento_<id>`        : pública (qualquer usuário logado vendo o mapa)
+// `admin_estacionamento_<id>`  : só o dono daquele estacionamento
+// `admins_geral`               : só a equipe ParkNow (nivel_acesso = 'superadmin')
+// `usuario_<id>`               : só o próprio motorista
+const adminRoomFor = (estacionamentoId) => `admin_estacionamento_${estacionamentoId}`;
+const SUPERADMIN_ROOM = 'admins_geral';
+
+// Campos pessoais que nunca vão para a sala pública do estacionamento.
+const CAMPO_PESSOAL = /placa|nome|email|cpf|telefone/i;
+
+function semDadosPessoais(obj) {
+    if (Array.isArray(obj)) return obj.map(semDadosPessoais);
+    if (!obj || typeof obj !== 'object') return obj;
+    const limpo = {};
+    for (const [k, v] of Object.entries(obj)) {
+        if (CAMPO_PESSOAL.test(k)) continue;
+        limpo[k] = Array.isArray(v) ? v.map(semDadosPessoais) : v;
+    }
+    return limpo;
+}
+
+/** Coloca o socket de um admin nas salas dos estacionamentos dele. */
+async function joinAdminRooms(socket) {
+    const adminId = socket.decoded_token?.adminId;
+    if (!adminId) return;
+    const db = require('../config/database');
+    const { rows: admins } = await db.query('SELECT nivel_acesso, status FROM admins WHERE id = $1', [adminId]);
+    if (!admins.length || (admins[0].status && admins[0].status !== 'ativo')) {
+        logger.warn(`[Socket.IO] Admin ${adminId} inexistente/inativo não entrou em salas.`);
+        return;
+    }
+    if (admins[0].nivel_acesso === 'superadmin') socket.join(SUPERADMIN_ROOM);
+    const { rows } = await db.query('SELECT id FROM estacionamentos WHERE admin_id = $1', [adminId]);
+    for (const r of rows) socket.join(adminRoomFor(r.id));
+    logger.info(`[Socket.IO] Admin ${adminId} entrou nas salas de ${rows.length} estacionamento(s).`);
+}
+
+/** Emite o dado completo para o dono e a versão sem dados pessoais para o público. */
+function emitirParaEstacionamento(estacionamentoId, evento, dados) {
+    if (!io || !estacionamentoId) return;
+    io.to(adminRoomFor(estacionamentoId)).to(SUPERADMIN_ROOM).emit(evento, dados);
+    io.to(`estacionamento_${estacionamentoId}`)
+        .except(adminRoomFor(estacionamentoId))
+        .emit(evento, semDadosPessoais(dados));
+}
 
 /**
  * Inicializa o servidor Socket.IO, anexa ao servidor HTTP e configura autenticação/eventos.
@@ -78,6 +126,17 @@ const initSocketIO = (httpServer) => {
             const userInfo = `${socket.decoded_token?.type} ID ${socket.decoded_token?.userId || socket.decoded_token?.adminId}`;
             logger.info(`[Socket.IO] Cliente Conectado: ${socket.id} (${userInfo})`);
 
+            // Salas definidas pelo SERVIDOR a partir do token, sem depender do
+            // cliente pedir: o motorista recebe as notificações pessoais
+            // (pagamento confirmado/rejeitado) mesmo que o frontend falhe.
+            if (socket.decoded_token?.type === 'user' && socket.decoded_token.userId) {
+                socket.join(`usuario_${socket.decoded_token.userId}`);
+            } else if (socket.decoded_token?.type === 'admin' && socket.decoded_token.adminId) {
+                joinAdminRooms(socket).catch((err) =>
+                    logger.error('[Socket.IO] Falha ao colocar admin nas salas dos seus estacionamentos', { error: err.message })
+                );
+            }
+
             // --- Gerenciamento de Salas (Rooms) ---
             socket.on('join_estacionamento', (estacionamentoId) => {
                 const estIdNum = parseInt(estacionamentoId);
@@ -128,9 +187,12 @@ const initSocketIO = (httpServer) => {
             // Sala específica para Admins
             socket.on('join_admin_room', () => {
                 if (socket.decoded_token?.type === 'admin') {
-                    const adminRoom = 'admins_geral'; // Nome da sala admin
-                    socket.join(adminRoom);
-                     logger.info(`[Socket.IO] Admin Socket ${socket.id} (Admin ID: ${socket.decoded_token.adminId}) entrou sala: ${adminRoom}`);
+                    // Cada admin só entra nas salas dos PRÓPRIOS estacionamentos.
+                    // A antiga sala única 'admins_geral' mandava reservas de
+                    // todos os estacionamentos para todos os donos.
+                    joinAdminRooms(socket).catch((err) =>
+                        logger.error('[Socket.IO] Falha em join_admin_room', { error: err.message })
+                    );
                 } else {
                      logger.warn(`[Socket.IO] Tentativa join sala admin por não-admin: ${socket.id}`);
                 }
@@ -249,9 +311,8 @@ const emitVagaAtualizada = (estacionamentoId, vagaId, vagaData) => {
     if (!io || !config.realtime.enabled) return;
     
     try {
-        const roomName = `estacionamento_${estacionamentoId}`;
-        io.to(roomName).emit('vaga_atualizada', { vagaId, ...vagaData });
-        logger.debug(`[Socket.IO] Emitido 'vaga_atualizada' para sala ${roomName}`);
+        emitirParaEstacionamento(estacionamentoId, 'vaga_atualizada', { vagaId, ...vagaData });
+        logger.debug(`[Socket.IO] Emitido 'vaga_atualizada' para estacionamento ${estacionamentoId}`);
     } catch (error) {
         logger.error(`[Socket.IO] Erro ao emitir atualização de vaga:`, error);
     }
@@ -267,9 +328,8 @@ const emitEstadoVagasAtualizado = async (estacionamentoId) => {
     
     try {
         const vagas = await require('../models/vagaModel').findByEstacionamentoId(estacionamentoId);
-        const roomName = `estacionamento_${estacionamentoId}`;
-        io.to(roomName).emit('estado_vagas_atualizado', { estacionamentoId, vagas });
-        logger.debug(`[Socket.IO] Emitido 'estado_vagas_atualizado' para sala ${roomName}`);
+        emitirParaEstacionamento(estacionamentoId, 'estado_vagas_atualizado', { estacionamentoId, vagas });
+        logger.debug(`[Socket.IO] Emitido 'estado_vagas_atualizado' para estacionamento ${estacionamentoId}`);
     } catch (error) {
         logger.error(`[Socket.IO] Erro ao emitir estado das vagas:`, error);
     }
@@ -313,9 +373,8 @@ const notificarUsuario = (userId, tipo, dados) => {
 const emitAtualizacaoVaga = (estacionamentoId, vagaData) => {
     const currentIo = getIO();
     if (!currentIo.emit) return; // Verifica se é o mock
-    const roomName = `estacionamento_${estacionamentoId}`;
-    logger.info(`[Socket.IO Emit] 'vaga_update' para ${roomName}: Vaga ID ${vagaData.id}, Status ${vagaData.status}`);
-    currentIo.to(roomName).emit('vaga_update', vagaData);
+    logger.info(`[Socket.IO Emit] 'vaga_update' para estacionamento ${Number(estacionamentoId)}: Vaga ID ${Number(vagaData.id)}, Status ${logSafe(vagaData.status)}`);
+    emitirParaEstacionamento(estacionamentoId, 'vaga_update', vagaData);
     // Dispara atualização da contagem de livres também
     emitContagemVagasLivres(estacionamentoId);
 };
@@ -345,9 +404,9 @@ const emitContagemVagasLivres = async (estacionamentoId) => {
 const emitNovaReserva = (reservaData) => {
     const currentIo = getIO();
     if (!currentIo.emit) return;
-    const adminRoom = 'admins_geral';
-    logger.info(`[Socket.IO Emit] 'nova_reserva' para ${adminRoom}: Reserva ID ${reservaData.id}`);
-    currentIo.to(adminRoom).emit('nova_reserva', reservaData);
+    // Só o dono do estacionamento (e a equipe ParkNow) recebe a reserva.
+    logger.info(`[Socket.IO Emit] 'nova_reserva' para admins do estacionamento ${reservaData.estacionamento_id}: Reserva ID ${reservaData.id}`);
+    currentIo.to(adminRoomFor(reservaData.estacionamento_id)).to(SUPERADMIN_ROOM).emit('nova_reserva', reservaData);
 };
 
 // Opcional: Função para enviar o estado completo das vagas para um socket específico
@@ -373,17 +432,13 @@ const emitAtualizacaoReserva = (reservaData) => {
     const currentIo = getIO();
     if (!currentIo.emit) return;
     
-    // Emite para a sala geral de admins
-    const adminRoom = 'admins_geral';
-    logger.info(`[Socket.IO Emit] 'atualizacao_reserva' para ${adminRoom}: Reserva ID ${reservaData.id}`);
-    currentIo.to(adminRoom).emit('atualizacao_reserva', reservaData);
-    
-    // Emite para a sala do estacionamento
+    // Dono do estacionamento + equipe ParkNow. A reserva NÃO vai mais para a
+    // sala pública do estacionamento nem para donos de outros estacionamentos.
     if (reservaData.estacionamento_id) {
-        const estacionamentoRoom = `estacionamento_${reservaData.estacionamento_id}`;
-        currentIo.to(estacionamentoRoom).emit('atualizacao_reserva', reservaData);
+        logger.info(`[Socket.IO Emit] 'atualizacao_reserva' para admins do estacionamento ${reservaData.estacionamento_id}: Reserva ID ${reservaData.id}`);
+        currentIo.to(adminRoomFor(reservaData.estacionamento_id)).to(SUPERADMIN_ROOM).emit('atualizacao_reserva', reservaData);
     }
-    
+
     // Emite para a sala do usuário se existir
     if (reservaData.usuario_id) {
         const userRoom = `usuario_${reservaData.usuario_id}`;
@@ -424,7 +479,15 @@ const emitToRoom = (room, event, data) => {
  * @param {object} data - Dados do evento
  */
 const emitToAdmin = (event, data) => {
-    emitToRoom('admins_geral', event, data);
+    const currentIo = getIO();
+    if (!currentIo.emit) return;
+    // Com estacionamento_id vai para o dono daquele estacionamento; sem ele,
+    // só para a equipe ParkNow (nunca para todos os donos).
+    if (data && data.estacionamento_id) {
+        currentIo.to(adminRoomFor(data.estacionamento_id)).to(SUPERADMIN_ROOM).emit(event, data);
+    } else {
+        currentIo.to(SUPERADMIN_ROOM).emit(event, data);
+    }
 };
 
 module.exports = {

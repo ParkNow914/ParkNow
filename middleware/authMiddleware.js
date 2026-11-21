@@ -1,7 +1,8 @@
 // middleware/authMiddleware.js
 const jwtUtils = require('../utils/jwtUtils');
-const { AuthenticationError } = require('../utils/AppError');
+const { AuthenticationError, AuthorizationError } = require('../utils/AppError');
 const logger = require('../utils/logger');
+const { logSafe } = require('../utils/logSafe');
 const { validateApiKey } = require('./apiKeyMiddleware');
 
 // Cache curtíssimo dos dados do usuário autenticado: evita 1 SELECT por
@@ -43,11 +44,16 @@ const protectUser = async (req, res, next) => {
             if (!user) {
                 // Buscar dados do usuário do banco para incluir email, CPF e telefone
                 const db = require('../config/database');
-                const userResult = await db.query('SELECT id, nome, email, cpf, telefone FROM usuarios WHERE id = $1', [decoded.userId]);
+                const userResult = await db.query('SELECT id, nome, email, cpf, telefone, status FROM usuarios WHERE id = $1', [decoded.userId]);
 
                 if (!userResult.rows || userResult.rows.length === 0) {
                     logger.warn(`[Auth User] Usuário não encontrado: ${decoded.userId}`);
                     return next(new AuthenticationError('Usuário não encontrado.'));
+                }
+                // Conta desativada perde o acesso (no máximo USER_CACHE_TTL_MS depois).
+                if (userResult.rows[0].status && userResult.rows[0].status !== 'ativo') {
+                    logger.warn(`[Auth User] Usuário inativo tentou acessar: ${decoded.userId}`);
+                    return next(new AuthenticationError('Sua conta está desativada. Fale com o suporte.'));
                 }
 
                 user = {
@@ -70,19 +76,89 @@ const protectUser = async (req, res, next) => {
 // Invalida a entrada de cache de um usuário (chamar após updates de perfil).
 const invalidateUserCache = (userId) => userCache.delete(userId);
 
+// Cache curto dos dados do admin (mesma lógica do cache de usuário).
+const adminCache = new Map(); // adminId -> { admin, expiresAt }
+
+function getCachedAdmin(adminId) {
+    const entry = adminCache.get(adminId);
+    if (!entry) return null;
+    if (entry.expiresAt < Date.now()) { adminCache.delete(adminId); return null; }
+    return entry.admin;
+}
+
+function setCachedAdmin(adminId, admin) {
+    if (USER_CACHE_TTL_MS <= 0) return;
+    if (adminCache.size >= USER_CACHE_MAX) adminCache.delete(adminCache.keys().next().value);
+    adminCache.set(adminId, { admin, expiresAt: Date.now() + USER_CACHE_TTL_MS });
+}
+
+const invalidateAdminCache = (adminId) => adminCache.delete(adminId);
+
+// Admin da PLATAFORMA (equipe ParkNow). Donos de estacionamento NÃO são
+// superadmin: só operam o que pertence aos seus estacionamentos.
+const SUPERADMIN_LEVEL = 'superadmin';
+
 const protectAdmin = async (req, res, next) => {
-    let token; const authHeader = req.headers.authorization; const clientIp = req.ip || 'IP N/A';
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        try {
-            token = authHeader.split(' ')[1]; const decoded = jwtUtils.verifyAccessToken(token);
-            if (!decoded || !decoded.adminId || decoded.type !== 'admin') { logger.warn(`[Auth Admin] Acesso negado: Token inválido/tipo incorreto. IP: ${clientIp}`); return next(new AuthenticationError('Token inválido ou não autorizado.')); }
-            req.admin = { id: decoded.adminId }; logger.debug(`[Auth Admin] Acesso permitido Admin ID: ${decoded.adminId}. Rota: ${req.originalUrl}`); next();
-        } catch (error) { logger.error('[Auth Admin] Erro inesperado auth:', error); return next(new AuthenticationError('Erro na autenticação.')); }
-    } else { logger.warn(`[Auth Admin] Acesso negado: Token não fornecido. IP: ${clientIp}`); return next(new AuthenticationError('Token não fornecido.')); }
+    const authHeader = req.headers.authorization; const clientIp = req.ip || 'IP N/A';
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        logger.warn(`[Auth Admin] Acesso negado: Token não fornecido. IP: ${clientIp}`);
+        return next(new AuthenticationError('Token não fornecido.'));
+    }
+    try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwtUtils.verifyAccessToken(token);
+        if (!decoded || !decoded.adminId || decoded.type !== 'admin') {
+            logger.warn(`[Auth Admin] Acesso negado: Token inválido/tipo incorreto. IP: ${clientIp}`);
+            // 401 (não 403): o frontend usa 401 para renovar o access token.
+            return next(new AuthenticationError('Token inválido ou não autorizado.'));
+        }
+
+        let admin = getCachedAdmin(decoded.adminId);
+        if (!admin) {
+            const db = require('../config/database');
+            const { rows } = await db.query(
+                'SELECT id, nivel_acesso, status FROM admins WHERE id = $1',
+                [decoded.adminId]
+            );
+            if (!rows.length) {
+                logger.warn(`[Auth Admin] Admin não encontrado: ${decoded.adminId}`);
+                return next(new AuthenticationError('Conta de administrador não encontrada.'));
+            }
+            admin = rows[0];
+            setCachedAdmin(decoded.adminId, admin);
+        }
+        if (admin.status && admin.status !== 'ativo') {
+            logger.warn(`[Auth Admin] Admin inativo tentou acessar: ${decoded.adminId}`);
+            return next(new AuthenticationError('Esta conta de administrador está inativa.'));
+        }
+
+        req.admin = {
+            id: decoded.adminId,
+            nivelAcesso: admin.nivel_acesso || null,
+            isSuperAdmin: admin.nivel_acesso === SUPERADMIN_LEVEL,
+        };
+        logger.debug(`[Auth Admin] Acesso permitido Admin ID: ${Number(decoded.adminId)}. Rota: ${logSafe(req.originalUrl)}`);
+        next();
+    } catch (error) {
+        logger.error('[Auth Admin] Erro inesperado auth:', error);
+        return next(new AuthenticationError('Erro na autenticação.'));
+    }
 };
+
+// Restringe a rota à equipe da plataforma (admins.nivel_acesso = 'superadmin').
+// Use DEPOIS de protectAdmin.
+const requireSuperAdmin = (req, res, next) => {
+    if (req.admin?.isSuperAdmin) return next();
+    logger.warn(`[Auth Admin] Ação restrita à plataforma negada para admin ${Number(req.admin?.id)}. Rota: ${logSafe(req.originalUrl)}`);
+    return next(new AuthorizationError('Ação disponível apenas para a equipe ParkNow.'));
+};
+
 module.exports = {
     protectUser,
     protectAdmin,
+    requireSuperAdmin,
     validateApiKey,
-    invalidateUserCache
+    invalidateUserCache,
+    invalidateAdminCache,
+    SUPERADMIN_LEVEL
 };

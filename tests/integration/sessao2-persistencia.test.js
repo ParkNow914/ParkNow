@@ -15,6 +15,8 @@ const PG = {
     database: process.env.PG_DATABASE || 'parknow_test',
     ssl: false,
     connectionTimeoutMillis: 3000,
+    // Mesma sessão UTC do app (utils/dbUtils.js): timestamps comparáveis.
+    options: '-c TimeZone=UTC',
 };
 
 let dbAvailable = false;
@@ -81,11 +83,16 @@ describe('Sessão 2 — validação de dados de parceria', () => {
     test('aceita dados válidos e rejeita inválidos', () => {
         const ts = require('../../utils/tempStorage');
         const ok = {
-            nome: 'Joao Silva', email: 'j@x.com', senha: '12345678',
+            // Só o hash da senha é guardado (auditoria C-07).
+            nome: 'Joao Silva', email: 'j@x.com',
+            senha_hash: '$2b$12$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012',
             nomeEstacionamento: 'Estac Centro', enderecoEstacionamento: 'Rua das Flores 100',
             cnpj: '12.345.678/0001-90', numeroVagas: 50,
         };
         expect(() => ts._validateParkingData(ok)).not.toThrow();
+        // Senha em texto puro sem hash é recusada.
+        const { senha_hash: _h, ...semHash } = ok;
+        expect(() => ts._validateParkingData({ ...semHash, senha: '12345678' })).toThrow();
         expect(() => ts._validateParkingData({ ...ok, cnpj: 'invalido' })).toThrow();
         expect(() => ts._validateParkingData({ ...ok, numeroVagas: 0 })).toThrow();
         expect(() => ts._validateParkingData(null)).toThrow();

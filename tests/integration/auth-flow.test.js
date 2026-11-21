@@ -36,6 +36,8 @@ const PG = {
     database: process.env.PG_DATABASE,
     ssl: false,
     connectionTimeoutMillis: 3000,
+    // Mesma sessão UTC do app (utils/dbUtils.js): timestamps comparáveis.
+    options: '-c TimeZone=UTC',
 };
 
 let dbAvailable = false;

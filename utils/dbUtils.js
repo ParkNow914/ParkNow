@@ -14,6 +14,8 @@ const poolConfig = {
     maxUses: 7500,
     allowExitOnIdle: true,
     application_name: 'parknow_api',
+    // Sessão sempre em UTC (ver comentário em config/database.js).
+    options: '-c TimeZone=UTC',
     // SSL: respeita PG_SSL explicitamente; senão liga em produção por padrão.
     // Use PG_SSL=false para Fly Postgres interno (.flycast / .internal).
     ssl: (function() {

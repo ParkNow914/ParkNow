@@ -5,6 +5,7 @@ const logger = require('../utils/logger');
 const { validationResult } = require('express-validator');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const _db = require('../config/db');
 const tempStorage = require('../utils/tempStorage');
 const juice = require('juice');
@@ -15,6 +16,15 @@ const {
 } = require('../services/parceriaEmailTemplates');
 const path = require('path');
 const _fs = require('fs');
+
+const { escapeHtml, escaparCampos } = require('../utils/escapeHtml');
+
+// Campos da solicitação de parceria digitados pelo solicitante.
+const CAMPOS_USUARIO_PARCERIA = [
+  'nome', 'email', 'cnpj', 'nomeEstacionamento', 'enderecoEstacionamento',
+  'cidadeEstacionamento', 'ufEstacionamento', 'numeroVagas', 'precoHora', 'precoDia',
+  'horarioAbertura', 'horarioFechamento', 'latitude', 'longitude', 'descricao', 'googleMapsUrl',
+];
 
 // Configuração
 const TOKEN_PREFIX = 'parceria:';
@@ -56,14 +66,15 @@ exports.sendContactMessage = async (req, res, next) => {
     const mailOptions = {
       from: config.email.from,
       to: config.email.support, // Email de suporte configurado
-      subject: `Contato via Site: ${assunto}`,
+      subject: `Contato via Site: ${String(assunto).replace(/[\r\n]/g, ' ').slice(0, 120)}`,
+      replyTo: email,
       html: `
         <h2>Nova mensagem de contato</h2>
-        <p><strong>Nome:</strong> ${nome}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Assunto:</strong> ${assunto}</p>
+        <p><strong>Nome:</strong> ${escapeHtml(nome)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+        <p><strong>Assunto:</strong> ${escapeHtml(assunto)}</p>
         <p><strong>Mensagem:</strong></p>
-        <p>${mensagem.replace(/\n/g, '<br>')}</p>
+        <p>${escapeHtml(mensagem).replace(/\n/g, '<br>')}</p>
       `
     };
 
@@ -76,8 +87,10 @@ exports.sendContactMessage = async (req, res, next) => {
         from: config.email.from,
         to: email,
         subject: 'Recebemos sua mensagem - ParkNow',
+        // Sem ecoar o que foi digitado: este e-mail vai para um endereço
+        // não verificado e não pode servir de veículo para phishing.
         html: `
-          <h2>Olá ${nome},</h2>
+          <h2>Olá,</h2>
           <p>Recebemos sua mensagem e agradecemos pelo contato.</p>
           <p>Um membro da nossa equipe irá analisar e responder o mais breve possível.</p>
           <p>Atenciosamente,<br>Equipe ParkNow</p>
@@ -138,7 +151,7 @@ exports.subscribeNewsletter = async (req, res, next) => {
       to: email,
       subject: 'Bem-vindo à Newsletter ParkNow',
       html: `
-        <h2>Olá ${nome || 'Usuário'},</h2>
+        <h2>Olá,</h2>
         <p>Obrigado por se inscrever em nossa newsletter!</p>
         <p>Você receberá novidades, promoções e informações exclusivas sobre o ParkNow.</p>
         <p>Atenciosamente,<br>Equipe ParkNow</p>
@@ -208,12 +221,19 @@ exports.solicitarParceria = async (req, res, _next) => {
     const tokenExpiracao = new Date();
     tokenExpiracao.setHours(tokenExpiracao.getHours() + 24);
     
+    // A senha NUNCA é guardada em claro (auditoria C-07): só o hash bcrypt,
+    // no mesmo formato que o login de admin compara.
+    if (typeof senha !== 'string' || senha.length < 8 || senha.length > 100) {
+      return res.status(400).json({ success: false, message: 'A senha deve ter entre 8 e 100 caracteres.' });
+    }
+    const senhaHash = await bcrypt.hash(senha, 12);
+
     // Preparar dados da solicitação
     const dadosSolicitacao = {
       nome,
       email,
       telefone,
-      senha, // Em produção, não armazenar senha em texto puro
+      senha_hash: senhaHash,
       cnpj,
       nomeEstacionamento,
       enderecoEstacionamento,
@@ -238,7 +258,8 @@ exports.solicitarParceria = async (req, res, _next) => {
     try {
       const storageKey = `${TOKEN_PREFIX}${approvalToken}`;
       await tempStorage.set(storageKey, dadosSolicitacao, TOKEN_EXPIRATION);
-      logger.info(`Solicitação de parceria armazenada com token: ${approvalToken}`);
+      // Nunca logar o token inteiro: com ele qualquer um aprova a parceria.
+      logger.info(`Solicitação de parceria armazenada (token ${approvalToken.slice(0, 8)}…)`);
     } catch (error) {
       logger.error('Erro ao armazenar solicitação de parceria:', error);
       return res.status(500).json({
@@ -278,13 +299,15 @@ exports.solicitarParceria = async (req, res, _next) => {
       approvalUrl, rejectionUrl, googleMapsUrl, logoUrl, baseUrl,
     };
     const textVersion = buildParceriaTextEmail(templateData);
+    // Todo campo digitado pelo solicitante é escapado antes de virar HTML.
+    const templateDataHtml = escaparCampos(templateData, CAMPOS_USUARIO_PARCERIA);
 
     const mailOptions = {
       from: `"ParkNow - Parcerias" <${config.email.from.split('<')[1].replace('>', '')}`,
       to: config.email.admin || config.email.user,
-      subject: `🚀 Nova Solicitação de Parceria: ${nomeEstacionamento}`,
+      subject: `🚀 Nova Solicitação de Parceria: ${String(nomeEstacionamento).replace(/[\r\n]/g, ' ').slice(0, 120)}`,
       text: textVersion,
-      html: buildParceriaHtmlEmail(templateData)
+      html: buildParceriaHtmlEmail(templateDataHtml)
     };
     
     // Processar o HTML com juice para inlinar os estilos
@@ -311,7 +334,7 @@ exports.solicitarParceria = async (req, res, _next) => {
     }
     
     // Construir o HTML de confirmação
-    const confirmationHtml = buildParceriaConfirmationHtml(templateData);
+    const confirmationHtml = buildParceriaConfirmationHtml(templateDataHtml);
 
     // Processar o HTML de confirmação com juice para inlinar os estilos
     const confirmationWithInlineStyles = juice(confirmationHtml, {

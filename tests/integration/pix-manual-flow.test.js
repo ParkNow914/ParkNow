@@ -47,6 +47,8 @@ const PG = {
     database: process.env.PG_DATABASE,
     ssl: false,
     connectionTimeoutMillis: 3000,
+    // Mesma sessão UTC do app (utils/dbUtils.js): timestamps comparáveis.
+    options: '-c TimeZone=UTC',
 };
 
 let dbAvailable = false;
@@ -81,7 +83,7 @@ async function seedBase(suffix) {
     return { usuario, adminDono, adminIntruso, estacionamento };
 }
 
-async function seedReservaComPagamento({ suffix, reservaCreatedAt = 'NOW()', dataEntrada = "NOW() + INTERVAL '1 hour'" }) {
+async function seedReservaComPagamento({ suffix, reservaCreatedAt = 'NOW()', dataEntrada = "NOW() + INTERVAL '1 hour'", comComprovante = true }) {
     const base = await seedBase(suffix);
     const { rows: [vaga] } = await pool.query(
         `INSERT INTO vagas (numero, estacionamento_id, status)
@@ -102,10 +104,10 @@ async function seedReservaComPagamento({ suffix, reservaCreatedAt = 'NOW()', dat
         `INSERT INTO pagamentos
             (reserva_id, metodo_pagamento, valor, status, comprovante_url,
              comprovante_enviado_em, created_at, updated_at)
-         VALUES ($1, 'pix', 25.50, 'pendente', '/uploads/comprovante-teste.jpg',
-                 NOW(), NOW(), NOW())
+         VALUES ($1, 'pix', 25.50, 'pendente', $2,
+                 ${comComprovante ? 'NOW()' : 'NULL'}, NOW(), NOW())
          RETURNING id`,
-        [reserva.id]
+        [reserva.id, comComprovante ? '/uploads/comprovante-teste.jpg' : null]
     );
     return { ...base, vaga, reserva, pagamento };
 }
@@ -265,6 +267,7 @@ describe('PIX manual — expiração automática', () => {
         seed = await seedReservaComPagamento({
             suffix: `exp_${Date.now()}`,
             reservaCreatedAt: "NOW() - INTERVAL '2 hours'",
+            comComprovante: false,
         });
         const PixExpirationService = require('../../services/pixExpirationService');
 
@@ -294,6 +297,7 @@ describe('PIX manual — expiração automática', () => {
         seed = await seedReservaComPagamento({
             suffix: `venc_${Date.now()}`,
             dataEntrada: "NOW() - INTERVAL '1 hour'",
+            comComprovante: false,
         });
         // Sem pagamento pendente de PIX para não cair na outra rotina
         await pool.query("UPDATE pagamentos SET status = 'cancelado' WHERE id = $1", [seed.pagamento.id]);
@@ -312,5 +316,42 @@ describe('PIX manual — expiração automática', () => {
         );
         expect(vaga.status).toBe('livre');
         expect(vaga.reserva_id_ativa).toBeNull();
+    });
+
+    // Auditoria C-09: o fluxo principal cria reservas 'pendente_pagamento',
+    // que antes nunca expiravam (a vaga ficava presa para sempre).
+    test('reserva pendente_pagamento sem comprovante também expira', async () => {
+        if (!dbAvailable) return;
+        seed = await seedReservaComPagamento({
+            suffix: `pp_${Date.now()}`,
+            reservaCreatedAt: "NOW() - INTERVAL '2 hours'",
+            comComprovante: false,
+        });
+        await pool.query("UPDATE reservas SET status = 'pendente_pagamento' WHERE id = $1", [seed.reserva.id]);
+
+        const PixExpirationService = require('../../services/pixExpirationService');
+        await PixExpirationService.cancelarReservasExpiradas();
+
+        const { rows: [reserva] } = await pool.query('SELECT status FROM reservas WHERE id = $1', [seed.reserva.id]);
+        expect(reserva.status).toBe('cancelada');
+        const { rows: [vaga] } = await pool.query('SELECT status FROM vagas WHERE id = $1', [seed.vaga.id]);
+        expect(vaga.status).toBe('livre');
+    });
+
+    test('quem já enviou comprovante NÃO perde a reserva enquanto o período não acabou', async () => {
+        if (!dbAvailable) return;
+        seed = await seedReservaComPagamento({
+            suffix: `comp_${Date.now()}`,
+            reservaCreatedAt: "NOW() - INTERVAL '2 hours'",
+            comComprovante: true,
+        });
+
+        const PixExpirationService = require('../../services/pixExpirationService');
+        await PixExpirationService.cancelarReservasExpiradas();
+
+        const { rows: [reserva] } = await pool.query('SELECT status FROM reservas WHERE id = $1', [seed.reserva.id]);
+        expect(reserva.status).toBe('pendente');
+        const { rows: [pagamento] } = await pool.query('SELECT status FROM pagamentos WHERE id = $1', [seed.pagamento.id]);
+        expect(pagamento.status).toBe('pendente');
     });
 });

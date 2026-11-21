@@ -7,7 +7,6 @@
 const reservaService = require('../services/reservaService');
 const pagamentoModel = require('../models/pagamentoModel');
 const reservaModel = require('../models/reservaModel');
-const estacionamentoModel = require('../models/estacionamentoModel');
 const paymentProcessingService = require('../services/estacionamentoPaymentProcessingService');
 const { AppError, NotFoundError, AuthorizationError } = require('../utils/AppError');
 const logger = require('../utils/logger');
@@ -20,58 +19,51 @@ class ReservaPagamentoController {
     async criarReservaComPagamento(req, res, next) {
         try {
             const userId = req.user.id;
-            const {
-                metodo_pagamento = 'pix',
-                estacionamento_id,
-                vaga_id,
-                data_entrada,
-                data_saida,
-                valor,
-                veiculo_placa,
-                veiculo_modelo,
-            } = req.body;
+            const body = req.body || {};
+            // Aceita os dois formatos usados pelo frontend (snake_case e camelCase).
+            // Qualquer campo de valor/preço enviado pelo cliente é IGNORADO: o
+            // preço é calculado no servidor pela tabela do estacionamento.
+            const metodoPagamento = body.metodo_pagamento || body.metodoPagamento || 'pix';
+            const estacionamentoId = parseInt(body.estacionamento_id ?? body.estacionamentoId, 10);
+            const vagaIdRaw = body.vaga_id ?? body.vagaId;
+            const vagaId = vagaIdRaw === undefined || vagaIdRaw === null || vagaIdRaw === ''
+                ? null
+                : parseInt(vagaIdRaw, 10);
+            const placa = body.veiculo_placa || body.placaVeiculo || body.placa || null;
 
-            if (metodo_pagamento !== 'pix') {
+            if (metodoPagamento !== 'pix') {
                 throw new AppError('Apenas pagamento PIX está disponível no momento.', 400);
             }
-            if (!estacionamento_id || !data_entrada || !data_saida || !valor) {
-                throw new AppError('Campos obrigatórios não informados.', 400);
+            if (!Number.isInteger(estacionamentoId) || estacionamentoId <= 0) {
+                throw new AppError('Informe o estacionamento.', 400);
+            }
+            if (vagaId !== null && (!Number.isInteger(vagaId) || vagaId <= 0)) {
+                throw new AppError('Vaga inválida.', 400);
             }
 
-            const estacionamento = await estacionamentoModel.findById(estacionamento_id);
-            if (!estacionamento) throw new NotFoundError('Estacionamento não encontrado.');
-            if (!estacionamento.chave_pix) {
-                throw new AppError(
-                    'Este estacionamento ainda não configurou uma chave PIX para receber pagamentos.',
-                    400
-                );
+            // Sem datas = reserva imediata. Sem saída = duração informada ou 1 hora.
+            const entrada = body.data_entrada ? new Date(body.data_entrada) : new Date();
+            let saida;
+            if (body.data_saida) {
+                saida = new Date(body.data_saida);
+            } else {
+                const duracaoMin = parseInt(body.duracao_minutos ?? body.duracaoMinutos ?? 60, 10);
+                if (!Number.isInteger(duracaoMin) || duracaoMin <= 0) {
+                    throw new AppError('Duração inválida.', 400);
+                }
+                saida = new Date(entrada.getTime() + duracaoMin * 60 * 1000);
             }
 
-            // 1) Cria a reserva (status pendente)
-            const reserva = await reservaService.criarReserva({
-                estacionamento_id,
-                usuario_id: userId,
-                vaga_id: vaga_id || null,
-                data_entrada_prevista: data_entrada,
-                data_saida_prevista: data_saida,
-                valor_total: valor,
-                placa_veiculo: veiculo_placa,
-                modelo_veiculo: veiculo_modelo,
-                status: 'pendente_pagamento',
-                status_pagamento: 'pendente',
-            });
-
-            logger.info('[Pagamento] Reserva criada, gerando PIX manual', {
-                reserva_id: reserva.id,
-                valor,
-            });
-
-            // 2) Gera PIX local + grava pagamento via service compartilhado
-            const resultado = await paymentProcessingService.processarPagamento(
-                reserva.id,
-                'pix',
-                {}
-            );
+            const { reserva, vaga, estacionamento, preco, pix: resultado } =
+                await reservaService.criarReservaComPix({
+                    usuarioId: userId,
+                    estacionamentoId,
+                    vagaId,
+                    entrada,
+                    saida,
+                    placa,
+                    paymentProcessingService,
+                });
 
             return res.status(201).json({
                 success: true,
@@ -80,11 +72,12 @@ class ReservaPagamentoController {
                     estacionamento: {
                         id: estacionamento.id,
                         nome: estacionamento.nome,
-                        endereco: estacionamento.endereco,
                     },
-                    data_entrada,
-                    data_saida,
-                    valor_total: valor,
+                    vaga: { id: vaga.id, numero: vaga.numero },
+                    data_entrada: entrada.toISOString(),
+                    data_saida: saida.toISOString(),
+                    valor_total: preco.valor,
+                    horas_cobradas: preco.horasCobradas,
                     status: 'pendente_pagamento',
                     status_pagamento: 'pendente',
                 },

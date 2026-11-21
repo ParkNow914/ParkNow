@@ -102,6 +102,7 @@ async function enviarComprovante(req, res, next) {
         // Notifica admins do estacionamento via Socket.IO (fila a confirmar)
         try {
             socketService.emitToAdmin('comprovante_pix_recebido', {
+                estacionamento_id: reserva.estacionamento_id,
                 reserva_id: reservaId,
                 pagamento_id: pagamento.id,
                 valor: pagamento.valor,
@@ -179,6 +180,30 @@ async function confirmarPagamento(req, res, next) {
               WHERE id = $2`,
             [adminId, pagamento.id]
         );
+
+        // Pagamento de EXTENSÃO: só estende o horário e soma o valor; a reserva
+        // já estava confirmada/ativa.
+        const { rows: [dadosPag] } = await client.query(
+            'SELECT valor, dados_retorno FROM pagamentos WHERE id = $1', [pagamento.id]
+        );
+        let extras = dadosPag?.dados_retorno || {};
+        if (typeof extras === 'string') { try { extras = JSON.parse(extras); } catch (_e) { extras = {}; } }
+        if (extras.tipo === 'extensao' && extras.nova_data_saida) {
+            await client.query(
+                `UPDATE reservas
+                    SET data_saida_prevista = $1,
+                        valor_total = COALESCE(valor_total, 0) + $2,
+                        updated_at = NOW()
+                  WHERE id = $3`,
+                [extras.nova_data_saida, dadosPag.valor, reservaId]
+            );
+            await client.query('COMMIT');
+            logger.info('[PIX manual] Extensão confirmada pelo admin', { reservaId, pagamento_id: pagamento.id, adminId });
+            try {
+                socketService.notificarUsuario(reserva.usuario_id, 'pagamento_confirmado', { reserva_id: reservaId, pagamento_id: pagamento.id });
+            } catch (_e) { /* notificação é opcional */ }
+            return res.json({ success: true, message: 'Pagamento da extensão confirmado. Novo horário de saída aplicado.' });
+        }
 
         await client.query(
             `UPDATE reservas

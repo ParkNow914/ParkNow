@@ -216,7 +216,9 @@ const validatePartnerRequest = (data, isUpdate = false) => {
   const requiredFields = [
     { name: 'nome', type: 'string', min: 3, max: 100 },
     { name: 'email', type: 'string', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
-    { name: 'senha', type: 'string', min: 8, max: 100, required: !isUpdate },
+    // Solicitações guardam só o hash (senha_hash); `senha` em claro só existe
+    // em solicitações antigas, anteriores à correção.
+    { name: 'senha', type: 'string', min: 8, max: 100, required: !isUpdate && !data.senha_hash },
     { name: 'nomeEstacionamento', type: 'string', min: 3, max: 200 },
     { name: 'enderecoEstacionamento', type: 'string', min: 10, max: 500 },
     { name: 'cnpj', type: 'string', pattern: /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/ },
@@ -553,7 +555,7 @@ exports.approvePartner = async (req, res) => {
             email: solicitacaoData.email,
             telefone: solicitacaoData.telefone || null,
             cnpj: solicitacaoData.cnpj.replace(/[^\d]/g, ''), // CNPJ sem formatação
-            senhaHash: await bcrypt.hash(solicitacaoData.senha, 12)
+            senhaHash: solicitacaoData.senha_hash || await bcrypt.hash(solicitacaoData.senha, 12)
           },
           type: db.sequelize.QueryTypes.INSERT,
           transaction

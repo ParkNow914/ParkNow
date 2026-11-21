@@ -45,11 +45,18 @@ async function expirarReservasPendentes() {
             `SELECT r.*, u.nome AS usuario_nome, u.email AS usuario_email
                FROM reservas r
                JOIN usuarios u ON r.usuario_id = u.id
-              WHERE r.status = $1
+              WHERE r.status = ANY($1::varchar[])
                 AND r.data_entrada_prevista < NOW()
                 AND r.data_entrada_real IS NULL
+                -- Comprovante enviado = motorista pagou; espera o admin decidir
+                -- até o fim do período reservado.
+                AND (r.data_saida_prevista < NOW() OR NOT EXISTS (
+                      SELECT 1 FROM pagamentos p
+                       WHERE p.reserva_id = r.id
+                         AND p.comprovante_url IS NOT NULL
+                         AND p.status = 'pendente'))
               FOR UPDATE OF r SKIP LOCKED`,
-            [RESERVATION_STATUS.PENDING]
+            [[RESERVATION_STATUS.PENDING, RESERVATION_STATUS.PENDENTE_PAGAMENTO]]
         );
 
         if (reservasExpiradas.length === 0) {
@@ -65,6 +72,16 @@ async function expirarReservasPendentes() {
                     updated_at = NOW()
               WHERE id = ANY($2)`,
             [RESERVATION_STATUS.EXPIRED, reservaIds]
+        );
+
+        // Cobrança da reserva expirada não pode mais ser paga/confirmada.
+        await client.query(
+            `UPDATE pagamentos
+                SET status = 'cancelado'
+              WHERE reserva_id = ANY($1)
+                AND status = 'pendente'
+                AND comprovante_url IS NULL`,
+            [reservaIds]
         );
 
         const vagasLiberadas = await liberarVagasDasReservas(client, reservaIds);

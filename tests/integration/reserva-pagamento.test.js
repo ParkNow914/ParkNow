@@ -24,6 +24,8 @@ const PG = {
     database: process.env.PG_DATABASE,
     ssl: false,
     connectionTimeoutMillis: 3000,
+    // Mesma sessão UTC do app (utils/dbUtils.js): timestamps comparáveis.
+    options: '-c TimeZone=UTC',
 };
 
 let dbAvailable = false;
@@ -42,8 +44,9 @@ async function seedEstacionamento({ suffix, comChavePix = true }) {
     const { rows: [est] } = await pool.query(
         `INSERT INTO estacionamentos
             (nome, admin_id, capacidade_total, vagas_disponiveis,
-             valor_hora, valor_diaria, valor_mensal, horario_abertura, horario_fechamento)
-         VALUES ($1, $2, 10, 10, 10.00, 50.00, 500.00, '08:00', '22:00') RETURNING id`,
+             valor_hora, valor_diaria, valor_mensal, preco_hora, preco_dia,
+             horario_abertura, horario_fechamento)
+         VALUES ($1, $2, 10, 10, 10.00, 50.00, 500.00, 10.00, 50.00, '08:00', '22:00') RETURNING id`,
         [`Est ${suffix}`, admin.id]
     );
     const { rows: [vaga] } = await pool.query(
@@ -83,8 +86,10 @@ describe('Criação de reserva com pagamento PIX', () => {
         const seed = await seedEstacionamento({ suffix: `ok_${Date.now()}` });
         const reservaService = require('../../services/reservaService');
 
-        const inicio = new Date(Date.now() + 60 * 60 * 1000);
-        const fim = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        // Uma única base de tempo: duas chamadas a Date.now() dariam 1h + Nms.
+        const base = Date.now();
+        const inicio = new Date(base + 60 * 60 * 1000);
+        const fim = new Date(base + 2 * 60 * 60 * 1000);
         const out = await reservaService.criarReservaComPagamento({
             estacionamento_id: seed.est.id,
             usuario_id: seed.usuario.id,
@@ -96,7 +101,20 @@ describe('Criação de reserva com pagamento PIX', () => {
         }, 'pix');
 
         expect(out.reserva.id).toBeTruthy();
-        expect(out.reserva.status).toBe('pendente');
+        expect(out.reserva.status).toBe('pendente_pagamento');
+
+        // Preço calculado NO SERVIDOR: 1 hora × R$ 10,00 (valor_hora do seed).
+        // O "valor: 20.0" enviado pelo cliente é ignorado (auditoria C-01).
+        expect(out.valor).toBe(10);
+        expect(Number(out.reserva.valor_total)).toBe(10);
+        // O BR Code precisa ter o campo 54 (valor) — sem ele o pagador
+        // escolhe quanto pagar (auditoria C-02).
+        expect(out.pix_qr_code_text).toContain('540510.00');
+        const { rows: pagRows } = await pool.query(
+            'SELECT valor FROM pagamentos WHERE reserva_id = $1', [out.reserva.id]
+        );
+        expect(Number(pagRows[0].valor)).toBe(10);
+
         // Payload EMV/Bacen: começa com 000201 e termina com CRC16 hex (6304XXXX)
         expect(out.pix_qr_code_text).toMatch(/^000201/);
         expect(out.pix_qr_code_text).toMatch(/6304[0-9A-F]{4}$/);
@@ -141,7 +159,7 @@ describe('Criação de reserva com pagamento PIX', () => {
 
         // Mesma vaga, segunda tentativa: deve falhar com 409 e não deixar lixo
         await expect(reservaService.criarReservaComPagamento(dados, 'pix'))
-            .rejects.toThrow(/não está mais disponível/);
+            .rejects.toThrow(/não está disponível/);
 
         const { rows } = await pool.query(
             'SELECT COUNT(*)::int AS n FROM reservas WHERE vaga_id = $1', [seed.vaga.id]

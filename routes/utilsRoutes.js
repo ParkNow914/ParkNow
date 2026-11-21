@@ -132,10 +132,12 @@ router.post('/geocodificar-preciso', [
         // ============================================
 
         const resultadosAPIs = [];
-        const OPENCAGE_KEY = process.env.OPENCAGE_API_KEY || '***REMOVIDO***';
+        const OPENCAGE_KEY = process.env.OPENCAGE_API_KEY || '';
 
         // API 1: OpenCage (Principal - mais precisa)
         const consultarOpenCage = async (endereco) => {
+            // Sem chave configurada (OPENCAGE_API_KEY) a fonte é pulada.
+            if (!OPENCAGE_KEY) return [];
             try {
                 const response = await axios.get('https://api.opencagedata.com/geocode/v1/json', {
                     params: {
@@ -474,7 +476,7 @@ router.post('/geocodificar', [
         }
 
         let { endereco } = req.body;
-        const API_KEY = process.env.OPENCAGE_API_KEY || '***REMOVIDO***';
+        const API_KEY = process.env.OPENCAGE_API_KEY || '';
         
         // Se for um array, pega o primeiro endereço para tentativas sequenciais
         const enderecos = Array.isArray(endereco) ? endereco : [endereco];

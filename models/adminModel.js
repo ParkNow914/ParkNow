@@ -196,8 +196,11 @@ const verifyAdminRefreshTokenHash = async (adminId, requestRefreshToken) => {
             return false;
         }
 
-        // Usa bcrypt.compare para verificar o token
-        const isMatch = await bcrypt.compare(requestRefreshToken, admin.refresh_token_hash);
+        // SHA-256 + comparação em tempo constante (ver utils/tokenUtils.js).
+        const isMatch = require('../utils/tokenUtils').verifyRefreshTokenAgainstHash(
+            requestRefreshToken,
+            admin.refresh_token_hash
+        );
         if (!isMatch) {
             logger.warn(`[Auth] Refresh token não corresponde para admin ID: ${adminId}`);
         } else {

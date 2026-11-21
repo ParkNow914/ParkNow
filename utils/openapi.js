@@ -152,9 +152,10 @@ const definition = {
 const options = {
     definition,
     // swagger-jsdoc scans these files for `@swagger` blocks.
+    // Globs exigem "/" — no Windows path.join gera "\" e nada era encontrado.
     apis: [
-        path.join(ROOT, 'routes/**/*.js'),
-        path.join(ROOT, 'controllers/**/*.js'),
+        path.join(ROOT, 'routes/**/*.js').split(path.sep).join('/'),
+        path.join(ROOT, 'controllers/**/*.js').split(path.sep).join('/'),
     ],
 };
 

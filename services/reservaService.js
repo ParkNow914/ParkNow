@@ -1,202 +1,238 @@
 const db = require('../utils/dbUtils');
 const { v4: _uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
-const { AppError } = require('../utils/AppError');
+const { AppError, BadRequestError, ConflictError, NotFoundError } = require('../utils/AppError');
 const { findDefaultVehicleByUserId } = require('../models/usuarioModel');
+const { calcularValorReserva } = require('../utils/pricing');
+
+// Status de reserva que ocupam a vaga no período reservado.
+const STATUS_RESERVA_ATIVOS = [
+  'pendente',
+  'pendente_pagamento',
+  'pagamento_aprovado',
+  'confirmada',
+  'ativa',
+  'em_andamento',
+];
+const TOLERANCIA_ENTRADA_PASSADO_MS = 5 * 60 * 1000;      // relógio do cliente adiantado/atrasado
+const ANTECEDENCIA_MAXIMA_MS = 90 * 24 * 60 * 60 * 1000;   // 90 dias
+const DURACAO_MAXIMA_MS = 30 * 24 * 60 * 60 * 1000;        // 30 dias
+const PLACA_REGEX = /^([A-Z]{3}\d{4}|[A-Z]{3}\d[A-Z]\d{2})$/;
 
 class ReservaService {
   /**
-   * Cria uma nova reserva e inicia o processo de pagamento
-   * @param {Object} reservaData - Dados da reserva
-   * @param {number} reservaData.estacionamento_id - ID do estacionamento
-   * @param {number} reservaData.usuario_id - ID do usuário
-   * @param {string} reservaData.data_entrada - Data de entrada
-   * @param {string} reservaData.data_saida - Data de saída
-   * @param {number} reservaData.valor - Valor total da reserva
-   * @param {string} [reservaData.veiculo_placa] - Placa do veículo (opcional)
-   * @param {string} [reservaData.veiculo_modelo] - Modelo do veículo (opcional)
-   * @param {string} [reservaData.observacoes] - Observações adicionais (opcional)
-   * @param {string} [metodoPagamento] - Método de pagamento (pix, credit_card, debit_card)
-   * @returns {Promise<Object>} Reserva criada e dados do pagamento
+   * Cria reserva + cobrança PIX numa única transação.
+   *
+   * - O valor é calculado aqui, pela tabela de preços do estacionamento.
+   * - A vaga é travada (FOR UPDATE), precisa pertencer ao estacionamento,
+   *   estar livre e não ter outra reserva ativa sobreposta no período.
+   * - Sem `vagaId`, aloca a primeira vaga livre sem conflito.
+   *
+   * @param {object} p
+   * @param {number} p.usuarioId
+   * @param {number} p.estacionamentoId
+   * @param {number|null} p.vagaId
+   * @param {Date} p.entrada
+   * @param {Date} p.saida
+   * @param {string|null} p.placa
+   * @param {string|null} p.modelo
+   * @param {object} p.paymentProcessingService  serviço que gera o PIX (injeção evita import circular)
    */
-  async criarReservaComPagamento(reservaData, metodoPagamento = 'pix') {
+  async criarReservaComPix({ usuarioId, estacionamentoId, vagaId, entrada, saida, placa, paymentProcessingService }) {
+    const agora = Date.now();
+    if (!(entrada instanceof Date) || Number.isNaN(entrada.getTime())) {
+      throw new BadRequestError('Data de entrada inválida.');
+    }
+    if (!(saida instanceof Date) || Number.isNaN(saida.getTime())) {
+      throw new BadRequestError('Data de saída inválida.');
+    }
+    if (entrada.getTime() < agora - TOLERANCIA_ENTRADA_PASSADO_MS) {
+      throw new BadRequestError('A entrada não pode estar no passado.');
+    }
+    if (entrada.getTime() > agora + ANTECEDENCIA_MAXIMA_MS) {
+      throw new BadRequestError('Reservas podem ser feitas com até 90 dias de antecedência.');
+    }
+    if (saida.getTime() <= entrada.getTime()) {
+      throw new BadRequestError('A saída precisa ser depois da entrada.');
+    }
+    if (saida.getTime() - entrada.getTime() > DURACAO_MAXIMA_MS) {
+      throw new BadRequestError('A duração máxima de uma reserva é de 30 dias.');
+    }
+
+    const entradaIso = entrada.toISOString();
+    const saidaIso = saida.toISOString();
     const client = await db.getClient();
 
     try {
-      logger.info('Dados recebidos em criarReservaComPagamento:', {
-        reservaData,
-        metodoPagamento,
-        hasEstacionamentoId: 'estacionamento_id' in reservaData,
-        keys: Object.keys(reservaData)
-      });
       await client.query('BEGIN');
 
-      let {
-        estacionamento_id,
-        usuario_id,
-        data_entrada: horario_inicio_reserva,
-        data_saida: horario_fim_reserva,
-        valor: valor_reserva,
-        veiculo_placa: placa_veiculo,
-        vaga_id
-      } = reservaData;
-
-      logger.info('Iniciando criação de reserva com pagamento', {
-        estacionamento_id,
-        usuario_id,
-        horario_inicio_reserva,
-        horario_fim_reserva,
-        valor_reserva,
-        vaga_id
-      });
-
-      // Busca a placa do veículo padrão do usuário se não fornecida
-      if (!placa_veiculo) {
-        const veiculoPadrao = await findDefaultVehicleByUserId(usuario_id, client);
-        if (!veiculoPadrao) {
-          throw new AppError('Nenhum veículo cadastrado. Por favor, cadastre um veículo antes de fazer uma reserva.', 400);
-        }
-        placa_veiculo = veiculoPadrao.placa_veiculo;
+      const { rows: estRows } = await client.query(
+        `SELECT id, nome, status, cidade, chave_pix,
+                preco_hora, preco_dia, valor_hora, valor_diaria
+           FROM estacionamentos
+          WHERE id = $1
+          FOR SHARE`,
+        [estacionamentoId]
+      );
+      const estacionamento = estRows[0];
+      if (!estacionamento) throw new NotFoundError('Estacionamento não encontrado.');
+      if (['inativo', 'suspenso', 'bloqueado'].includes(String(estacionamento.status || '').toLowerCase())) {
+        throw new ConflictError('Este estacionamento não está aceitando reservas no momento.');
+      }
+      if (!estacionamento.chave_pix) {
+        throw new BadRequestError('Este estacionamento ainda não configurou uma chave PIX para receber pagamentos.');
       }
 
-      // Cria a reserva no banco de dados
-      const reservaQuery = `
-        INSERT INTO reservas (
-          usuario_id,
-          vaga_id,
-          estacionamento_id,
-          data_reserva,
-          data_entrada_prevista,
-          data_saida_prevista,
-          status,
-          valor_total,
-          placa_veiculo,
-          created_at,
-          updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        RETURNING *
-      `;
+      let preco;
+      try {
+        preco = calcularValorReserva({ entrada, saida, estacionamento });
+      } catch (e) {
+        throw new BadRequestError(e.message);
+      }
 
-      const reservaValues = [
-        usuario_id,
-        vaga_id || null,
-        estacionamento_id,
-        new Date(), // data_reserva
-        new Date(horario_inicio_reserva).toISOString(),
-        new Date(horario_fim_reserva).toISOString(),
-        'pendente',
-        valor_reserva,
-        placa_veiculo,
-        new Date(), // created_at
-        new Date()  // updated_at
-      ];
-
-      logger.debug('Criando reserva no banco de dados', { valores: reservaValues });
-
-      const reservaResult = await client.query(reservaQuery, reservaValues);
-      const reserva = reservaResult.rows[0];
-
-      logger.info('Reserva criada com sucesso', { reserva_id: reserva.id, status: reserva.status });
-
-      // Marca a vaga como reservada DENTRO da transação, com guarda atômica:
-      // se a vaga não estiver mais livre (corrida com outro usuário), aborta.
-      // Sem isso a vaga seguia 'livre' até a confirmação do admin e podia ser
-      // ocupada por outra pessoa no meio do pagamento; a expiração de PIX
-      // (que devolve vagas 'reservada' para 'livre') também assume este estado.
-      if (vaga_id) {
-        const { rowCount: vagaReservada } = await client.query(
-          `UPDATE vagas SET status = 'reservada' WHERE id = $1 AND status = 'livre'`,
-          [vaga_id]
+      // Vaga: escolhida pelo usuário ou alocada automaticamente.
+      let vaga;
+      if (vagaId) {
+        const { rows } = await client.query(
+          `SELECT id, numero, status, estacionamento_id FROM vagas WHERE id = $1 FOR UPDATE`,
+          [vagaId]
         );
-        if (vagaReservada === 0) {
-          throw new AppError('Esta vaga não está mais disponível. Escolha outra vaga.', 409);
+        vaga = rows[0];
+        if (!vaga || Number(vaga.estacionamento_id) !== Number(estacionamentoId)) {
+          throw new NotFoundError('Vaga não encontrada neste estacionamento.');
         }
+        if (vaga.status !== 'livre') {
+          throw new ConflictError('Esta vaga não está disponível. Escolha outra vaga.');
+        }
+      } else {
+        const { rows } = await client.query(
+          `SELECT v.id, v.numero, v.status, v.estacionamento_id
+             FROM vagas v
+            WHERE v.estacionamento_id = $1
+              AND v.status = 'livre'
+              AND NOT EXISTS (
+                    SELECT 1 FROM reservas r
+                     WHERE r.vaga_id = v.id
+                       AND r.status = ANY($2::varchar[])
+                       AND r.data_entrada_prevista < $4
+                       AND r.data_saida_prevista > $3)
+            ORDER BY v.numero
+            LIMIT 1
+            FOR UPDATE OF v SKIP LOCKED`,
+          [estacionamentoId, STATUS_RESERVA_ATIVOS, entradaIso, saidaIso]
+        );
+        vaga = rows[0];
+        if (!vaga) throw new ConflictError('Não há vagas livres neste estacionamento para o período escolhido.');
       }
 
-      // Processar pagamento PIX usando o serviço de pagamento
-      const paymentProcessingService = require('./estacionamentoPaymentProcessingService');
+      const { rows: conflitos } = await client.query(
+        `SELECT id FROM reservas
+          WHERE vaga_id = $1
+            AND status = ANY($2::varchar[])
+            AND data_entrada_prevista < $4
+            AND data_saida_prevista > $3
+          LIMIT 1`,
+        [vaga.id, STATUS_RESERVA_ATIVOS, entradaIso, saidaIso]
+      );
+      if (conflitos.length) {
+        throw new ConflictError('Já existe uma reserva para esta vaga no período escolhido.');
+      }
 
-      logger.info('Processando pagamento PIX para reserva', {
-        reserva_id: reserva.id,
-        metodo: metodoPagamento,
-        valor: valor_reserva
-      });
+      // Placa: a informada ou a do cadastro do usuário.
+      let placaFinal = placa ? String(placa).replace(/[^A-Za-z0-9]/g, '').toUpperCase() : null;
+      if (!placaFinal) {
+        const veiculoPadrao = await findDefaultVehicleByUserId(usuarioId, client).catch(() => null);
+        placaFinal = veiculoPadrao?.placa || null;
+      }
+      if (!placaFinal) {
+        const { rows } = await client.query('SELECT placa_veiculo FROM usuarios WHERE id = $1', [usuarioId]);
+        placaFinal = rows[0]?.placa_veiculo ? String(rows[0].placa_veiculo).toUpperCase() : null;
+      }
+      if (!placaFinal || !PLACA_REGEX.test(placaFinal)) {
+        throw new BadRequestError('Informe uma placa válida (padrão antigo ou Mercosul) no seu perfil.');
+      }
 
-      const resultadoPagamento = await paymentProcessingService.processarPagamento(
-        reserva.id,
-        metodoPagamento,
-        {}, // dados_pagamento vazio para PIX
+      const { rows: reservaRows } = await client.query(
+        `INSERT INTO reservas (
+            usuario_id, estacionamento_id, vaga_id, data_reserva,
+            data_entrada_prevista, data_saida_prevista, valor_total,
+            placa_veiculo, status, status_pagamento, created_at, updated_at
+         ) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, 'pendente_pagamento', 'pendente', NOW(), NOW())
+         RETURNING *`,
+        [usuarioId, estacionamentoId, vaga.id, entradaIso, saidaIso, preco.valor, placaFinal]
+      );
+      const reserva = reservaRows[0];
+
+      const upd = await client.query(
+        `UPDATE vagas SET status = 'reservada', updated_at = NOW() WHERE id = $1 AND status = 'livre'`,
+        [vaga.id]
+      );
+      if (upd.rowCount !== 1) {
+        throw new ConflictError('Esta vaga acabou de ser reservada por outra pessoa. Tente novamente.');
+      }
+
+      const pix = await paymentProcessingService.processarPagamentoPix(
+        reserva,
+        estacionamento,
+        preco.valor,
+        {},
         client
       );
 
-      logger.info('Pagamento PIX processado com sucesso', {
-        reserva_id: reserva.id,
-        pagamento_id: resultadoPagamento.pagamento_id,
-        tem_qr_code: !!resultadoPagamento.qr_code
-      });
-
-      // Atualiza a reserva com o ID do pagamento
-      const updateQuery = `
-        UPDATE reservas
-        SET id_pagamento = $1,
-            updated_at = NOW(),
-            status = 'pendente',
-            status_pagamento = 'pendente'
-        WHERE id = $2
-        RETURNING *
-      `;
-
-      await client.query(updateQuery, [resultadoPagamento.pagamento_id, reserva.id]);
-
-      // Commit da transação
       await client.query('COMMIT');
 
-      logger.info('Reserva atualizada com sucesso', {
+      logger.info('Reserva com PIX criada', {
         reserva_id: reserva.id,
-        payment_id: resultadoPagamento.pagamento_id
+        estacionamento_id: estacionamentoId,
+        vaga_id: vaga.id,
+        valor_centavos: preco.centavos,
       });
 
-      // Retorna os dados da reserva e pagamento com QR Code PIX REAL
-      return {
-        reserva: {
-          ...reserva,
-          id_pagamento: resultadoPagamento.pagamento_id,
-          status_pagamento: 'pendente'
-        },
-        pagamento: {
-          id: resultadoPagamento.pagamento_id,
-          status: resultadoPagamento.status,
-          metodo_pagamento: metodoPagamento
-        },
-        pix_qr_code: resultadoPagamento.qr_code,
-        pix_qr_code_text: resultadoPagamento.qr_code_text,
-        chave_pix: resultadoPagamento.chave_pix,
-        nome_titular: resultadoPagamento.nome_titular,
-        valor: resultadoPagamento.valor,
-        expira_em: resultadoPagamento.expira_em
-      };
+      return { reserva, vaga, estacionamento, preco, pix };
     } catch (error) {
-      // Rollback em caso de erro
-      await client.query('ROLLBACK');
-      logger.error('Erro ao criar reserva com pagamento:', {
-        error: error.message,
-        stack: error.stack,
-        reservaData,
-        metodoPagamento
-      });
-
-      if (error instanceof AppError) {
-        throw error;
+      await client.query('ROLLBACK').catch(() => {});
+      if (error && error.code === '23P01') {
+        // exclusion constraint do banco (reserva sobreposta criada em paralelo)
+        throw new ConflictError('Já existe uma reserva para esta vaga no período escolhido.');
       }
-
-      throw new AppError(
-        `Falha ao processar a reserva: ${error.message || 'Erro desconhecido'}`,
-        500
-      );
+      throw error;
     } finally {
-      // Libera o cliente de volta para o pool
       client.release();
     }
+  }
+
+  /**
+   * Compatibilidade com a API antiga do serviço (usada pelos testes de
+   * integração). Delega ao fluxo seguro criarReservaComPix: o valor enviado
+   * em reservaData.valor / valor_total é IGNORADO e recalculado no servidor.
+   * @param {Object} reservaData - estacionamento_id, usuario_id, vaga_id, data_entrada, data_saida, veiculo_placa
+   * @param {string} metodoPagamento - só 'pix' é aceito
+   */
+  async criarReservaComPagamento(reservaData, metodoPagamento = 'pix') {
+    if (metodoPagamento !== 'pix') {
+      throw new BadRequestError('No momento só aceitamos pagamento via PIX.');
+    }
+    const paymentProcessingService = require('./estacionamentoPaymentProcessingService');
+    const { reserva, preco, pix } = await this.criarReservaComPix({
+      usuarioId: reservaData.usuario_id,
+      estacionamentoId: reservaData.estacionamento_id,
+      vagaId: reservaData.vaga_id || null,
+      entrada: new Date(reservaData.data_entrada_prevista || reservaData.data_entrada),
+      saida: new Date(reservaData.data_saida_prevista || reservaData.data_saida),
+      placa: reservaData.veiculo_placa || reservaData.placa_veiculo || null,
+      paymentProcessingService,
+    });
+
+    return {
+      reserva: { ...reserva, id_pagamento: pix.pagamento_id, status_pagamento: 'pendente' },
+      pagamento: { id: pix.pagamento_id, status: pix.status, metodo_pagamento: 'pix' },
+      pix_qr_code: pix.qr_code,
+      pix_qr_code_text: pix.qr_code_text,
+      chave_pix: pix.chave_pix,
+      nome_titular: pix.nome_titular,
+      valor: preco.valor,
+      expira_em: pix.expira_em,
+    };
   }
 
   /**

@@ -559,7 +559,26 @@ const findReservasPendentesPagamento = async (minutosExpiracao = 30, connection 
 };
 
 // Exporta todos os métodos do modelo
+/**
+ * Há outra reserva ativa da mesma vaga sobrepondo [inicio, fim)?
+ * Usado pela extensão de reserva (ignora a própria reserva).
+ */
+const existeConflitoNoPeriodo = async (vagaId, inicio, fim, reservaIdIgnorada, connection = pool) => {
+    const { rows } = await connection.query(
+        `SELECT 1 FROM reservas
+          WHERE vaga_id = $1
+            AND id <> $4
+            AND status IN ('pendente','pendente_pagamento','pagamento_aprovado','confirmada','ativa','em_andamento')
+            AND data_entrada_prevista < $3
+            AND data_saida_prevista > $2
+          LIMIT 1`,
+        [vagaId, new Date(inicio).toISOString(), new Date(fim).toISOString(), reservaIdIgnorada]
+    );
+    return rows.length > 0;
+};
+
 module.exports = {
+    existeConflitoNoPeriodo,
     // Constantes
     RESERVATION_STATUS,
 

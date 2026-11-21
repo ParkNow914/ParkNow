@@ -34,25 +34,65 @@ const assertAdminOwnsEstacionamento = async (adminId, estacionamentoId) => {
     return est;
 };
 
+/** Superadmin (equipe ParkNow) acessa qualquer estacionamento; dono só os seus. */
+const assertAcessoEstacionamento = async (admin, estacionamentoId) => {
+    if (admin?.isSuperAdmin) {
+        const est = await estacionamentoModel.findByIdAdmin(estacionamentoId);
+        if (!est) throw new NotFoundError('Estacionamento não encontrado.');
+        return est;
+    }
+    return assertAdminOwnsEstacionamento(admin.id, estacionamentoId);
+};
+
+/** Garante acesso à vaga pelo estacionamento a que ela pertence. */
+const assertAcessoVaga = async (admin, vagaId) => {
+    const { rows } = await pool.query('SELECT estacionamento_id FROM vagas WHERE id = $1', [vagaId]);
+    if (!rows.length) throw new NotFoundError('Vaga não encontrada.');
+    await assertAcessoEstacionamento(admin, rows[0].estacionamento_id);
+    return rows[0].estacionamento_id;
+};
+
+/**
+ * IDs de estacionamento que o admin pode ver. Com `estacionamentoId` na query,
+ * valida o acesso a ele; sem, devolve todos os do admin (ou null = todos, para
+ * superadmin).
+ */
+const estacionamentosVisiveis = async (admin, estacionamentoIdQuery) => {
+    if (estacionamentoIdQuery !== undefined && estacionamentoIdQuery !== null && estacionamentoIdQuery !== '') {
+        const id = parseInt(estacionamentoIdQuery, 10);
+        if (!Number.isInteger(id) || id <= 0) throw new BadRequestError('ID de estacionamento inválido.');
+        await assertAcessoEstacionamento(admin, id);
+        return [id];
+    }
+    if (admin?.isSuperAdmin) return null;
+    const { rows } = await pool.query('SELECT id FROM estacionamentos WHERE admin_id = $1 ORDER BY id', [admin.id]);
+    return rows.map((r) => r.id);
+};
+
+/** Executa uma busca por estacionamento para cada ID visível e junta os resultados. */
+const buscarPorEstacionamentos = async (ids, buscar) => {
+    if (ids === null) return buscar(null);
+    const partes = await Promise.all(ids.map((id) => buscar(id)));
+    return partes.flat();
+};
+
 // --- Vagas ---
-/** Busca todas as vagas com detalhes para admin */
+/** Busca as vagas (com detalhes) dos estacionamentos do admin */
 const getAllVagas = async (req, res, next) => {
     try {
-        // Se o estacionamentoId foi fornecido como query param, filtra por ele
-        const estacionamentoId = req.query.estacionamentoId;
-        const vagas = await vagaModel.findAllVagasAdmin(estacionamentoId);
+        const ids = await estacionamentosVisiveis(req.admin, req.query.estacionamentoId);
+        const vagas = await buscarPorEstacionamentos(ids, (id) => vagaModel.findAllVagasAdmin(id));
         res.json(vagas);
     } catch (error) {
         next(error);
     }
 };
 
-/** Busca vagas ocupadas para o painel do admin */
+/** Busca vagas ocupadas dos estacionamentos do admin */
 const getVagasOcupadas = async (req, res, next) => {
     try {
-        // Opcional: filtrar por estacionamento específico
-        const estacionamentoId = req.query.estacionamentoId;
-        const vagas = await vagaModel.findOcupadas(estacionamentoId);
+        const ids = await estacionamentosVisiveis(req.admin, req.query.estacionamentoId);
+        const vagas = await buscarPorEstacionamentos(ids, (id) => vagaModel.findOcupadas(id));
         res.json(vagas);
     } catch (error) {
         next(error);
@@ -64,6 +104,7 @@ const getTempoEstacionadoDb = async (req, res, next) => {
     // Validação do ID feita na rota
     try {
         const { id } = req.params;
+        await assertAcessoVaga(req.admin, id);
         const tempo = await vagaModel.findTempoDbById(id);
         if (tempo === null || tempo === undefined) throw new NotFoundError('Vaga ou tempo não encontrado.');
         res.json({ tempoEstacionado: tempo });
@@ -78,6 +119,7 @@ const registrarEntrada = async (req, res, next) => {
     const adminId = req.admin.id; // Do middleware protectAdmin
     const ipAddress = getIp(req);
     try {
+        await assertAcessoEstacionamento(req.admin, estacionamentoId);
         const vaga = await vagaModel.findByNumeroAndEstacionamento(numero, estacionamentoId);
         if (!vaga) throw new NotFoundError(`Vaga ${numero} não encontrada no Estacionamento ${estacionamentoId}.`);
         if (vaga.status !== 'livre') throw new AppError(`Vaga ${numero} não está livre (status: ${vaga.status}).`, 409); // 409 Conflict
@@ -105,6 +147,7 @@ const registrarSaida = async (req, res, next) => {
     const adminId = req.admin.id;
     const ipAddress = getIp(req);
     try {
+        await assertAcessoVaga(req.admin, vagaId);
         // liberarVagaAdmin já busca a vaga e valida se está ocupada
         const result = await vagaModel.liberarVagaAdmin(vagaId);
         if (!result.success) {
@@ -160,7 +203,7 @@ const atualizarNumeroDeVagas = async (req, res, next) => {
     const adminId = req.admin.id;
     const ipAddress = getIp(req);
     try {
-        await assertAdminOwnsEstacionamento(adminId, estacionamentoId);
+        await assertAcessoEstacionamento(req.admin, estacionamentoId);
 
         // adjustVagasCount lida com adição/remoção e transação
         const result = await vagaModel.adjustVagasCount(estacionamentoId, parseInt(numeroDeVagas));
@@ -177,12 +220,14 @@ const atualizarNumeroDeVagas = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-/** Lista todos estacionamentos para Admin */
+/** Lista os estacionamentos do admin (todos, para superadmin) */
 const getAllEstacionamentosAdmin = async (req, res, next) => {
     try {
-        // Busca todos os campos para o admin
-        const estacionamentos = await estacionamentoModel.findAll(); // findAll já busca tudo que precisamos? Ajustar se necessário.
-        res.json(estacionamentos);
+        const estacionamentos = await estacionamentoModel.findAll();
+        const ids = await estacionamentosVisiveis(req.admin, undefined);
+        if (ids === null) return res.json(estacionamentos);
+        const permitidos = new Set(ids.map(Number));
+        res.json(estacionamentos.filter((e) => permitidos.has(Number(e.id))));
     } catch (error) { next(error); }
 };
 
@@ -190,8 +235,7 @@ const getAllEstacionamentosAdmin = async (req, res, next) => {
 const getEstacionamentoByIdAdmin = async (req, res, next) => {
     try {
         const { estacionamentoId } = req.params;
-        const adminId = req.admin.id;
-        const estacionamento = await assertAdminOwnsEstacionamento(adminId, estacionamentoId);
+        const estacionamento = await assertAcessoEstacionamento(req.admin, estacionamentoId);
         res.json(estacionamento);
     } catch (error) { next(error); }
 };
@@ -200,11 +244,10 @@ const getEstacionamentoByIdAdmin = async (req, res, next) => {
 const getVagasByEstacionamentoId = async (req, res, next) => {
     try {
         const { estacionamentoId } = req.params;
-        
-        // Verificar se o estacionamento existe
-        const estacionamento = await estacionamentoModel.findById(estacionamentoId);
-        if (!estacionamento) throw new NotFoundError('Estacionamento não encontrado.');
-        
+
+        // Só o dono (ou a equipe ParkNow) vê as vagas, que trazem placas.
+        await assertAcessoEstacionamento(req.admin, estacionamentoId);
+
         // Buscar vagas do estacionamento
         const vagas = await vagaModel.findByEstacionamentoId(estacionamentoId);
         
@@ -259,11 +302,12 @@ const updateEstacionamento = async (req, res, next) => {
     try {
         const estOriginal = await assertAdminOwnsEstacionamento(adminId, estacionamentoId);
         
-        // Impedir mudança do admin_id via PUT normal? Ou permitir se for superadmin?
-        if (estData.admin_id && parseInt(estData.admin_id) !== estOriginal.admin_id) {
-             // return next(new BadRequestError("Não é permitido alterar o administrador responsável por esta rota."));
-             logger.warn(`Admin ${adminId} tentando alterar admin_id do Est. ${estacionamentoId}`);
-             // Permitir por enquanto, mas logar
+        // Transferir o estacionamento para outro dono é ação da equipe ParkNow.
+        if (estData.admin_id !== undefined && parseInt(estData.admin_id) !== parseInt(estOriginal.admin_id)) {
+            if (!req.admin.isSuperAdmin) {
+                logger.warn(`Admin ${Number(adminId)} tentou alterar admin_id do Est. ${Number(estacionamentoId)}`);
+                return next(new AuthorizationError('Não é permitido transferir o estacionamento para outro administrador.'));
+            }
         }
         
         // Se estiver atualizando a chave PIX, validar se já existe uma reserva ativa
@@ -324,7 +368,9 @@ const getAllUsersAdmin = async (req, res, next) => {
         if (!estacionamentoId) {
             return res.json([]);
         }
-        
+
+        // Dono vê só os clientes do próprio estacionamento.
+        await assertAcessoEstacionamento(req.admin, estacionamentoId);
         const users = await userModel.findAllUsersAdmin(estacionamentoId);
         res.json(users);
     } catch (error) { 
@@ -340,8 +386,14 @@ const setUserStatus = async (req, res, next) => {
     const adminId = req.admin.id;
     const ipAddress = getIp(req);
     try {
+        // Defesa em profundidade: a rota já exige requireSuperAdmin.
+        if (!req.admin.isSuperAdmin) {
+            throw new AuthorizationError('Ação disponível apenas para a equipe ParkNow.');
+        }
         const updated = await userModel.setUserStatusAdmin(userId, status);
         if (!updated) throw new NotFoundError('Usuário não encontrado.');
+        const { invalidateUserCache } = require('../middleware/authMiddleware');
+        invalidateUserCache(parseInt(userId, 10));
 
         logger.info(`Admin ${adminId} alterou status User ID ${userId} para ${status}`, { ip: ipAddress });
         await logModel.createAdminLog(adminId, `Alterou status User ID ${userId} para ${status}`, ipAddress);

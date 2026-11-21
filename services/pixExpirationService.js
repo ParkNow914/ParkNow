@@ -17,8 +17,16 @@ class PixExpirationService {
 
             // Busca reservas PIX pendentes de pagamento que já expiraram.
             // O intervalo é validado numericamente antes de entrar na query.
-            const parsedTimeout = parseInt(process.env.PIX_CONFIRMATION_TIMEOUT_MINUTES || '30', 10);
+            // PIX_PENDING_TIMEOUT_MIN é o nome documentado (.env.example e
+            // ARQUITETURA_SISTEMA.md); o nome antigo segue aceito.
+            const parsedTimeout = parseInt(
+                process.env.PIX_PENDING_TIMEOUT_MIN || process.env.PIX_CONFIRMATION_TIMEOUT_MINUTES || '30',
+                10
+            );
             const minutosExpiracao = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 30;
+            // Cobre 'pendente' e 'pendente_pagamento' (status criado pelo fluxo
+            // principal). Com comprovante enviado o motorista já pagou: a
+            // reserva espera o admin até o fim do período reservado.
             const sql = `
                 UPDATE reservas r
                 SET
@@ -29,15 +37,16 @@ class PixExpirationService {
                     r.id = p.reserva_id
                     AND p.metodo_pagamento = 'pix'
                     AND p.status = 'pendente'
+                    AND (p.comprovante_url IS NULL OR r.data_saida_prevista < NOW())
                     AND r.created_at < NOW() - ($2 * INTERVAL '1 minute')
-                    AND r.status = $3
+                    AND r.status = ANY($3::varchar[])
                 RETURNING r.*
             `;
 
             const result = await client.query(sql, [
                 RESERVATION_STATUS.CANCELLED,
                 minutosExpiracao,
-                RESERVATION_STATUS.PENDING,
+                [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.PENDENTE_PAGAMENTO],
             ]);
 
             if (result.rowCount > 0) {

@@ -3,7 +3,7 @@
 
 const { pool } = require('../utils/dbUtils'); // Importa a pool de conexões
 const logger = require('../utils/logger'); // Importa o logger
-const bcrypt = require('bcrypt'); // Para comparar hash do refresh token
+const { verifyRefreshTokenAgainstHash } = require('../utils/tokenUtils');
 
 /** Busca usuário por email (ativo ou não, para verificar existência/reset) */
 const findUserByEmailInternal = async (email) => {
@@ -308,9 +308,12 @@ const findAllUsersAdmin = async (estacionamentoId) => {
 const setUserStatusAdmin = async (userId, status) => {
     if (status !== 'ativo' && status !== 'inativo') throw new Error("Status inválido.");
     const sql = 'UPDATE usuarios SET status = $1 WHERE id = $2';
-    try { 
-        await pool.query(sql, [status, userId]); 
-    } catch (error) { 
+    try {
+        const result = await pool.query(sql, [status, userId]);
+        // Antes não retornava nada: o controller respondia 404 mesmo com a
+        // alteração gravada.
+        return result.rowCount > 0;
+    } catch (error) {
         logger.error(`Erro ao atualizar status do usuário ${userId}:`, error); 
         throw error; 
     }
@@ -333,7 +336,7 @@ const verifyRefreshTokenHash = async (userId, requestRefreshToken) => {
     try {
         const { rows } = await pool.query(sql, [userId]);
         if (!rows[0] || !rows[0].refresh_token_hash) return false;
-        return await bcrypt.compare(requestRefreshToken, rows[0].refresh_token_hash);
+        return verifyRefreshTokenAgainstHash(requestRefreshToken, rows[0].refresh_token_hash);
     } catch (error) { 
         logger.error('Erro ao verificar refresh token:', error); 
         throw error; 
