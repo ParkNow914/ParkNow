@@ -305,7 +305,7 @@ const updateEstacionamento = async (req, res, next) => {
         // Transferir o estacionamento para outro dono é ação da equipe ParkNow.
         if (estData.admin_id !== undefined && parseInt(estData.admin_id) !== parseInt(estOriginal.admin_id)) {
             if (!req.admin.isSuperAdmin) {
-                logger.warn(`Admin ${adminId} tentou alterar admin_id do Est. ${estacionamentoId}`);
+                logger.warn(`Admin ${Number(adminId)} tentou alterar admin_id do Est. ${Number(estacionamentoId)}`);
                 return next(new AuthorizationError('Não é permitido transferir o estacionamento para outro administrador.'));
             }
         }

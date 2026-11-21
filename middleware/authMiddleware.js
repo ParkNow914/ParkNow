@@ -2,6 +2,7 @@
 const jwtUtils = require('../utils/jwtUtils');
 const { AuthenticationError, AuthorizationError } = require('../utils/AppError');
 const logger = require('../utils/logger');
+const { logSafe } = require('../utils/logSafe');
 const { validateApiKey } = require('./apiKeyMiddleware');
 
 // Cache curtíssimo dos dados do usuário autenticado: evita 1 SELECT por
@@ -136,7 +137,7 @@ const protectAdmin = async (req, res, next) => {
             nivelAcesso: admin.nivel_acesso || null,
             isSuperAdmin: admin.nivel_acesso === SUPERADMIN_LEVEL,
         };
-        logger.debug(`[Auth Admin] Acesso permitido Admin ID: ${decoded.adminId}. Rota: ${req.originalUrl}`);
+        logger.debug(`[Auth Admin] Acesso permitido Admin ID: ${Number(decoded.adminId)}. Rota: ${logSafe(req.originalUrl)}`);
         next();
     } catch (error) {
         logger.error('[Auth Admin] Erro inesperado auth:', error);
@@ -148,7 +149,7 @@ const protectAdmin = async (req, res, next) => {
 // Use DEPOIS de protectAdmin.
 const requireSuperAdmin = (req, res, next) => {
     if (req.admin?.isSuperAdmin) return next();
-    logger.warn(`[Auth Admin] Ação restrita à plataforma negada para admin ${req.admin?.id}. Rota: ${req.originalUrl}`);
+    logger.warn(`[Auth Admin] Ação restrita à plataforma negada para admin ${Number(req.admin?.id)}. Rota: ${logSafe(req.originalUrl)}`);
     return next(new AuthorizationError('Ação disponível apenas para a equipe ParkNow.'));
 };
 

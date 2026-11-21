@@ -3,6 +3,7 @@
 
 const { Server } = require('socket.io');        // Importa classe Server do socket.io
 const logger = require('../utils/logger');       // Logger Winston
+const { logSafe } = require('../utils/logSafe');  // Neutraliza dado externo em logs
 const config = require('../config');             // Configurações da aplicação
 const jwtUtils = require('../utils/jwtUtils');   // Para autenticar conexão via JWT
 const vagaModel = require('../models/vagaModel'); // Modelo de vagas para buscar estado
@@ -372,7 +373,7 @@ const notificarUsuario = (userId, tipo, dados) => {
 const emitAtualizacaoVaga = (estacionamentoId, vagaData) => {
     const currentIo = getIO();
     if (!currentIo.emit) return; // Verifica se é o mock
-    logger.info(`[Socket.IO Emit] 'vaga_update' para estacionamento ${estacionamentoId}: Vaga ID ${vagaData.id}, Status ${vagaData.status}`);
+    logger.info(`[Socket.IO Emit] 'vaga_update' para estacionamento ${Number(estacionamentoId)}: Vaga ID ${Number(vagaData.id)}, Status ${logSafe(vagaData.status)}`);
     emitirParaEstacionamento(estacionamentoId, 'vaga_update', vagaData);
     // Dispara atualização da contagem de livres também
     emitContagemVagasLivres(estacionamentoId);

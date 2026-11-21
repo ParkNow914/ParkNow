@@ -13,6 +13,11 @@ describe('calcularValorReserva', () => {
         expect(calcularValorReserva({ entrada: t0, saida: mais(61), estacionamento: est }).valor).toBe(20);
     });
 
+    test('ruído de milissegundos não cobra hora extra', () => {
+        const umaHoraEUmMs = new Date(t0.getTime() + 60 * 60 * 1000 + 1);
+        expect(calcularValorReserva({ entrada: t0, saida: umaHoraEUmMs, estacionamento: est }).valor).toBe(10);
+    });
+
     test('limita cada bloco de 24h à diária', () => {
         // 6h a R$10 = R$60, mas a diária é R$50
         expect(calcularValorReserva({ entrada: t0, saida: mais(6 * 60), estacionamento: est }).valor).toBe(50);

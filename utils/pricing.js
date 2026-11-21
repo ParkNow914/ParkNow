@@ -9,7 +9,6 @@
 //   - Todo o cálculo é feito em centavos inteiros para evitar erro de ponto
 //     flutuante.
 
-const MS_POR_MINUTO = 60 * 1000;
 const MINUTOS_POR_HORA = 60;
 const HORAS_POR_DIA = 24;
 
@@ -46,8 +45,11 @@ function calcularValorReserva({ entrada, saida, estacionamento }) {
     if (!(saida instanceof Date) || Number.isNaN(saida.getTime())) {
         throw new Error('Data de saída inválida.');
     }
-    const minutos = Math.ceil((saida.getTime() - entrada.getTime()) / MS_POR_MINUTO);
-    if (minutos <= 0) {
+    // Arredonda para o segundo antes de contar minutos: ruído de milissegundos
+    // (relógios, serialização) não pode virar uma hora a mais na cobrança.
+    const segundos = Math.round((saida.getTime() - entrada.getTime()) / 1000);
+    const minutos = Math.ceil(segundos / 60);
+    if (segundos <= 0 || minutos <= 0) {
         throw new Error('A saída precisa ser depois da entrada.');
     }
 

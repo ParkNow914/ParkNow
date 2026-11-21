@@ -86,8 +86,10 @@ describe('Criação de reserva com pagamento PIX', () => {
         const seed = await seedEstacionamento({ suffix: `ok_${Date.now()}` });
         const reservaService = require('../../services/reservaService');
 
-        const inicio = new Date(Date.now() + 60 * 60 * 1000);
-        const fim = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        // Uma única base de tempo: duas chamadas a Date.now() dariam 1h + Nms.
+        const base = Date.now();
+        const inicio = new Date(base + 60 * 60 * 1000);
+        const fim = new Date(base + 2 * 60 * 60 * 1000);
         const out = await reservaService.criarReservaComPagamento({
             estacionamento_id: seed.est.id,
             usuario_id: seed.usuario.id,
