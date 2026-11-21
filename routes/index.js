@@ -23,6 +23,7 @@ const pagamentoRoutes = require('./pagamentoRoutes'); // Rotas de pagamento PIX
 const cnpjRoutes = require('./cnpjRoutes'); // Rotas de validação de CNPJ
 const emailValidationRoutes = require('./emailValidationRoutes'); // Rotas de validação de e-mail
 const horarioFuncionamentoRoutes = require('./horarioFuncionamentoRoutes'); // Rotas de horários de funcionamento
+const lgpdRoutes = require('./lgpdRoutes'); // Rotas LGPD (exportar/excluir dados do titular)
 
 // Importa as rotas da API v2
 const apiV2Routes = require('./v2'); // Rotas da API v2
@@ -52,6 +53,9 @@ router.use('/status', statusRoutes);
 
 // Rotas de notificações em tempo real
 router.use('/notifications', notificationRoutes);
+
+// Rotas LGPD (protegidas internamente com protectUser) — /api/lgpd/export e /account
+router.use('/lgpd', lgpdRoutes);
 
 // Rotas da API v2
 router.use('/v2', apiV2Routes);
