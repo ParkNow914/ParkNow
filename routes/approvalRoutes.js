@@ -38,7 +38,7 @@ const validateQueryParams = [
  * @desc    Aprova automaticamente uma solicitação de parceria via token
  * @access  Public (acessado via link de email)
  */
-router.get('/approve-partner/:token', [
+router.post('/approve-partner/:token', [
   // Validação do token
   param('token')
     .trim()
@@ -61,7 +61,7 @@ router.get('/approve-partner/:token', [
  * @desc    Rejeita uma solicitação de parceria via token
  * @access  Public (acessado via link de email)
  */
-router.get('/reject-partner/:token', [
+router.post('/reject-partner/:token', [
   // Validação do token
   param('token')
     .trim()
@@ -78,6 +78,38 @@ router.get('/reject-partner/:token', [
   // Log de tentativas
   logApprovalAttempt
 ], approvalController.rejectPartner);
+
+// --- Página de confirmação (GET) ---
+// O link do e-mail só abre esta página; a aprovação/rejeição exige clicar no
+// botão (POST). Scanners de link (Microsoft Safe Links, antivírus) fazem GET
+// automaticamente e antes aprovavam ou rejeitavam parcerias sozinhos.
+const tokenParam = param('token').trim().isHexadecimal().isLength({ min: 64, max: 64 });
+
+function paginaConfirmacao(acao) {
+  const aprovar = acao === 'aprovar';
+  const titulo = aprovar ? 'Aprovar parceria' : 'Rejeitar parceria';
+  const cor = aprovar ? '#1f7a4d' : '#b42318';
+  const texto = aprovar
+    ? 'Confirme para criar a conta do parceiro e o estacionamento.'
+    : 'Confirme para rejeitar a solicitação. O solicitante será avisado por e-mail.';
+  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+    + '<meta name="robots" content="noindex"><title>' + titulo + ' - ParkNow</title>'
+    + '<style>body{font-family:system-ui,sans-serif;background:#f6f7f9;color:#1b2430;display:grid;place-items:center;min-height:100vh;margin:0;padding:16px}'
+    + 'main{background:#fff;border:1px solid #dfe3ea;border-radius:12px;padding:28px;max-width:420px;width:100%}'
+    + 'h1{font-size:22px;margin:0 0 8px}p{margin:0 0 20px;line-height:1.5}'
+    + 'button{background:' + cor + ';color:#fff;border:0;border-radius:8px;padding:12px 18px;font-size:16px;cursor:pointer;width:100%}'
+    + 'button:focus-visible{outline:3px solid #1747b8;outline-offset:2px}</style></head>'
+    + '<body><main><h1>' + titulo + '</h1><p>' + texto + '</p>'
+    + '<form method="post"><button type="submit">' + titulo + '</button></form></main></body></html>';
+}
+
+router.get('/approve-partner/:token', [tokenParam, handleValidationErrors], (req, res) => {
+  res.set('Cache-Control', 'no-store').type('html').send(paginaConfirmacao('aprovar'));
+});
+router.get('/reject-partner/:token', [tokenParam, handleValidationErrors], (req, res) => {
+  res.set('Cache-Control', 'no-store').type('html').send(paginaConfirmacao('rejeitar'));
+});
 
 // Rota de verificação de saúde
 router.get('/health', (req, res) => {

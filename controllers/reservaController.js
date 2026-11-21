@@ -2,7 +2,10 @@
 const reservaModel = require('../models/reservaModel');
 const vagaModel = require('../models/vagaModel');
 const userModel = require('../models/userModel');
-const _pagamentoModel = require('../models/pagamentoModel');
+const pagamentoModel = require('../models/pagamentoModel');
+const estacionamentoModel = require('../models/estacionamentoModel');
+const paymentProcessingService = require('../services/estacionamentoPaymentProcessingService');
+const { calcularValorReserva } = require('../utils/pricing');
 const logger = require('../utils/logger');
 const pool = require('../models/db');
 const { AppError, NotFoundError, BadRequestError, AuthorizationError } = require('../utils/AppError');
@@ -517,35 +520,80 @@ const estenderReserva = async (req, res, next) => {
         }
         const novoHorarioFim = new Date(horarioFimAtual.getTime() + duracao_adicional_minutos * 60000);
 
-        // Verificar se o novo horário de término não conflita com outras reservas
-        const isAvailable = await reservaModel.isVagaAvailableForExtension(
-            reserva.vaga_id,
-            horarioFimAtual,
-            novoHorarioFim,
-            reservaId,
-            client
-        );
-
-        if (!isAvailable) {
+        // Conflito com outra reserva ativa da mesma vaga no período extra.
+        // (Antes chamava reservaModel.isVagaAvailableForExtension, que não
+        // existe: toda extensão dava erro 500.)
+        if (await reservaModel.existeConflitoNoPeriodo(reserva.vaga_id, horarioFimAtual, novoHorarioFim, reservaId, client)) {
             throw new AppError("Não é possível estender a reserva. Conflito com outra reserva.", 409);
         }
 
-        // Atualizar o horário de término da reserva
-        const sql = `UPDATE reservas SET data_saida_prevista = $1 WHERE id = $2`;
-        const novoHorarioFimSql = novoHorarioFim.toISOString().slice(0, 19).replace('T', ' ');
-        await client.query(sql, [novoHorarioFimSql, reservaId]);
+        // Valor do tempo extra = preço do período total novo − preço do período atual
+        // (respeita a regra de hora iniciada e o teto da diária).
+        const { rows: estRows } = await client.query(
+            'SELECT id, nome, cidade, preco_hora, preco_dia, valor_hora, valor_diaria FROM estacionamentos WHERE id = $1',
+            [reserva.estacionamento_id]
+        );
+        const estacionamento = estRows[0];
+        const entrada = new Date(reserva.data_entrada_prevista);
+        let valorExtra;
+        try {
+            const totalNovo = calcularValorReserva({ entrada, saida: novoHorarioFim, estacionamento }).centavos;
+            const totalAtual = calcularValorReserva({ entrada, saida: horarioFimAtual, estacionamento }).centavos;
+            valorExtra = Math.max(0, totalNovo - totalAtual) / 100;
+        } catch (e) {
+            throw new BadRequestError(e.message);
+        }
 
-        // Commita a transação
+        // Dentro da hora já paga: estende direto, sem cobrança.
+        if (valorExtra === 0) {
+            await client.query(
+                'UPDATE reservas SET data_saida_prevista = $1, updated_at = NOW() WHERE id = $2',
+                [novoHorarioFim.toISOString(), reservaId]
+            );
+            await client.query('COMMIT');
+            const reservaAtualizada = await reservaModel.findReservaById(reservaId, client);
+            socketService.emitAtualizacaoReserva(reservaAtualizada);
+            logger.info(`Reserva ${reservaId} estendida por ${duracao_adicional_minutos} min sem custo extra. U:${usuario_id}`);
+            return res.json({ status: 'success', message: 'Reserva estendida sem custo adicional.', reserva: reservaAtualizada });
+        }
+
+        // Com custo: gera um PIX do valor extra. A extensão só vale quando o
+        // admin confirmar esse pagamento (pixManualConfirmacaoController).
+        const configPix = await estacionamentoModel.validarConfiguracaoPagamento(reserva.estacionamento_id);
+        if (!configPix.valido) {
+            throw new BadRequestError('Este estacionamento não está configurado para receber PIX.');
+        }
+        const qr = await paymentProcessingService.gerarQrCodePix({
+            chavePix: configPix.config.chave_pix,
+            nomeTitular: configPix.config.nome_titular,
+            valor: valorExtra,
+            descricao: `Extensao reserva ${reservaId}`,
+            cidade: estacionamento.cidade || 'SAO PAULO',
+            txid: `PARKNOWEXT${reservaId}${Date.now()}`,
+        });
+        const pagamentoId = await pagamentoModel.criarPagamento({
+            reserva_id: reservaId,
+            id_usuario: usuario_id,
+            id_estacionamento: reserva.estacionamento_id,
+            metodo: 'pix',
+            valor: valorExtra,
+            status: 'pendente',
+        }, {
+            ...qr,
+            tipo: 'extensao',
+            nova_data_saida: novoHorarioFim.toISOString(),
+            minutos_adicionais: duracao_adicional_minutos,
+        }, client);
+
         await client.query('COMMIT');
 
-        // Buscar a reserva atualizada para retornar
-        const reservaAtualizada = await reservaModel.findReservaById(reservaId, client);
-
-        // Emitir evento de atualização se necessário
-        socketService.emitAtualizacaoReserva(reservaAtualizada);
-
-        logger.info(`Reserva ${reservaId} estendida por ${duracao_adicional_minutos} minutos. U:${usuario_id}`);
-        res.json({ status: 'success', message: 'Reserva estendida com sucesso.', reserva: reservaAtualizada });
+        logger.info(`Extensão solicitada: reserva ${reservaId}, +${duracao_adicional_minutos} min, pagamento ${pagamentoId}. U:${usuario_id}`);
+        res.status(202).json({
+            status: 'pending_payment',
+            message: 'Pague o PIX do tempo extra e envie o comprovante. A extensão vale após a confirmação.',
+            extensao: { reserva_id: Number(reservaId), nova_data_saida: novoHorarioFim.toISOString(), valor: valorExtra },
+            pagamento: { id: pagamentoId, valor: valorExtra, qr_code_text: qr.qr_code_text, qr_code_base64: qr.qr_code_base64 },
+        });
     } catch (error) {
         // Rollback da transação em caso de erro
         await client.query('ROLLBACK');
