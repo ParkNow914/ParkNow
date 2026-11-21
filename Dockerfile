@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.6
 
 # ---- Base image ----
-FROM node:18-alpine AS base
+FROM node:24-alpine AS base
 WORKDIR /app
 ENV NODE_ENV=production \
     NPM_CONFIG_LOGLEVEL=warn \

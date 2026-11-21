@@ -5,14 +5,16 @@ module.exports = {
   port: parseInt(process.env.EMAIL_PORT || '587'),
   secure: false, // true para 465, false para outras portas
   requireTLS: true,
+  // Certificado do servidor SMTP sempre verificado.
   tls: {
-    rejectUnauthorized: false
+    rejectUnauthorized: true
   },
   
   // Autenticação
   auth: {
-    user: process.env.EMAIL_USER || 'parknow914@gmail.com',
-    pass: process.env.EMAIL_PASS || '***REMOVIDO***' // App Password gerado em 16/06/2025
+    // Sem valores padrão: credencial só por variável de ambiente.
+    user: process.env.EMAIL_USER || '',
+    pass: process.env.EMAIL_PASS || ''
   },
   
   // Configurações de pool para melhor desempenho
@@ -27,7 +29,6 @@ module.exports = {
     'X-Priority': '1',
     'X-MSMail-Priority': 'High',
     'Importance': 'high',
-    'Precedence': 'bulk',
     'Auto-Submitted': 'auto-generated',
     'X-Auto-Response-Suppress': 'OOF, AutoReply',
     'X-Mailer': 'ParkNow Mailer',
